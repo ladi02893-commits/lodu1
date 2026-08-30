@@ -195,10 +195,45 @@ class AuthService {
     if (this.currentUser) {
       saveStoredProfile(this.currentUser);
       this.syncUserToRegisteredList(this.currentUser);
+      this.syncProfileToSupabase(this.currentUser);
     }
     this.listeners.forEach((l) => l(this.currentUser));
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('royal_ludo_sync'));
+    }
+  }
+
+  private async syncProfileToSupabase(profile: UserProfile): Promise<void> {
+    if (!isSupabaseConfigured || !profile?.id || profile.id.startsWith('guest_')) return;
+    try {
+      await supabase.from('profiles').upsert(
+        {
+          id: profile.id,
+          username: profile.username || profile.id,
+          display_name: profile.display_name,
+          coins: profile.coins,
+          gems: 50,
+          level: profile.level,
+          xp: profile.xp,
+          avatar_url: profile.avatar_url,
+          avatar_frame: profile.avatar_frame,
+          dice_skin: profile.dice_skin,
+          board_theme: profile.board_theme,
+          token_skin: profile.token_skin,
+          wins: profile.wins,
+          losses: profile.losses,
+          games_played: profile.games_played,
+          total_captures: profile.total_captures,
+          best_win_streak: profile.best_win_streak,
+          current_win_streak: profile.current_win_streak,
+          is_admin: profile.is_admin,
+          is_banned: profile.is_banned,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'id' }
+      );
+    } catch (e) {
+      console.warn('Supabase profile background sync note:', e);
     }
   }
 

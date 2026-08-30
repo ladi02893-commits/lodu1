@@ -166,8 +166,8 @@ export const GameArenaView: React.FC<GameArenaViewProps> = ({ onExit }) => {
   const userSeat = userPlayer?.seat ?? (mode.startsWith('local') ? currentSeat : players[0]?.seat ?? 0);
   const isMyTurn = mode.startsWith('local') || currentSeat === userSeat;
   const timeLeft = Math.max(0, Math.ceil((turn.expiresAt - Date.now()) / 1000));
-  const betAmount = settings?.betAmount || 0;
-  const totalPrizePool = betAmount * Math.max(2, players.length);
+  const betAmount = gameState.betAmount || settings?.betAmount || 0;
+  const totalPrizePool = gameState.totalPot || (betAmount * Math.max(2, players.length));
 
   const isTwoPlayerMode = players.length === 2;
   const player1 = players[0];

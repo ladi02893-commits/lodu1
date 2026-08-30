@@ -43,7 +43,7 @@ async function runDirectMigration() {
         await client.query(`
           DO $$
           BEGIN
-            ALTER PUBLICATION supabase_realtime ADD TABLE public.rooms, public.room_players, public.matches, public.match_players, public.game_moves, public.transactions, public.profiles, public.friends, public.friend_requests;
+            ALTER PUBLICATION supabase_realtime ADD TABLE public.rooms, public.room_players, public.matches, public.match_players, public.game_moves, public.transactions, public.profiles, public.friends, public.friend_requests, public.deposit_requests;
           EXCEPTION WHEN OTHERS THEN
             NULL;
           END $$;
@@ -68,7 +68,7 @@ async function runDirectMigration() {
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     // Verify connection to tables
-    const tables = ['profiles', 'rooms', 'room_players', 'matches', 'match_players', 'game_moves', 'transactions', 'friends', 'friend_requests'];
+    const tables = ['profiles', 'rooms', 'room_players', 'matches', 'match_players', 'game_moves', 'transactions', 'friends', 'friend_requests', 'deposit_requests'];
     let allOk = true;
 
     for (const table of tables) {
