@@ -335,6 +335,7 @@ export function rollDice(gameState: GameState, forcedValue?: number): GameState 
         rolledAt: now,
         canRoll: true,
         rollsThisTurn: 0,
+        rollSequence: (gameState.dice.rollSequence || 0) + 1,
       },
       moveNumber: gameState.moveNumber + 1,
       lastAction: {
@@ -371,6 +372,7 @@ export function rollDice(gameState: GameState, forcedValue?: number): GameState 
           rolledAt: now,
           canRoll: true,
           rollsThisTurn: gameState.dice.rollsThisTurn + 1,
+          rollSequence: (gameState.dice.rollSequence || 0) + 1,
         },
         moveNumber: gameState.moveNumber + 1,
         lastAction: {
@@ -403,6 +405,7 @@ export function rollDice(gameState: GameState, forcedValue?: number): GameState 
         rolledAt: now,
         canRoll: true,
         rollsThisTurn: 0,
+        rollSequence: (gameState.dice.rollSequence || 0) + 1,
       },
       moveNumber: gameState.moveNumber + 1,
       lastAction: {
@@ -431,6 +434,7 @@ export function rollDice(gameState: GameState, forcedValue?: number): GameState 
       rolledAt: now,
       canRoll: false,
       rollsThisTurn: gameState.dice.rollsThisTurn + 1,
+      rollSequence: (gameState.dice.rollSequence || 0) + 1,
     },
     moveNumber: gameState.moveNumber + 1,
     lastAction: {

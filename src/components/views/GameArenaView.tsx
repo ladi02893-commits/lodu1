@@ -610,6 +610,7 @@ export const GameArenaView: React.FC<GameArenaViewProps> = ({ onExit }) => {
                 value={dice.value}
                 canRoll={dice.canRoll && isMyTurn && !currentPlayer.isBot}
                 color={currentPlayer.color}
+                rollSequence={dice.rollSequence || 0}
                 onRoll={handleRoll}
                 disabled={!isMyTurn || currentPlayer.isBot}
               />

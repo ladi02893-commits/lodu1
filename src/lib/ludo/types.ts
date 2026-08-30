@@ -33,6 +33,7 @@ export interface DiceState {
   rolledAt: number | null;
   canRoll: boolean;
   rollsThisTurn: number;
+  rollSequence?: number;
 }
 
 export interface TurnState {
