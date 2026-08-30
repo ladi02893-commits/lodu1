@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-royal: 'Cinzel', serif;
+    --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #030712;
+    color: #f8fafc;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, .font-royal {
+    font-family: var(--font-royal);
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.6);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(217, 119, 6, 0.4);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(217, 119, 6, 0.8);
+}
+
+/* 3D Dice Perspective */
+.perspective-dice {
+  perspective: 1000px;
+}
+
+.transform-style-3d {
+  transform-style: preserve-3d;
+}
+
+/* Custom Pulse Animations */
+@keyframes royal-glow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(234, 179, 8, 0.4), inset 0 0 10px rgba(234, 179, 8, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(234, 179, 8, 0.8), inset 0 0 15px rgba(234, 179, 8, 0.4);
+  }
+}
+
+.animate-royal-glow {
+  animation: royal-glow 2s infinite ease-in-out;
+}
+
+@keyframes token-bounce {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-8px) scale(1.08);
+  }
+}
+
+.animate-token-bounce {
+  animation: token-bounce 1.2s infinite ease-in-out;
+}
+

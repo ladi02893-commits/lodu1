@@ -1,0 +1,339 @@
+import React from 'react';
+import { Crown, Shield, Sparkles, Star } from 'lucide-react';
+import { COLOR_CONFIG } from '../../lib/ludo/constants';
+import { getTokenCoordinates } from '../../lib/ludo/board';
+import { canMoveToken, getLegalMoves } from '../../lib/ludo/engine';
+import { GameState, PlayerColor } from '../../lib/ludo/types';
+import { BoardCell } from './BoardCell';
+import { Token } from './Token';
+
+interface LudoBoardProps {
+  gameState: GameState;
+  onMoveToken: (tokenId: number) => void;
+  currentUserPlayerSeat?: number;
+}
+
+export const LudoBoard: React.FC<LudoBoardProps> = ({
+  gameState,
+  onMoveToken,
+  currentUserPlayerSeat,
+}) => {
+  const { players, turn, dice, settings } = gameState;
+  const currentSeat = turn.currentSeat;
+  const currentPlayer = players.find((p) => p.seat === currentSeat);
+  const isMyTurn = currentUserPlayerSeat === undefined || currentUserPlayerSeat === currentSeat;
+
+  // Track legal moves for current turn
+  const legalMoves = dice.value !== null ? getLegalMoves(gameState, currentSeat, dice.value) : [];
+  const movableTokenIds = isMyTurn ? legalMoves.map((m) => m.tokenId) : [];
+
+  // Group tokens that share the same grid coordinates to render stacks nicely
+  interface PositionedToken {
+    seat: number;
+    tokenId: number;
+    color: PlayerColor;
+    row: number;
+    col: number;
+    isMovable: boolean;
+    isHome: boolean;
+    stackCount?: number;
+  }
+
+  const activeTokensMap = new Map<string, PositionedToken[]>();
+
+  players.forEach((player) => {
+    player.tokens.forEach((token) => {
+      if (token.status === 'base') return;
+
+      const coord = getTokenCoordinates(player.seat, token.id, token.progress);
+      const key = `${coord.row}-${coord.col}`;
+      const isMovable = player.seat === currentSeat && movableTokenIds.includes(token.id);
+
+      const entry: PositionedToken = {
+        seat: player.seat,
+        tokenId: token.id,
+        color: player.color,
+        row: coord.row,
+        col: coord.col,
+        isMovable,
+        isHome: token.status === 'home',
+      };
+
+      if (!activeTokensMap.has(key)) {
+        activeTokensMap.set(key, []);
+      }
+      activeTokensMap.get(key)!.push(entry);
+    });
+  });
+
+  // Flatten active tokens and assign stack count metadata
+  const flattenedActiveTokens: PositionedToken[] = [];
+  activeTokensMap.forEach((tokenGroup) => {
+    const count = tokenGroup.length;
+    // Prefer showing the movable token first if any
+    const sorted = [...tokenGroup].sort((a, b) => (b.isMovable ? 1 : 0) - (a.isMovable ? 1 : 0));
+    sorted.forEach((t, idx) => {
+      flattenedActiveTokens.push({
+        ...t,
+        stackCount: idx === 0 && count > 1 ? count : 1,
+      });
+    });
+  });
+
+  // Render 6x6 Corner Base Camp
+  const renderCamp = (seat: number, color: PlayerColor) => {
+    const config = COLOR_CONFIG[color];
+    const player = players.find((p) => p.seat === seat);
+    const tokens = player?.tokens || [];
+    const isTurn = currentSeat === seat;
+
+    return (
+      <div
+        id={`camp-${color}`}
+        className={`
+          relative w-full h-full rounded-2xl p-2 sm:p-3
+          bg-gradient-to-br ${config.campBg}
+          border-2 ${config.campBorder} shadow-2xl
+          flex flex-col items-center justify-between
+          transition-all duration-300 overflow-hidden
+          ${isTurn ? 'ring-2 ring-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.5)]' : ''}
+        `}
+      >
+        {/* Subtle Watermark Corner Emblem */}
+        <div className="absolute -bottom-4 -right-4 opacity-10 pointer-events-none">
+          <Crown className="w-24 h-24" style={{ color: config.primary }} />
+        </div>
+
+        {/* Camp Header Bar */}
+        <div className="w-full flex items-center justify-between px-1 z-10">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Crown className="w-3.5 h-3.5 flex-shrink-0" style={{ color: config.primary }} />
+            <span className="text-[10px] sm:text-xs font-black text-amber-200 tracking-wider uppercase truncate max-w-[80px]">
+              {player ? player.username : config.name}
+            </span>
+          </div>
+          <span className="text-[9px] px-2 py-0.5 rounded-full bg-slate-950/80 text-amber-300 font-bold border border-amber-500/30 shadow">
+            {tokens.filter((t) => t.status === 'home').length}/4 Goal
+          </span>
+        </div>
+
+        {/* 4 Base Pedestals (2x2 Grid) */}
+        <div className="w-full aspect-square max-w-[120px] rounded-2xl bg-slate-950/90 border border-amber-400/40 p-2 sm:p-2.5 grid grid-cols-2 grid-rows-2 gap-2 place-items-center z-10 shadow-inner">
+          {[0, 1, 2, 3].map((tId) => {
+            const token = tokens[tId];
+            const inBase = token && token.status === 'base';
+            const isMovable = isTurn && movableTokenIds.includes(tId);
+
+            return (
+              <div
+                key={tId}
+                className="w-7 h-7 sm:w-9.5 sm:h-9.5 rounded-full bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-700/80 flex items-center justify-center relative shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)]"
+              >
+                {/* Pedestal Ring */}
+                <div className="absolute inset-1 rounded-full border border-dashed border-amber-500/20" />
+                {inBase && (
+                  <Token
+                    id={tId}
+                    color={color}
+                    isMovable={isMovable}
+                    onClick={() => onMoveToken(tId)}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Base Footer Indicator */}
+        <div className="text-[9px] text-amber-300/80 font-bold tracking-widest uppercase z-10">
+          {isTurn && dice.value === 6 ? '👑 ROLL 6 TO DEPLOY' : 'BASE FORTRESS'}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="relative w-full aspect-square max-w-[560px] mx-auto p-2 sm:p-3.5 rounded-3xl bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900 border-2 border-amber-500/50 shadow-[0_12px_36px_rgba(0,0,0,0.9),0_0_20px_rgba(245,158,11,0.15)]">
+      {/* 15x15 Grid Arena Frame */}
+      <div className="relative w-full h-full grid grid-cols-15 grid-rows-15 gap-[1px] bg-slate-950 rounded-2xl overflow-hidden border border-amber-400/30 shadow-2xl">
+        {/* Top Left: Red Camp (rows 0..5, cols 0..5) */}
+        <div className="col-span-6 row-span-6 p-1">
+          {renderCamp(0, 'red')}
+        </div>
+
+        {/* Top Center Track (rows 0..5, cols 6..8) */}
+        <div className="col-span-3 row-span-6 grid grid-cols-3 grid-rows-6 gap-[1px]">
+          {/* Row 0 */}
+          <BoardCell row={0} col={6} />
+          <BoardCell row={0} col={7} />
+          <BoardCell row={0} col={8} />
+
+          {/* Row 1 */}
+          <BoardCell row={1} col={6} />
+          <BoardCell row={1} col={7} homeColor="green" />
+          <BoardCell row={1} col={8} startColor="green" />
+
+          {/* Row 2 */}
+          <BoardCell row={2} col={6} isSafe safeType="star" />
+          <BoardCell row={2} col={7} homeColor="green" />
+          <BoardCell row={2} col={8} />
+
+          {/* Row 3 */}
+          <BoardCell row={3} col={6} />
+          <BoardCell row={3} col={7} homeColor="green" />
+          <BoardCell row={3} col={8} />
+
+          {/* Row 4 */}
+          <BoardCell row={4} col={6} />
+          <BoardCell row={4} col={7} homeColor="green" />
+          <BoardCell row={4} col={8} />
+
+          {/* Row 5 */}
+          <BoardCell row={5} col={6} />
+          <BoardCell row={5} col={7} homeColor="green" />
+          <BoardCell row={5} col={8} />
+        </div>
+
+        {/* Top Right: Green Camp (rows 0..5, cols 9..14) */}
+        <div className="col-span-6 row-span-6 p-1">
+          {renderCamp(1, 'green')}
+        </div>
+
+        {/* Middle Left Track (rows 6..8, cols 0..5) */}
+        <div className="col-span-6 row-span-3 grid grid-cols-6 grid-rows-3 gap-[1px]">
+          {/* Row 6 */}
+          <BoardCell row={6} col={0} />
+          <BoardCell row={6} col={1} startColor="red" />
+          <BoardCell row={6} col={2} />
+          <BoardCell row={6} col={3} />
+          <BoardCell row={6} col={4} />
+          <BoardCell row={6} col={5} />
+
+          {/* Row 7 */}
+          <BoardCell row={7} col={0} />
+          <BoardCell row={7} col={1} homeColor="red" />
+          <BoardCell row={7} col={2} homeColor="red" />
+          <BoardCell row={7} col={3} homeColor="red" />
+          <BoardCell row={7} col={4} homeColor="red" />
+          <BoardCell row={7} col={5} homeColor="red" />
+
+          {/* Row 8 */}
+          <BoardCell row={8} col={0} />
+          <BoardCell row={8} col={1} />
+          <BoardCell row={8} col={2} isSafe safeType="star" />
+          <BoardCell row={8} col={3} />
+          <BoardCell row={8} col={4} />
+          <BoardCell row={8} col={5} />
+        </div>
+
+        {/* Center Victory Sanctuary (rows 6..8, cols 6..8) */}
+        <div className="col-span-3 row-span-3">
+          <BoardCell row={7} col={7} isGoal />
+        </div>
+
+        {/* Middle Right Track (rows 6..8, cols 9..14) */}
+        <div className="col-span-6 row-span-3 grid grid-cols-6 grid-rows-3 gap-[1px]">
+          {/* Row 6 */}
+          <BoardCell row={6} col={9} />
+          <BoardCell row={6} col={10} />
+          <BoardCell row={6} col={11} />
+          <BoardCell row={6} col={12} isSafe safeType="star" />
+          <BoardCell row={6} col={13} />
+          <BoardCell row={6} col={14} />
+
+          {/* Row 7 */}
+          <BoardCell row={7} col={9} homeColor="yellow" />
+          <BoardCell row={7} col={10} homeColor="yellow" />
+          <BoardCell row={7} col={11} homeColor="yellow" />
+          <BoardCell row={7} col={12} homeColor="yellow" />
+          <BoardCell row={7} col={13} homeColor="yellow" />
+          <BoardCell row={7} col={14} />
+
+          {/* Row 8 */}
+          <BoardCell row={8} col={9} />
+          <BoardCell row={8} col={10} />
+          <BoardCell row={8} col={11} />
+          <BoardCell row={8} col={12} />
+          <BoardCell row={8} col={13} startColor="yellow" />
+          <BoardCell row={8} col={14} />
+        </div>
+
+        {/* Bottom Left: Blue Camp (rows 9..14, cols 0..5) */}
+        <div className="col-span-6 row-span-6 p-1">
+          {renderCamp(3, 'blue')}
+        </div>
+
+        {/* Bottom Center Track (rows 9..14, cols 6..8) */}
+        <div className="col-span-3 row-span-6 grid grid-cols-3 grid-rows-6 gap-[1px]">
+          {/* Row 9 */}
+          <BoardCell row={9} col={6} />
+          <BoardCell row={9} col={7} homeColor="blue" />
+          <BoardCell row={9} col={8} />
+
+          {/* Row 10 */}
+          <BoardCell row={10} col={6} />
+          <BoardCell row={10} col={7} homeColor="blue" />
+          <BoardCell row={10} col={8} />
+
+          {/* Row 11 */}
+          <BoardCell row={11} col={6} />
+          <BoardCell row={11} col={7} homeColor="blue" />
+          <BoardCell row={11} col={8} />
+
+          {/* Row 12 */}
+          <BoardCell row={12} col={6} />
+          <BoardCell row={12} col={7} homeColor="blue" />
+          <BoardCell row={12} col={8} isSafe safeType="star" />
+
+          {/* Row 13 */}
+          <BoardCell row={13} col={6} startColor="blue" />
+          <BoardCell row={13} col={7} homeColor="blue" />
+          <BoardCell row={13} col={8} />
+
+          {/* Row 14 */}
+          <BoardCell row={14} col={6} />
+          <BoardCell row={14} col={7} />
+          <BoardCell row={14} col={8} />
+        </div>
+
+        {/* Bottom Right: Yellow Camp (rows 9..14, cols 9..14) */}
+        <div className="col-span-6 row-span-6 p-1">
+          {renderCamp(2, 'yellow')}
+        </div>
+
+        {/* Active Tokens Overlay (Absolute percentage positioning on 15x15 board) */}
+        <div className="absolute inset-0 pointer-events-none">
+          {flattenedActiveTokens.map((t) => {
+            // Calculate percentage position on 15x15 grid
+            const topPct = (t.row / 15) * 100;
+            const leftPct = (t.col / 15) * 100;
+            const cellSizePct = 100 / 15;
+
+            return (
+              <div
+                key={`${t.seat}-${t.tokenId}`}
+                className="absolute pointer-events-auto flex items-center justify-center transition-all duration-300 ease-out"
+                style={{
+                  top: `${topPct}%`,
+                  left: `${leftPct}%`,
+                  width: `${cellSizePct}%`,
+                  height: `${cellSizePct}%`,
+                  zIndex: t.isMovable ? 45 : 25,
+                }}
+              >
+                <Token
+                  id={t.tokenId}
+                  color={t.color}
+                  isMovable={t.isMovable}
+                  isHome={t.isHome}
+                  stackCount={t.stackCount}
+                  onClick={() => onMoveToken(t.tokenId)}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};

@@ -1,0 +1,6 @@
+{
+  "name": "Royal Ludo Online",
+  "description": "A premier server-authoritative multiplayer Ludo game featuring real-time online play, private rooms, smart AI bots, local play, quests, rank leaderboards, and custom royal aesthetics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
