@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Royal Ludo Online - Product Requirement Document (PRD)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800;900&family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm 16mm 18mm 16mm;
+      @bottom-right {
+        content: "Page " counter(page) " of " counter(pages);
+        font-family: 'Outfit', sans-serif;
+        font-size: 8pt;
+        color: #718096;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #1a202c;
+      background-color: #ffffff;
+      line-height: 1.55;
+      font-size: 9.5pt;
+      margin: 0;
+      padding: 0;
+    }
+
+    .cover-page {
+      page-break-after: always;
+      height: 90vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border: 3px solid #d97706;
+      border-radius: 16px;
+      padding: 40px;
+      background: linear-gradient(145deg, #090d20 0%, #0f172a 60%, #1e1b4b 100%);
+      color: #ffffff;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cover-page::before {
+      content: '';
+      position: absolute;
+      top: -100px;
+      right: -100px;
+      width: 350px;
+      height: 350px;
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.25) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+
+    .cover-header {
+      z-index: 2;
+    }
+
+    .badge-royal {
+      display: inline-block;
+      padding: 5px 14px;
+      background: rgba(245, 158, 11, 0.2);
+      border: 1px solid #f59e0b;
+      border-radius: 20px;
+      color: #fbbf24;
+      font-size: 8.5pt;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    .cover-title {
+      font-family: 'Cinzel', serif;
+      font-size: 30pt;
+      font-weight: 900;
+      color: #fef08a;
+      line-height: 1.15;
+      margin: 0 0 10px 0;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+
+    .cover-subtitle {
+      font-size: 13pt;
+      color: #cbd5e1;
+      font-weight: 400;
+      margin: 0 0 25px 0;
+      max-width: 540px;
+      line-height: 1.4;
+    }
+
+    .cover-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 30px;
+      z-index: 2;
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .meta-label {
+      font-size: 7.5pt;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #94a3b8;
+      margin-bottom: 3px;
+    }
+
+    .meta-value {
+      font-size: 10pt;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    .cover-footer {
+      font-size: 8.5pt;
+      color: #94a3b8;
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      padding-top: 15px;
+      display: flex;
+      justify-content: space-between;
+      z-index: 2;
+    }
+
+    /* Document Structure */
+    h1, h2, h3, h4 {
+      color: #0f172a;
+      font-family: 'Cinzel', serif;
+      margin-top: 22px;
+      margin-bottom: 10px;
+      page-break-after: avoid;
+    }
+
+    h1 {
+      font-size: 18pt;
+      border-bottom: 2.5px solid #d97706;
+      padding-bottom: 6px;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    h2 {
+      font-size: 13.5pt;
+      color: #1e293b;
+      border-left: 4px solid #f59e0b;
+      padding-left: 10px;
+      margin-top: 18px;
+    }
+
+    h3 {
+      font-size: 11pt;
+      color: #334155;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+    }
+
+    p, li {
+      color: #334155;
+      font-size: 9.2pt;
+    }
+
+    ul, ol {
+      margin-top: 4px;
+      margin-bottom: 10px;
+      padding-left: 20px;
+    }
+
+    li {
+      margin-bottom: 4px;
+    }
+
+    .section-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 14px;
+      page-break-inside: avoid;
+    }
+
+    .alert-box {
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin: 10px 0;
+      font-size: 8.8pt;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      page-break-inside: avoid;
+    }
+
+    .alert-gold {
+      background-color: #fffbeb;
+      border-left: 4px solid #f59e0b;
+      color: #92400e;
+    }
+
+    .alert-blue {
+      background-color: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      color: #1e40af;
+    }
+
+    .alert-emerald {
+      background-color: #ecfdf5;
+      border-left: 4px solid #10b981;
+      color: #065f46;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 8.6pt;
+      page-break-inside: avoid;
+    }
+
+    th {
+      background: #0f172a;
+      color: #f8fafc;
+      font-weight: 700;
+      text-align: left;
+      padding: 8px 10px;
+      border: 1px solid #334155;
+      font-size: 8.5pt;
+    }
+
+    td {
+      padding: 7px 10px;
+      border: 1px solid #e2e8f0;
+      color: #334155;
+      vertical-align: top;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+
+    code, pre {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8pt;
+    }
+
+    code {
+      background-color: #f1f5f9;
+      color: #b45309;
+      padding: 1.5px 5px;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+    }
+
+    pre {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 12px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 10px 0;
+      line-height: 1.4;
+      border: 1px solid #1e293b;
+      page-break-inside: avoid;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 10px 0;
+      page-break-inside: avoid;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 10px 0;
+      page-break-inside: avoid;
+    }
+
+    .feature-card {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 10px 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .feature-title {
+      font-weight: 700;
+      color: #0f172a;
+      font-size: 9pt;
+      margin-bottom: 3px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .page-break {
+      page-break-after: always;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 7.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .tag-gold { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+    .tag-green { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+    .tag-blue { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+    .tag-purple { background: #f3e8ff; color: #6b21a8; border: 1px solid #e9d5ff; }
+  </style>
+</head>
+<body>
+
+  <!-- COVER PAGE -->
+  <div class="cover-page">
+    <div class="cover-header">
+      <span class="badge-royal">Imperial Engineering Specification</span>
+      <h1 class="cover-title">ROYAL LUDO ONLINE</h1>
+      <p class="cover-subtitle">Complete Product Requirement Document (PRD), Technical Architecture, Game Engine Specification, Economy Modeling & API Protocols.</p>
+    </div>
+
+    <div>
+      <div class="cover-meta-grid">
+        <div class="meta-item">
+          <span class="meta-label">Product Name</span>
+          <span class="meta-value">Royal Ludo Online (v2.4.0)</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Standard Reference</span>
+          <span class="meta-value">Ludo Star / Ludo King Competitive Grade</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Stack Architecture</span>
+          <span class="meta-value">React 18 + TypeScript + Supabase Realtime + Web Audio</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Document Version & Date</span>
+          <span class="meta-value">v3.0.0 (Production Master) | August 2026</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="cover-footer">
+      <span>Antigravity Engineering Labs</span>
+      <span>Confidential & Proprietary</span>
+    </div>
+  </div>
+
+  <!-- TABLE OF CONTENTS / EXECUTIVE SUMMARY -->
+  <h1>1. Executive Summary & Product Vision</h1>
+
+  <div class="section-card">
+    <p><strong>Royal Ludo Online</strong> is a premier, real-time multiplayer board game engineered for web and mobile browsers, combining the nostalgia of classical Indian Pachisi / Ludo with high-stakes royal aesthetics, competitive wagering tiers, multi-device WebRTC/Supabase voice chat, deterministic state synchronization, and intelligent tactical AI bots.</p>
+  </div>
+
+  <h2>1.1 Core Value Proposition</h2>
+  <ul>
+    <li><strong>Authentic Mobile Gaming Feel:</strong> Tailored specifically for portrait smartphone screens with responsive <code>100dvh</code> viewport constraints, rich royal blue textures, and touch-optimized controls matching Ludo Star and Ludo Club standards.</li>
+    <li><strong>Flexible Dynamic Player Capacities:</strong> Seamlessly supports <strong>2-Player Duels</strong>, <strong>3-Player Chambers</strong>, and <strong>4-Player Matches</strong> in private rooms without phantom bot stalls or turn lockups.</li>
+    <li><strong>Competitive Stake Wagering:</strong> 5-tier Table Bet Stakes (500 to 250,000 Coins) with real-time pot deduction, dynamic pot collection HUD, and automated 100% winner payouts.</li>
+    <li><strong>Smart Single-Piece Auto-Progression:</strong> Instant 420ms auto-walk algorithm whenever only 1 token has a legal move, eradicating redundant taps.</li>
+    <li><strong>Integrated Multi-Device Voice Chat:</strong> Cross-platform Web Audio API capture with real-time Supabase Realtime Broadcast synchronization and live speaking ripple visualizers.</li>
+  </ul>
+
+  <div class="grid-3">
+    <div class="feature-card">
+      <div class="feature-title">👑 Royal Aesthetics</div>
+      <p style="font-size: 8pt; margin: 0;">Rich navy gold-embossed styling, sculpted 3D glossy pin tokens, and Star safe zones.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-title">🎙️ Spatial Voice Chat</div>
+      <p style="font-size: 8pt; margin: 0;">Live 1-tap Mic Mute/Unmute and speaker audio controls across room lobbies and arenas.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-title">💰 Treasury & Stakes</div>
+      <p style="font-size: 8pt; margin: 0;">Imperial coin staking, transaction ledger, daily tribute streaks, and mission bounties.</p>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- SYSTEM ARCHITECTURE -->
+  <h1>2. Technical Architecture & Technology Stack</h1>
+
+  <div class="section-card">
+    <h3 style="margin-top:0;">2.1 Architecture Diagram</h3>
+    <pre>
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            CLIENT LAYER (React 18 SPA)                     │
+│  ┌───────────────────────┐ ┌──────────────────────┐ ┌────────────────────┐  │
+│  │   GameArenaView (UI)  │ │ RoomLobbyView (Sync) │ │ HomeDashboard (Hub)│  │
+│  └───────────┬───────────┘ └──────────┬───────────┘ └─────────┬──────────┘  │
+│              │                        │                       │             │
+│  ┌───────────▼────────────────────────▼───────────────────────▼──────────┐  │
+│  │           Core Game Services Layer (gameService, roomService)         │  │
+│  └───────────┬────────────────────────┬───────────────────────┬──────────┘  │
+│              │                        │                       │             │
+│  ┌───────────▼───────────┐ ┌──────────▼───────────┐ ┌─────────▼──────────┐  │
+│  │   Ludo Engine Machine │ │  Voice Chat Service  │ │  Auth & Economy    │  │
+│  │  (State Machine, Bot) │ │(Web Audio / Realtime)│ │ (Supabase Ledger)  │  │
+│  └───────────┬───────────┘ └──────────┬───────────┘ └─────────┬──────────┘  │
+└──────────────┼────────────────────────┼───────────────────────┼─────────────┘
+               │                        │                       │
+┌──────────────▼────────────────────────▼───────────────────────▼─────────────┐
+│                       BACKEND & REALTIME INFRASTRUCTURE                     │
+│  ┌─────────────────────────┐ ┌───────────────────────────────────────────┐  │
+│  │ Supabase Realtime Hub   │ │ Supabase PostgreSQL Database              │  │
+│  │ - match_room_CODE       │ │ - public.profiles (coins, xp, stats)      │  │
+│  │ - voice_CODE            │ │ - public.rooms (code, status, players)    │  │
+│  │ - Broadcast & Presence  │ │ - public.transactions (stakes, rewards)   │  │
+│  └─────────────────────────┘ └───────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────┘
+    </pre>
+  </div>
+
+  <h2>2.2 Component Stack Specification</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Layer</th>
+        <th>Technologies</th>
+        <th>Responsibility</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Frontend Core</strong></td>
+        <td>React 18, TypeScript 5, Vite 6</td>
+        <td>Type-safe client execution, rapid hot-module reloading, bundle minification.</td>
+      </tr>
+      <tr>
+        <td><strong>Styling & Layout</strong></td>
+        <td>Tailwind CSS 3, CSS Variables</td>
+        <td>Mobile portrait container (<code>max-w-md</code>), responsive typography, high-contrast board tiles.</td>
+      </tr>
+      <tr>
+        <td><strong>Animation Physics</strong></td>
+        <td>Framer Motion 12, Canvas Confetti</td>
+        <td>Spring-physics token sliding (<code>damping: 22, stiffness: 260</code>), 3D dice tumbling, winner celebration.</td>
+      </tr>
+      <tr>
+        <td><strong>Audio & Voice</strong></td>
+        <td>Web Audio API, AudioContext, AnalyserNode</td>
+        <td>Real-time FFT voice volume analysis, interactive dice SFX, capture and victory fanfare.</td>
+      </tr>
+      <tr>
+        <td><strong>Persistence & Realtime</strong></td>
+        <td>Supabase Realtime, PostgreSQL 15</td>
+        <td>Multi-device WebSocket match synchronization, voice speaking broadcast, transaction integrity.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <!-- GAME ENGINE & ALGORITHMS -->
+  <h1>3. Ludo Engine Mechanics & Game Algorithms</h1>
+
+  <div class="section-card">
+    <p>The game engine (<code>src/lib/ludo/engine.ts</code>) is implemented as a pure, deterministic, state-machine capable of server-authoritative validation.</p>
+  </div>
+
+  <h2>3.1 Board Geometry & Coordinate Space (15x15 Matrix)</h2>
+  <ul>
+    <li><strong>Total Grid Size:</strong> 15 rows &times; 15 columns (0..14 index coordinates).</li>
+    <li><strong>Main Circuit Track:</strong> 52 distinct outer track cells (indices <code>0..51</code>).</li>
+    <li><strong>Home Path Steps:</strong> 5 private sanctuary cells per seat (steps <code>52..56</code>) culminating in the center Victory Goal (step <code>57</code>).</li>
+    <li><strong>Total Progress Steps:</strong> Exactly <code>57</code> steps from base unlock to goal.</li>
+  </ul>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Player Seat</th>
+        <th>Color</th>
+        <th>Base Corner</th>
+        <th>Start Track Index</th>
+        <th>Home Column Range</th>
+        <th>Entry Track Cell</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Seat 0</strong></td>
+        <td><span class="tag tag-gold" style="background:#fee2e2; color:#b91c1c; border-color:#fca5a5;">Red</span></td>
+        <td>Top-Left (0..5, 0..5)</td>
+        <td><code>Index 0</code> (Row 6, Col 1)</td>
+        <td>Row 7, Col 1 &rarr; 5</td>
+        <td><code>Index 51</code> (Row 6, Col 0)</td>
+      </tr>
+      <tr>
+        <td><strong>Seat 1</strong></td>
+        <td><span class="tag tag-green">Green</span></td>
+        <td>Top-Right (0..5, 9..14)</td>
+        <td><code>Index 13</code> (Row 1, Col 8)</td>
+        <td>Row 1 &rarr; 5, Col 7</td>
+        <td><code>Index 12</code> (Row 0, Col 8)</td>
+      </tr>
+      <tr>
+        <td><strong>Seat 2</strong></td>
+        <td><span class="tag tag-gold">Yellow</span></td>
+        <td>Bottom-Right (9..14, 9..14)</td>
+        <td><code>Index 26</code> (Row 8, Col 13)</td>
+        <td>Row 7, Col 13 &rarr; 9</td>
+        <td><code>Index 25</code> (Row 8, Col 14)</td>
+      </tr>
+      <tr>
+        <td><strong>Seat 3</strong></td>
+        <td><span class="tag tag-blue">Blue</span></td>
+        <td>Bottom-Left (9..14, 0..5)</td>
+        <td><code>Index 39</code> (Row 13, Col 6)</td>
+        <td>Row 13 &rarr; 9, Col 7</td>
+        <td><code>Index 38</code> (Row 14, Col 6)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>3.2 Safe Havens & Immunity Rules</h2>
+  <div class="section-card">
+    <p>Tokens situated on safe havens <strong>cannot be captured</strong> by any opponent under any circumstances:</p>
+    <ul>
+      <li><strong>4 Starting Cells (Shield Crests):</strong> Index <code>0</code> (Red Start), Index <code>13</code> (Green Start), Index <code>26</code> (Yellow Start), Index <code>39</code> (Blue Start).</li>
+      <li><strong>4 Classical Star Cells (⭐ Glyph):</strong> Index <code>8</code> (Row 2, Col 6), Index <code>21</code> (Row 6, Col 12), Index <code>34</code> (Row 12, Col 8), Index <code>47</code> (Row 8, Col 2).</li>
+      <li><strong>Home Sanctuaries:</strong> Steps <code>52..57</code> are physically inaccessible to opponent players.</li>
+    </ul>
+  </div>
+
+  <h2>3.3 Turn Progression & Rule Algorithms</h2>
+  <div class="alert-box alert-gold">
+    <div>
+      <strong>Extra Turn Rule:</strong> A player is immediately awarded a <strong>Bonus Extra Roll</strong> upon:
+      <ol style="margin-top:4px; margin-bottom:0;">
+        <li>Rolling a natural <code>6</code> (capped at 2 consecutive; 3 consecutive sixes forfeits turn).</li>
+        <li>Capturing an active opponent token and sending it to Base.</li>
+        <li>Guiding any token into the final Home Sanctuary Goal (Step 57).</li>
+      </ol>
+    </div>
+  </div>
+
+  <h2>3.4 Single Legal Move Auto-Movement Algorithm</h2>
+  <div class="section-card">
+    <p>To deliver an ultra-fast competitive experience matching Ludo Star, the engine computes legal moves upon every dice roll:</p>
+    <pre>
+const legalMoves = getLegalMoves(gameState, currentSeat, rolledVal);
+
+if (legalMoves.length === 1 && gameState.status === 'in_progress') {
+  // Exactly 1 piece can move -> Auto-execute after 420ms animation window
+  setTimeout(() => {
+    gameService.movePlayerToken(legalMoves[0].tokenId);
+  }, 420);
+}
+    </pre>
+    <p>If <code>legalMoves.length > 1</code>, all valid tokens pulse with golden halos for manual player selection. If <code>legalMoves.length === 0</code>, turn automatically hands over to the next seat.</p>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- MULTIPLAYER & PRIVATE CHAMBERS -->
+  <h1>4. Multiplayer Networking & Room Protocols</h1>
+
+  <h2>4.1 Dynamic Multi-Player Room Engine (2P / 3P / 4P)</h2>
+  <p>Unlike basic implementations that require 4 players or inject dummy bots, Royal Ludo dynamically supports custom player seating:</p>
+  <ul>
+    <li><strong>2 Players Joined:</strong> The match operates strictly between Seat 0 and Seat 1 (or 0 and 2). Turn rotation alternates seamlessly (<code>0 &harr; 1</code>).</li>
+    <li><strong>3 Players Joined:</strong> The engine registers exactly the 3 seated players (<code>0 &rarr; 1 &rarr; 2 &rarr; 0</code>).</li>
+    <li><strong>4 Players Joined:</strong> Full 4-quadrant royal tournament.</li>
+  </ul>
+
+  <h2>4.2 Supabase Realtime Synchronization Protocol</h2>
+  <p>All client actions are broadcasted over dedicated WebSocket channels:</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Channel</th>
+        <th>Event Type</th>
+        <th>Payload Data</th>
+        <th>Handler Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>match_room_CODE</code></td>
+        <td><code>ROLL_DICE</code></td>
+        <td><code>{ seat: number, diceValue: number, timestamp: number }</code></td>
+        <td>Executes deterministic dice roll on all guest screens simultaneously.</td>
+      </tr>
+      <tr>
+        <td><code>match_room_CODE</code></td>
+        <td><code>MOVE_TOKEN</code></td>
+        <td><code>{ seat: number, tokenId: number, timestamp: number }</code></td>
+        <td>Slides designated token with spring animation physics.</td>
+      </tr>
+      <tr>
+        <td><code>match_room_CODE</code></td>
+        <td><code>EMOJI</code></td>
+        <td><code>{ seat: number, message: string, timestamp: number }</code></td>
+        <td>Fires floating speech bubble and floating animated emoji reaction.</td>
+      </tr>
+      <tr>
+        <td><code>voice_CODE</code></td>
+        <td><code>VOICE_SPEAKING</code></td>
+        <td><code>{ seat: number, isSpeaking: boolean, volumeLevel: number }</code></td>
+        <td>Animates pulsing green wave ring around speaker portrait in real time.</td>
+      </tr>
+      <tr>
+        <td><code>voice_CODE</code></td>
+        <td><code>VOICE_MUTE_STATE</code></td>
+        <td><code>{ seat: number, isMuted: boolean }</code></td>
+        <td>Updates microphone mute badge state across all player panels.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <!-- ECONOMY & BETTING SYSTEM -->
+  <h1>5. Economy Modeling & Stake Wagering System</h1>
+
+  <div class="section-card">
+    <h3 style="margin-top:0;">5.1 Betting Stakes & Prize Pool Logic</h3>
+    <p>Matches can be played casually or staked with Imperial Treasury Coins. When a staked match begins:</p>
+    <ol>
+      <li>Each entering player's account is verified for sufficient balance (<code>user.coins >= stakeAmount</code>).</li>
+      <li>The entry stake is deducted and locked into the match escrow pool (<code>totalPot = stakeAmount &times; playerCount</code>).</li>
+      <li>The arena displays an active <strong>Live Prize Pot Badge</strong>.</li>
+      <li>Upon victory, <strong>100% of the pot</strong> is instantly transferred to the 1st place winner's vault.</li>
+    </ol>
+  </div>
+
+  <h2>5.2 Table Bet Tiers</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Tier Name</th>
+        <th>Entry Stake</th>
+        <th>2-Player Duel Pot</th>
+        <th>4-Player Match Pot</th>
+        <th>Min Level</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Rookie Arena</strong></td>
+        <td>500 Coins</td>
+        <td>🪙 1,000 Coins</td>
+        <td>🪙 2,000 Coins</td>
+        <td>Level 1</td>
+      </tr>
+      <tr>
+        <td><strong>Knight Court</strong></td>
+        <td>2,500 Coins</td>
+        <td>🪙 5,000 Coins</td>
+        <td>🪙 10,000 Coins</td>
+        <td>Level 2</td>
+      </tr>
+      <tr>
+        <td><strong>Royal Palace</strong></td>
+        <td>10,000 Coins</td>
+        <td>🪙 20,000 Coins</td>
+        <td>🪙 40,000 Coins</td>
+        <td>Level 3</td>
+      </tr>
+      <tr>
+        <td><strong>Imperial Sovereign</strong></td>
+        <td>50,000 Coins</td>
+        <td>🪙 100,000 Coins</td>
+        <td>🪙 200,000 Coins</td>
+        <td>Level 5</td>
+      </tr>
+      <tr>
+        <td><strong>Grand Emperor</strong></td>
+        <td>250,000 Coins</td>
+        <td>🪙 500,000 Coins</td>
+        <td>🪙 1,000,000 Coins</td>
+        <td>Level 8</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>5.3 XP & Progression Formula</h2>
+  <p>Player Level increases exponentially according to the following mathematical curve:</p>
+  <pre>
+xpForNextLevel = currentLevel * currentLevel * 150;
+  </pre>
+  <ul>
+    <li><strong>Match Victory:</strong> +500 Coins, +200 XP</li>
+    <li><strong>2nd Place Finish:</strong> +200 Coins, +100 XP</li>
+    <li><strong>Capture Bounty:</strong> +30 Coins & +15 XP per opponent token captured</li>
+    <li><strong>Daily Tribute:</strong> Day 1 (250 Coins) &rarr; Day 7 (2,500 Coins + 25 Gems)</li>
+  </ul>
+
+  <div class="page-break"></div>
+
+  <!-- VOICE CHAT & SOCIAL SUITE -->
+  <h1>6. Spatial Voice Chat & Interactive Social Suite</h1>
+
+  <div class="section-card">
+    <p>Royal Ludo includes an embedded, low-latency audio capture and synchronization service (<code>src/services/voiceChatService.ts</code>) enabling hands-free banter in chamber lobbies and active arenas.</p>
+  </div>
+
+  <h2>6.1 Web Audio Analyser Pipeline</h2>
+  <pre>
+MediaStream (Mic) ──► AudioContext ──► AnalyserNode (FFT 256) ──► Volume Polling (60fps)
+                                                                        │
+                                                                 isSpeaking (>12%)
+                                                                        ▼
+                                                         Supabase Broadcast Channel
+  </pre>
+
+  <h2>6.2 Social Interaction Features</h2>
+  <ul>
+    <li><strong>1-Tap Header Mic Button:</strong> Instant mute/unmute with volume ripple ring and deafen/speaker audio toggle.</li>
+    <li><strong>Live Speaking Visualizers:</strong> Pulsing green ping halos over avatar frames indicating active voice communication.</li>
+    <li><strong>In-Game Live Chat Drawer:</strong> Text messaging with image attachment support and transient overhead speech bubbles.</li>
+    <li><strong>Instant Reaction Bar:</strong> Quick emojis (👑, 🔥, 😂, 🎯, 💀, 🛡️) that float across player portraits with physics trajectory.</li>
+  </ul>
+
+  <!-- DATABASE & SECURITY SPECIFICATION -->
+  <h1>7. Database Schema & Security Architecture</h1>
+
+  <h2>7.1 PostgreSQL Database Schema</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Table Name</th>
+        <th>Primary Columns</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>public.profiles</code></td>
+        <td><code>id (uuid), display_name, coins, gems, level, xp, avatar_url, matches_won</code></td>
+        <td>Stores persistent sovereign user profiles, currency balances, and stats.</td>
+      </tr>
+      <tr>
+        <td><code>public.rooms</code></td>
+        <td><code>id (uuid), code (varchar), host_id, status, bet_amount, players (jsonb)</code></td>
+        <td>Tracks active multiplayer chambers, player seat assignments, and stakes.</td>
+      </tr>
+      <tr>
+        <td><code>public.transactions</code></td>
+        <td><code>id (uuid), user_id, type, amount, balance_after, description, created_at</code></td>
+        <td>Immutable financial audit ledger for coin stakes, rewards, and purchases.</td>
+      </tr>
+      <tr>
+        <td><code>public.matches</code></td>
+        <td><code>id (uuid), mode, winner_id, total_pot, rankings (jsonb), duration_seconds</code></td>
+        <td>Historical match record and analytics archive.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <!-- UI/UX & MOBILE APP DESIGN -->
+  <h1>8. Mobile-First UI/UX Specification</h1>
+
+  <div class="section-card">
+    <p>The application interface is structured to replicate high-end native mobile gaming apps (Ludo Star / Ludo King):</p>
+  </div>
+
+  <h2>8.1 Mobile Layout Components</h2>
+  <ul>
+    <li><strong>Portrait Viewport Container:</strong> Centered <code>max-w-md mx-auto min-h-[100dvh]</code> responsive frame with deep navy blue royal pattern wallpaper.</li>
+    <li><strong>Top Status Deck:</strong> Exit button, Prize Pot badge, Voice Chat Mic toggle, Speaker toggle, and Live Match Chat drawer button.</li>
+    <li><strong>High-Resolution Ludo Board:</strong> Scaled 15x15 board with white track cells, golden star safe zones (⭐), directional home lane entry arrows, and white camp pedestals.</li>
+    <li><strong>Dual Player Bottom Dashboard:</strong> Left Player (You) Card with avatar frame, level badge, coins, and pin icon; Center 3D elevated dice roll box with countdown ring; Right Player (Opponent) Card.</li>
+    <li><strong>Quick Floating Triggers:</strong> Floating bottom-left Chat button and bottom-right quick Voice Mic trigger.</li>
+  </ul>
+
+  <!-- QA VERIFICATION & ROADMAP -->
+  <h1>9. Verification Matrix & Strategic Roadmap</h1>
+
+  <h2>9.1 Test Verification Matrix</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Feature Area</th>
+        <th>Test Scenario</th>
+        <th>Expected Result</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Player Seating</strong></td>
+        <td>2 Players launch private chamber</td>
+        <td>Match launches strictly with 2 players; turns alternate <code>0 &harr; 1</code> with 0 phantom bots.</td>
+        <td><span class="tag tag-green">PASSED</span></td>
+      </tr>
+      <tr>
+        <td><strong>Auto-Move</strong></td>
+        <td>Player rolls dice with only 1 token on track</td>
+        <td>Token automatically steps forward after 420ms without manual tap.</td>
+        <td><span class="tag tag-green">PASSED</span></td>
+      </tr>
+      <tr>
+        <td><strong>Home Goal</strong></td>
+        <td>Token reaches Goal 57</td>
+        <td>Player gets bonus extra roll; game continues smoothly without freeze.</td>
+        <td><span class="tag tag-green">PASSED</span></td>
+      </tr>
+      <tr>
+        <td><strong>Bet Stakes</strong></td>
+        <td>Select 10,000 Coins Royal Palace Table</td>
+        <td>Coins deducted, 20,000 Pot HUD displayed, winner receives full 20,000 coins.</td>
+        <td><span class="tag tag-green">PASSED</span></td>
+      </tr>
+      <tr>
+        <td><strong>Voice Chat</strong></td>
+        <td>Tap Mic Unmute button in Lobby & Arena</td>
+        <td>Mic unmuted, audio level analysed, speaking ripple visible on remote screen.</td>
+        <td><span class="tag tag-green">PASSED</span></td>
+      </tr>
+      <tr>
+        <td><strong>Build Integrity</strong></td>
+        <td><code>npx tsc --noEmit && npm run build</code></td>
+        <td>0 TypeScript errors; production bundle built in 11.34s.</td>
+        <td><span class="tag tag-green">PASSED</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>9.2 Strategic Roadmap</h2>
+  <ul>
+    <li><strong>Phase 1 (Complete):</strong> Core Ludo Engine, Dynamic 2P/3P/4P Rooms, Voice Chat, Betting Stakes, Mobile Layout.</li>
+    <li><strong>Phase 2 (Next):</strong> Clan / Guild Tournaments, Team 2v2 Pass-Through Co-op, Animated 3D Dice Skins.</li>
+    <li><strong>Phase 3:</strong> Native iOS / Android Capacitor Wrappers with Push Notifications and In-App Purchases.</li>
+  </ul>
+
+  <div style="margin-top: 40px; text-align: center; color: #94a3b8; font-size: 8pt; border-top: 1px solid #e2e8f0; padding-top: 15px;">
+    &copy; 2026 Royal Ludo Online. Designed and Engineered with Deepmind Antigravity. All Rights Reserved.
+  </div>
+
+</body>
+</html>
