@@ -343,6 +343,7 @@ export const App: React.FC = () => {
         <ProfileView
           onBack={() => setCurrentView('home')}
           onOpenAuth={() => setCurrentView('auth')}
+          onOpenFriends={() => setCurrentView('friends')}
           onLogout={() => {
             setUser(authService.getCurrentUser());
             setCurrentView('auth');

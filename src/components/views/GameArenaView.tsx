@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
+  Check,
   Coins,
   Crown,
   Heart,
@@ -709,9 +710,9 @@ export const GameArenaView: React.FC<GameArenaViewProps> = ({ onExit }) => {
               const status = friendsService.getFriendshipStatus(inspectingPlayer.playerId || inspectingPlayer.username);
               if (status === 'friend') {
                 return (
-                  <div className="w-full py-2 rounded-xl bg-emerald-950 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center justify-center gap-1.5">
+                  <div className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-950/80 to-slate-900 border border-emerald-500/50 text-emerald-300 font-bold text-xs flex items-center justify-center gap-1.5 shadow">
                     <UserCheck className="w-4 h-4 text-emerald-400" />
-                    <span>Already Following</span>
+                    <span>✨ Mutual Companion</span>
                   </div>
                 );
               }
@@ -719,27 +720,28 @@ export const GameArenaView: React.FC<GameArenaViewProps> = ({ onExit }) => {
                 return (
                   <button
                     onClick={() => handleFollowFromModal(inspectingPlayer)}
-                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow hover:brightness-110 cursor-pointer"
+                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 font-royal font-black text-xs flex items-center justify-center gap-1.5 shadow-lg hover:brightness-110 cursor-pointer animate-pulse"
                   >
                     <Heart className="w-4 h-4 fill-slate-950" />
-                    <span>Follow Back</span>
+                    <span>Follow Back 🤝</span>
                   </button>
                 );
               }
               if (status === 'pending_sent') {
                 return (
-                  <div className="w-full py-2 rounded-xl bg-amber-950/60 border border-amber-500/40 text-amber-300 font-bold text-xs">
-                    Follow Request Sent
+                  <div className="w-full py-2 rounded-xl bg-amber-950/60 border border-amber-500/40 text-amber-300 font-bold text-xs flex items-center justify-center gap-1.5">
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Following (Awaiting Follow Back)</span>
                   </div>
                 );
               }
               return (
                 <button
                   onClick={() => handleFollowFromModal(inspectingPlayer)}
-                  className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow transition-all cursor-pointer"
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 text-slate-950 font-royal font-bold text-xs flex items-center justify-center gap-1.5 shadow transition-all cursor-pointer"
                 >
                   <UserPlus className="w-4 h-4" />
-                  <span>Follow Player</span>
+                  <span>+ Follow Monarch</span>
                 </button>
               );
             })()}

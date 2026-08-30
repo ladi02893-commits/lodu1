@@ -2,18 +2,26 @@ import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   Check,
+  Compass,
   Crown,
+  Heart,
   MessageSquare,
   MoreVertical,
+  Search,
   Send,
   ShieldAlert,
+  Sparkles,
+  Swords,
   Trash2,
   UserCheck,
+  UserMinus,
+  UserPlus,
   Users,
   UserX,
+  X,
 } from 'lucide-react';
 import { sound } from '../../lib/audio';
-import { FriendEntry, friendsService } from '../../services/friendsService';
+import { FriendEntry, friendsService, SocialUserCard } from '../../services/friendsService';
 import { chatService } from '../../services/chatService';
 import { authService } from '../../services/authService';
 import { DirectChatModal } from '../chat/DirectChatModal';
@@ -23,53 +31,87 @@ interface FriendsViewProps {
   onInviteToRoom?: (friend: FriendEntry) => void;
 }
 
+export type FriendsTab = 'companions' | 'following' | 'followers' | 'discover' | 'blocked';
+
 export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom }) => {
-  const [friends, setFriends] = useState<FriendEntry[]>(friendsService.getFriends());
-  const [activeTab, setActiveTab] = useState<'friends' | 'requests' | 'blocked'>('friends');
+  const [friends, setFriends] = useState<FriendEntry[]>(() => friendsService.getFriends());
+  const [activeTab, setActiveTab] = useState<FriendsTab>('companions');
   const [searchQuery, setSearchQuery] = useState('');
   const [feedback, setFeedback] = useState<{ msg: string; success: boolean } | null>(null);
   const [activeChatFriend, setActiveChatFriend] = useState<FriendEntry | null>(null);
   const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
+  const [discoverResults, setDiscoverResults] = useState<SocialUserCard[]>(() =>
+    friendsService.getSuggestedNobles()
+  );
 
   const currentUser = authService.getCurrentUser();
 
   useEffect(() => {
     const unsub = friendsService.subscribe((list) => {
       setFriends(list);
+      setDiscoverResults(friendsService.searchAllNobles(searchQuery));
     });
     return () => unsub();
-  }, []);
+  }, [searchQuery]);
 
-  const handleSendRequest = (e: React.FormEvent) => {
+  const showToast = (msg: string, success: boolean = true) => {
+    setFeedback({ msg, success });
+    setTimeout(() => setFeedback(null), 4000);
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
     sound.playClick();
     const res = friendsService.sendFriendRequest(searchQuery.trim());
-    setFeedback({ msg: res.message, success: res.success });
+    showToast(res.message, res.success);
     if (res.success) {
       setSearchQuery('');
     }
   };
 
-  const handleAccept = (id: string) => {
+  const handleFollowUser = (target: SocialUserCard | FriendEntry) => {
     sound.playClick();
-    friendsService.acceptFriendRequest(id);
+    const res = friendsService.followPlayer({
+      id: target.id,
+      username: target.username,
+      display_name: target.display_name,
+      avatar_url: target.avatar_url,
+      player_id: target.player_id,
+      level: target.level,
+      wins: target.wins,
+      xp: target.xp,
+    });
+    showToast(res.message, res.success);
   };
 
-  const handleUnfriend = (id: string, name: string) => {
-    if (confirm(`Remove ${name} from your companions?`)) {
-      sound.playClick();
-      friendsService.unfriend(id);
-      setOpenActionMenuId(null);
-      if (activeChatFriend?.id === id) setActiveChatFriend(null);
-    }
+  const handleFollowBack = (id: string, name: string) => {
+    sound.playClick();
+    const res = friendsService.followBackPlayer(id);
+    showToast(res.message, res.success);
+  };
+
+  const handleUnfollow = (id: string, name: string) => {
+    sound.playClick();
+    const res = friendsService.unfollowPlayer(id);
+    showToast(res.message, res.success);
+    setOpenActionMenuId(null);
+    if (activeChatFriend?.id === id) setActiveChatFriend(null);
+  };
+
+  const handleRemoveFollower = (id: string, name: string) => {
+    sound.playClick();
+    const res = friendsService.removeFollower(id);
+    showToast(res.message, res.success);
+    setOpenActionMenuId(null);
   };
 
   const handleBlock = (id: string, name: string) => {
     if (confirm(`Block ${name}? They will no longer be able to message or challenge you.`)) {
       sound.playClick();
       friendsService.blockUser(id);
+      showToast(`Blocked ${name}.`, true);
       setOpenActionMenuId(null);
       if (activeChatFriend?.id === id) setActiveChatFriend(null);
     }
@@ -78,105 +120,157 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
   const handleUnblock = (id: string) => {
     sound.playClick();
     friendsService.unblockUser(id);
+    showToast('Unblocked user.', true);
   };
 
-  const activeFriends = friends.filter((f) => f.status === 'friend');
-  const requestFriends = friends.filter((f) => f.status === 'pending_sent' || f.status === 'pending_received');
+  const companions = friends.filter((f) => f.status === 'friend');
+  const following = friends.filter((f) => f.status === 'pending_sent');
+  const followers = friends.filter((f) => f.status === 'pending_received');
   const blockedFriends = friends.filter((f) => f.status === 'blocked');
 
   return (
-    <div className="w-full min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center pb-16 overflow-x-hidden">
+    <div className="w-full min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center pb-20 overflow-x-hidden">
       {/* Header */}
-      <header className="w-full max-w-4xl px-4 py-4 flex items-center justify-between border-b border-amber-500/20 bg-slate-950/80 sticky top-0 z-20 backdrop-blur-md">
+      <header className="w-full max-w-4xl px-4 py-4 flex items-center justify-between border-b border-amber-500/20 bg-slate-950/90 sticky top-0 z-30 backdrop-blur-md">
         <button
           onClick={() => {
             sound.playClick();
             onBack();
           }}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-slate-300 hover:text-amber-300 transition-all cursor-pointer text-xs font-semibold"
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-slate-300 hover:text-amber-300 transition-all cursor-pointer text-xs font-semibold"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Court</span>
         </button>
 
-        <h2 className="font-royal font-bold text-sm sm:text-base text-amber-300">
-          Noble Companions & Guild
-        </h2>
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-amber-400" />
+          <h2 className="font-royal font-bold text-sm sm:text-base text-amber-300">
+            Royal Realm Nobles & Followers
+          </h2>
+        </div>
 
         <div className="w-16" />
       </header>
 
-      <main className="w-full max-w-2xl px-4 py-6 space-y-6">
-        {/* Add Friend Form */}
-        <form
-          onSubmit={handleSendRequest}
-          className="p-5 rounded-3xl bg-slate-900/90 border border-amber-500/30 space-y-3 shadow-xl"
+      {/* Floating Feedback Toast */}
+      {feedback && (
+        <div
+          className={`fixed top-16 z-50 px-4 py-2.5 rounded-2xl text-xs font-bold shadow-2xl border flex items-center gap-2 animate-bounce transition-all ${
+            feedback.success
+              ? 'bg-gradient-to-r from-emerald-950 via-slate-900 to-amber-950 text-amber-300 border-amber-400'
+              : 'bg-rose-950/90 text-rose-300 border-rose-500'
+          }`}
         >
-          <h3 className="font-royal font-bold text-sm text-slate-200">
-            Invite Royal Companion
-          </h3>
+          <Sparkles className="w-4 h-4 text-amber-400" />
+          <span>{feedback.msg}</span>
+        </div>
+      )}
+
+      <main className="w-full max-w-2xl px-4 py-6 space-y-5">
+        {/* Quick Search / Follow by Player ID or Username Form */}
+        <form
+          onSubmit={handleSearchSubmit}
+          className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-slate-900/90 via-slate-900/95 to-amber-950/30 border border-amber-500/30 space-y-3 shadow-xl"
+        >
+          <div className="flex items-center justify-between">
+            <h3 className="font-royal font-bold text-xs sm:text-sm text-amber-200 flex items-center gap-1.5">
+              <Search className="w-4 h-4 text-amber-400" />
+              <span>Search & Follow Monarch</span>
+            </h3>
+            <span className="text-[10px] text-amber-400/80 font-mono">
+              Your Seal: #{currentUser.player_id}
+            </span>
+          </div>
+
           <div className="flex items-center gap-2">
             <input
               type="text"
-              placeholder="Enter username or Player ID (e.g. RL-7721)..."
+              placeholder="Enter username or Player ID (e.g. RL-1001)..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-amber-200 placeholder-slate-500 outline-none focus:border-amber-400"
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setDiscoverResults(friendsService.searchAllNobles(e.target.value));
+              }}
+              className="flex-1 bg-slate-950 border border-amber-500/40 rounded-2xl px-4 py-2.5 text-xs sm:text-sm text-amber-200 placeholder-slate-500 outline-none focus:ring-2 focus:ring-amber-400 transition-all font-medium"
             />
             <button
               type="submit"
-              className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 font-bold text-slate-950 text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow whitespace-nowrap"
+              className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 font-royal font-bold text-slate-950 text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow whitespace-nowrap"
             >
-              <Send className="w-4 h-4" />
-              <span>Send</span>
+              <Send className="w-3.5 h-3.5" />
+              <span>Follow</span>
             </button>
           </div>
-
-          {feedback && (
-            <div
-              className={`text-xs font-semibold px-3 py-1.5 rounded-xl ${
-                feedback.success
-                  ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30'
-                  : 'bg-rose-950/80 text-rose-300 border border-rose-500/30'
-              }`}
-            >
-              {feedback.msg}
-            </div>
-          )}
         </form>
 
-        {/* Tab Navigation */}
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
+        {/* Tab Navigation Pill Bar */}
+        <div className="flex items-center gap-1 sm:gap-2 p-1.5 bg-slate-900/80 border border-slate-800 rounded-2xl overflow-x-auto no-scrollbar">
           <button
             type="button"
             onClick={() => {
               sound.playClick();
-              setActiveTab('friends');
+              setActiveTab('companions');
             }}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'friends'
-                ? 'bg-amber-500 text-slate-950 shadow'
-                : 'bg-slate-900 text-slate-400 hover:text-slate-200'
+            className={`flex-1 min-w-[100px] py-2 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              activeTab === 'companions'
+                ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 shadow font-black'
+                : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <Users className="w-3.5 h-3.5" />
-            <span>Companions ({activeFriends.length})</span>
+            <span>Companions ({companions.length})</span>
           </button>
 
           <button
             type="button"
             onClick={() => {
               sound.playClick();
-              setActiveTab('requests');
+              setActiveTab('following');
             }}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'requests'
-                ? 'bg-amber-500 text-slate-950 shadow'
-                : 'bg-slate-900 text-slate-400 hover:text-slate-200'
+            className={`flex-1 min-w-[95px] py-2 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              activeTab === 'following'
+                ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 shadow font-black'
+                : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <UserCheck className="w-3.5 h-3.5" />
-            <span>Requests ({requestFriends.length})</span>
+            <span>Following ({following.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              sound.playClick();
+              setActiveTab('followers');
+            }}
+            className={`flex-1 min-w-[95px] py-2 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 relative ${
+              activeTab === 'followers'
+                ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 shadow font-black'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Heart className="w-3.5 h-3.5" />
+            <span>Followers ({followers.length})</span>
+            {followers.length > 0 && (
+              <span className="w-2 h-2 rounded-full bg-amber-400 absolute top-1.5 right-1.5 animate-ping" />
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              sound.playClick();
+              setActiveTab('discover');
+            }}
+            className={`flex-1 min-w-[85px] py-2 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              activeTab === 'discover'
+                ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 shadow font-black'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Compass className="w-3.5 h-3.5" />
+            <span>Discover</span>
           </button>
 
           <button
@@ -185,39 +279,62 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
               sound.playClick();
               setActiveTab('blocked');
             }}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
               activeTab === 'blocked'
-                ? 'bg-rose-600 text-white shadow'
-                : 'bg-slate-900 text-slate-400 hover:text-slate-200'
+                ? 'bg-rose-600 text-white shadow font-black'
+                : 'text-slate-400 hover:text-slate-200'
             }`}
+            title="Blocked Users"
           >
             <UserX className="w-3.5 h-3.5" />
-            <span>Blocked ({blockedFriends.length})</span>
           </button>
         </div>
 
-        {/* Tab 1: Active Friends (Companions) */}
-        {activeTab === 'friends' && (
-          <div className="space-y-2">
-            {activeFriends.length === 0 ? (
-              <div className="p-8 text-center bg-slate-900/40 rounded-3xl border border-slate-800 text-slate-400 text-xs">
-                No companions added yet. Enter a username or Player ID above to invite friends!
+        {/* TAB 1: Mutual Companions (Friends) */}
+        {activeTab === 'companions' && (
+          <div className="space-y-2.5">
+            <div className="text-[11px] text-slate-400 px-1 flex items-center justify-between">
+              <span>Mutual followers who can direct message & challenge to rooms</span>
+              <span className="text-amber-400 font-bold">{companions.length} Royals</span>
+            </div>
+
+            {companions.length === 0 ? (
+              <div className="p-10 text-center bg-slate-900/40 rounded-3xl border border-slate-800 text-slate-400 text-xs space-y-3">
+                <Crown className="w-8 h-8 text-amber-400/50 mx-auto" />
+                <p>No mutual companions yet.</p>
+                <button
+                  onClick={() => setActiveTab('discover')}
+                  className="px-4 py-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-400/40 text-xs font-bold hover:bg-amber-500/30 cursor-pointer"
+                >
+                  Discover Monarchs to Follow
+                </button>
               </div>
             ) : (
-              activeFriends.map((friend) => {
+              companions.map((friend) => {
                 const conversationId = chatService.getConversationId(friend.id);
                 const timer = chatService.getConversationTimer(conversationId);
 
                 return (
                   <div
                     key={friend.id}
-                    className="p-3.5 sm:p-4 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-amber-500/30 flex items-center justify-between transition-all"
+                    className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-slate-900/90 to-slate-950 border border-amber-500/20 hover:border-amber-400/50 flex items-center justify-between transition-all shadow-md group"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="relative w-10 h-10 rounded-full bg-slate-950 border border-amber-400/40 flex items-center justify-center">
-                        <Crown className="w-5 h-5 text-amber-300" />
+                      <div className="relative w-11 h-11 rounded-2xl bg-slate-950 border-2 border-amber-400/40 flex items-center justify-center overflow-hidden">
+                        {friend.avatar_url?.startsWith('avatar_') ? (
+                          <img
+                            src={`/avatars/${friend.avatar_url}.png`}
+                            alt={friend.display_name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <Crown className="w-5 h-5 text-amber-300" />
+                        )}
                         {friend.is_online && (
-                          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-slate-900" />
+                          <span className="absolute bottom-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-slate-900" />
                         )}
                       </div>
 
@@ -226,24 +343,29 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
                           <span className="font-bold text-xs sm:text-sm text-slate-100">
                             {friend.display_name}
                           </span>
-                          <span className="text-[10px] text-amber-400/80 font-mono">
+                          <span className="text-[10px] text-amber-400/90 font-mono font-bold bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-500/30">
                             #{friend.player_id}
                           </span>
                         </div>
-                        <div className="text-[11px] text-slate-400">
-                          Lv.{friend.level} &bull; {friend.wins} Wins
+                        <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
+                          <span>Lv.{friend.level}</span>
+                          <span>&bull;</span>
+                          <span className="text-amber-300">{friend.wins} Wins</span>
+                          <span>&bull;</span>
+                          <span className="text-emerald-400 font-semibold text-[10px]">
+                            🤝 Mutual Follow
+                          </span>
                           {timer > 0 && (
-                            <span className="ml-2 text-[10px] text-amber-400/80 font-medium">
-                              ⏱️ Timer Active
+                            <span className="text-[10px] text-amber-400/90 font-medium">
+                              ⏱️ Timer
                             </span>
                           )}
                         </div>
                       </div>
                     </div>
 
-                    {/* Actions: Chat, Challenge & More Menu */}
-                    <div className="flex items-center gap-2 relative">
-                      {/* 1-on-1 Direct Chat Button */}
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-1.5 sm:gap-2 relative">
                       <button
                         type="button"
                         onClick={() => {
@@ -251,22 +373,22 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
                           setActiveChatFriend(friend);
                         }}
                         className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow"
-                        title="Open Direct Messages"
+                        title="Direct Chat"
                       >
                         <MessageSquare className="w-3.5 h-3.5 text-amber-400" />
                         <span className="hidden sm:inline">Chat</span>
                       </button>
 
-                      {/* Challenge Button */}
                       <button
                         type="button"
                         onClick={() => {
                           sound.playClick();
                           if (onInviteToRoom) onInviteToRoom(friend);
                         }}
-                        className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-all cursor-pointer shadow"
+                        className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 text-slate-950 font-royal font-bold text-xs transition-all cursor-pointer shadow flex items-center gap-1"
                       >
-                        Challenge
+                        <Swords className="w-3.5 h-3.5" />
+                        <span>Battle</span>
                       </button>
 
                       {/* Dropdown Options */}
@@ -282,7 +404,15 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
                         </button>
 
                         {openActionMenuId === friend.id && (
-                          <div className="absolute right-0 top-9 w-36 rounded-2xl bg-slate-950 border border-amber-500/40 p-1.5 shadow-2xl z-30 space-y-1">
+                          <div className="absolute right-0 top-9 w-40 rounded-2xl bg-slate-950 border border-amber-500/40 p-1.5 shadow-2xl z-30 space-y-1 backdrop-blur-md">
+                            <button
+                              type="button"
+                              onClick={() => handleUnfollow(friend.id, friend.display_name)}
+                              className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-amber-300 hover:bg-amber-950/50 flex items-center gap-2 cursor-pointer font-medium"
+                            >
+                              <UserMinus className="w-3.5 h-3.5" />
+                              <span>Unfollow</span>
+                            </button>
                             <button
                               type="button"
                               onClick={() => handleBlock(friend.id, friend.display_name)}
@@ -290,14 +420,6 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
                             >
                               <UserX className="w-3.5 h-3.5" />
                               <span>Block User</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleUnfriend(friend.id, friend.display_name)}
-                              className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-slate-400 hover:bg-slate-800 flex items-center gap-2 cursor-pointer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              <span>Unfriend</span>
                             </button>
                           </div>
                         )}
@@ -310,57 +432,137 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
           </div>
         )}
 
-        {/* Tab 2: Requests (Sent & Received) */}
-        {activeTab === 'requests' && (
-          <div className="space-y-2">
-            {requestFriends.length === 0 ? (
-              <div className="p-8 text-center bg-slate-900/40 rounded-3xl border border-slate-800 text-slate-400 text-xs">
-                No pending companion requests.
+        {/* TAB 2: Following (Monarchs You Follow) */}
+        {activeTab === 'following' && (
+          <div className="space-y-2.5">
+            <div className="text-[11px] text-slate-400 px-1 flex items-center justify-between">
+              <span>Monarchs you follow (awaiting their follow back to become companions)</span>
+              <span className="text-amber-400 font-bold">{following.length} Following</span>
+            </div>
+
+            {following.length === 0 ? (
+              <div className="p-10 text-center bg-slate-900/40 rounded-3xl border border-slate-800 text-slate-400 text-xs space-y-3">
+                <UserCheck className="w-8 h-8 text-amber-400/50 mx-auto" />
+                <p>You are not following any other monarchs yet.</p>
+                <button
+                  onClick={() => setActiveTab('discover')}
+                  className="px-4 py-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-400/40 text-xs font-bold hover:bg-amber-500/30 cursor-pointer"
+                >
+                  Discover Royals
+                </button>
               </div>
             ) : (
-              requestFriends.map((friend) => (
+              following.map((user) => (
                 <div
-                  key={friend.id}
-                  className="p-3.5 sm:p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between"
+                  key={user.id}
+                  className="p-3.5 sm:p-4 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-amber-500/30 flex items-center justify-between transition-all"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-slate-950 border border-amber-400/40 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-2xl bg-slate-950 border border-amber-400/40 flex items-center justify-center overflow-hidden">
                       <Crown className="w-5 h-5 text-amber-300" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-xs sm:text-sm text-slate-100">
-                          {friend.display_name}
+                          {user.display_name}
                         </span>
                         <span className="text-[10px] text-amber-400/80 font-mono">
-                          #{friend.player_id}
+                          #{user.player_id}
                         </span>
                       </div>
-                      <div className="text-[11px] text-slate-400">
-                        {friend.status === 'pending_sent' ? 'Request Sent' : 'Request Received'}
+                      <div className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                        <span>Lv.{user.level}</span>
+                        <span>&bull;</span>
+                        <span className="text-amber-400 font-medium">Following</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {friend.status === 'pending_received' ? (
-                      <button
-                        onClick={() => handleAccept(friend.id)}
-                        className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs transition-all flex items-center gap-1 cursor-pointer shadow"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        <span>Accept</span>
-                      </button>
-                    ) : (
-                      <span className="text-[11px] text-amber-400/80 font-medium px-2 py-1 bg-amber-950/40 rounded-lg border border-amber-500/20">
-                        Pending
-                      </span>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleUnfollow(user.id, user.display_name)}
+                      className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-950/60 hover:text-rose-300 text-slate-300 font-bold text-xs border border-slate-700 transition-all cursor-pointer flex items-center gap-1"
+                    >
+                      <UserMinus className="w-3.5 h-3.5" />
+                      <span>Unfollow</span>
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* TAB 3: Followers (Monarchs Following You - WITH FOLLOW BACK BUTTON!) */}
+        {activeTab === 'followers' && (
+          <div className="space-y-2.5">
+            <div className="text-[11px] text-slate-400 px-1 flex items-center justify-between">
+              <span>Nobles who are following you. Follow them back to unlock mutual companion chat!</span>
+              <span className="text-amber-400 font-bold">{followers.length} Followers</span>
+            </div>
+
+            {followers.length === 0 ? (
+              <div className="p-10 text-center bg-slate-900/40 rounded-3xl border border-slate-800 text-slate-400 text-xs space-y-3">
+                <Heart className="w-8 h-8 text-amber-400/50 mx-auto" />
+                <p>No followers yet. Play online battles to gain admirers and followers!</p>
+              </div>
+            ) : (
+              followers.map((follower) => (
+                <div
+                  key={follower.id}
+                  className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-950/20 via-slate-900/90 to-slate-950 border-2 border-amber-500/40 flex items-center justify-between transition-all shadow-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-11 h-11 rounded-2xl bg-slate-950 border-2 border-amber-400 flex items-center justify-center overflow-hidden">
+                      {follower.avatar_url?.startsWith('avatar_') ? (
+                        <img
+                          src={`/avatars/${follower.avatar_url}.png`}
+                          alt={follower.display_name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <Crown className="w-5 h-5 text-amber-300" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-xs sm:text-sm text-slate-100">
+                          {follower.display_name}
+                        </span>
+                        <span className="text-[10px] text-amber-400/90 font-mono font-bold">
+                          #{follower.player_id}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-amber-400/90 flex items-center gap-1.5 mt-0.5">
+                        <span>Lv.{follower.level}</span>
+                        <span>&bull;</span>
+                        <span className="text-amber-300 font-semibold">{follower.wins} Wins</span>
+                        <span>&bull;</span>
+                        <span className="text-amber-400 font-bold">Follows you</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {/* Golden Follow Back Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleFollowBack(follower.id, follower.display_name)}
+                      className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 font-royal font-black text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-lg hover:scale-105 active:scale-95 animate-pulse"
+                    >
+                      <Heart className="w-3.5 h-3.5 fill-slate-950" />
+                      <span>Follow Back</span>
+                    </button>
 
                     <button
-                      onClick={() => handleUnfriend(friend.id, friend.display_name)}
-                      className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 cursor-pointer"
-                      title="Cancel Request"
+                      type="button"
+                      onClick={() => handleRemoveFollower(follower.id, follower.display_name)}
+                      className="p-2 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors cursor-pointer"
+                      title="Remove Follower"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -371,12 +573,79 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
           </div>
         )}
 
-        {/* Tab 3: Blocked Users */}
+        {/* TAB 4: Discover Royals */}
+        {activeTab === 'discover' && (
+          <div className="space-y-3">
+            <div className="text-[11px] text-slate-400 px-1 flex items-center justify-between">
+              <span>Monarchs in the Realm ready for battle and allegiance</span>
+              <span className="text-amber-400 font-bold">{discoverResults.length} Available</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {discoverResults.map((user) => (
+                <div
+                  key={user.id}
+                  className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-amber-500/40 flex items-center justify-between transition-all"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-xl bg-slate-950 border border-amber-400/40 flex items-center justify-center">
+                      <Crown className="w-5 h-5 text-amber-300" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-xs text-slate-100 truncate max-w-[120px]">
+                        {user.display_name}
+                      </div>
+                      <div className="text-[10px] text-slate-400">
+                        Lv.{user.level} &bull; {user.wins} Wins
+                      </div>
+                    </div>
+                  </div>
+
+                  {user.relationship === 'friend' ? (
+                    <span className="text-[10px] text-emerald-400 font-bold px-2 py-1 bg-emerald-950/50 rounded-lg border border-emerald-500/30 flex items-center gap-1">
+                      <Check className="w-3 h-3" />
+                      <span>Mutual</span>
+                    </span>
+                  ) : user.relationship === 'following' ? (
+                    <button
+                      onClick={() => handleUnfollow(user.id, user.display_name)}
+                      className="px-2.5 py-1.5 rounded-xl bg-slate-800 text-slate-300 text-[10px] font-bold hover:bg-rose-950 hover:text-rose-300 border border-slate-700 cursor-pointer"
+                    >
+                      Following
+                    </button>
+                  ) : user.relationship === 'follower' ? (
+                    <button
+                      onClick={() => handleFollowBack(user.id, user.display_name)}
+                      className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 text-[10px] font-black cursor-pointer shadow flex items-center gap-1 hover:brightness-110"
+                    >
+                      <Heart className="w-3 h-3 fill-slate-950" />
+                      <span>Follow Back</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleFollowUser(user)}
+                      className="px-2.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-bold cursor-pointer shadow flex items-center gap-1"
+                    >
+                      <UserPlus className="w-3 h-3" />
+                      <span>Follow</span>
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 5: Blocked Users */}
         {activeTab === 'blocked' && (
-          <div className="space-y-2">
+          <div className="space-y-2.5">
+            <div className="text-[11px] text-slate-400 px-1">
+              Blocked players cannot follow, message, or challenge you
+            </div>
+
             {blockedFriends.length === 0 ? (
-              <div className="p-8 text-center bg-slate-900/40 rounded-3xl border border-slate-800 text-slate-400 text-xs">
-                No blocked users. You can block any player from their companion card or direct chat.
+              <div className="p-10 text-center bg-slate-900/40 rounded-3xl border border-slate-800 text-slate-400 text-xs">
+                No blocked users.
               </div>
             ) : (
               blockedFriends.map((blockedUser) => (
@@ -397,9 +666,7 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
                           #{blockedUser.player_id}
                         </span>
                       </div>
-                      <div className="text-[11px] text-slate-400">
-                        Blocked from chat & invites
-                      </div>
+                      <div className="text-[11px] text-slate-400">Blocked</div>
                     </div>
                   </div>
 
@@ -431,4 +698,3 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
     </div>
   );
 };
-

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
+  Check,
   Clock,
   Crown,
   Heart,
@@ -481,13 +482,24 @@ export const LobbyMessengerModal: React.FC<LobbyMessengerModalProps> = ({
                                 {friendshipStatus === 'friend' ? (
                                   <span className="text-[9px] text-emerald-400 font-bold flex items-center gap-0.5">
                                     <UserCheck className="w-2.5 h-2.5" />
-                                    <span>Friend</span>
+                                    <span>Mutual</span>
                                   </span>
+                                ) : friendshipStatus === 'pending_received' ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleFollowFromPopover(msg.senderId, msg.senderName)}
+                                    className="px-1.5 py-0.5 rounded bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black text-[9px] cursor-pointer flex items-center gap-0.5 shadow hover:brightness-110"
+                                  >
+                                    <Heart className="w-2.5 h-2.5 fill-slate-950" />
+                                    <span>Follow Back</span>
+                                  </button>
+                                ) : friendshipStatus === 'pending_sent' ? (
+                                  <span className="text-[9px] text-amber-400/80 font-medium">Following</span>
                                 ) : (
                                   <button
                                     type="button"
                                     onClick={() => handleFollowFromPopover(msg.senderId, msg.senderName)}
-                                    className="px-1.5 py-0.2 rounded bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 text-[9px] font-bold cursor-pointer flex items-center gap-0.5 transition-colors"
+                                    className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 text-[9px] font-bold cursor-pointer flex items-center gap-0.5 transition-colors"
                                   >
                                     <UserPlus className="w-2.5 h-2.5" />
                                     <span>Follow</span>
@@ -1019,14 +1031,47 @@ export const LobbyMessengerModal: React.FC<LobbyMessengerModalProps> = ({
                 <span>Direct Message</span>
               </button>
 
-              <button
-                type="button"
-                onClick={() => handleFollowFromPopover(userProfilePopover.id, userProfilePopover.username)}
-                className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-amber-500/40 text-amber-300 font-bold text-xs flex items-center justify-center gap-1.5 shadow transition-all cursor-pointer"
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>Follow Player</span>
-              </button>
+              {(() => {
+                const status = friendsService.getFriendshipStatus(userProfilePopover.id);
+                if (status === 'friend') {
+                  return (
+                    <div className="w-full py-2.5 rounded-xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center justify-center gap-1.5 shadow">
+                      <UserCheck className="w-4 h-4 text-emerald-400" />
+                      <span>✨ Mutual Companion</span>
+                    </div>
+                  );
+                }
+                if (status === 'pending_received') {
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => handleFollowFromPopover(userProfilePopover.id, userProfilePopover.username)}
+                      className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 font-royal font-black text-xs flex items-center justify-center gap-1.5 shadow-lg hover:brightness-110 cursor-pointer animate-pulse"
+                    >
+                      <Heart className="w-4 h-4 fill-slate-950" />
+                      <span>Follow Back 🤝</span>
+                    </button>
+                  );
+                }
+                if (status === 'pending_sent') {
+                  return (
+                    <div className="w-full py-2.5 rounded-xl bg-amber-950/60 border border-amber-500/40 text-amber-300 font-bold text-xs flex items-center justify-center gap-1.5">
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Following</span>
+                    </div>
+                  );
+                }
+                return (
+                  <button
+                    type="button"
+                    onClick={() => handleFollowFromPopover(userProfilePopover.id, userProfilePopover.username)}
+                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 text-slate-950 font-royal font-bold text-xs flex items-center justify-center gap-1.5 shadow transition-all cursor-pointer"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    <span>Follow Monarch</span>
+                  </button>
+                );
+              })()}
             </div>
           </div>
         </div>

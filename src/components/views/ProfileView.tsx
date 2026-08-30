@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   Award,
@@ -20,18 +20,37 @@ import {
 } from 'lucide-react';
 import { sound } from '../../lib/audio';
 import { authService } from '../../services/authService';
+import { friendsService } from '../../services/friendsService';
 import { UserProfile } from '../../types/database';
 
 interface ProfileViewProps {
   onBack: () => void;
   onLogout?: () => void;
   onOpenAuth?: () => void;
+  onOpenFriends?: () => void;
 }
 
-export const ProfileView: React.FC<ProfileViewProps> = ({ onBack, onLogout, onOpenAuth }) => {
+export const ProfileView: React.FC<ProfileViewProps> = ({ onBack, onLogout, onOpenAuth, onOpenFriends }) => {
   const [user, setUser] = useState<UserProfile>(authService.getCurrentUser());
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(user.display_name);
+  const [socialCounts, setSocialCounts] = useState(() => friendsService.getSocialCounts());
+
+  useEffect(() => {
+    const unsubFriends = friendsService.subscribe(() => {
+      setSocialCounts(friendsService.getSocialCounts());
+    });
+    const unsubAuth = authService.subscribe((u) => {
+      if (u) {
+        setUser(u);
+        setSocialCounts(friendsService.getSocialCounts());
+      }
+    });
+    return () => {
+      unsubFriends();
+      unsubAuth();
+    };
+  }, []);
 
   const winRate =
     user.games_played > 0
@@ -138,6 +157,60 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onBack, onLogout, onOp
                   style={{ width: `${Math.min(100, (user.xp % 1000) / 10)}%` }}
                 />
               </div>
+            </div>
+
+            {/* Social Followers & Following Bar */}
+            <div className="flex items-center gap-2 pt-2 border-t border-slate-800/80">
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  if (onOpenFriends) onOpenFriends();
+                }}
+                className="flex-1 py-1.5 px-2 rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/40 text-center transition-all cursor-pointer group"
+                title="View Followers"
+              >
+                <div className="text-sm font-black text-amber-300 group-hover:scale-105 transition-transform">
+                  {socialCounts.followers}
+                </div>
+                <div className="text-[9px] sm:text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                  Followers
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  if (onOpenFriends) onOpenFriends();
+                }}
+                className="flex-1 py-1.5 px-2 rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/40 text-center transition-all cursor-pointer group"
+                title="View Following"
+              >
+                <div className="text-sm font-black text-amber-300 group-hover:scale-105 transition-transform">
+                  {socialCounts.following}
+                </div>
+                <div className="text-[9px] sm:text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                  Following
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  if (onOpenFriends) onOpenFriends();
+                }}
+                className="flex-1 py-1.5 px-2 rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500/40 text-center transition-all cursor-pointer group"
+                title="View Mutual Companions"
+              >
+                <div className="text-sm font-black text-emerald-400 group-hover:scale-105 transition-transform">
+                  {socialCounts.companions}
+                </div>
+                <div className="text-[9px] sm:text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                  Companions
+                </div>
+              </button>
             </div>
           </div>
         </div>
