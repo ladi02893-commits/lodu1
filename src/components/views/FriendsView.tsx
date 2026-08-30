@@ -31,7 +31,7 @@ interface FriendsViewProps {
   onInviteToRoom?: (friend: FriendEntry) => void;
 }
 
-export type FriendsTab = 'companions' | 'following' | 'followers' | 'discover' | 'blocked';
+export type FriendsTab = 'companions' | 'followers' | 'following' | 'discover' | 'blocked';
 
 export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom }) => {
   const [friends, setFriends] = useState<FriendEntry[]>(() => friendsService.getFriends());
@@ -86,9 +86,15 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
     showToast(res.message, res.success);
   };
 
-  const handleFollowBack = (id: string, name: string) => {
+  const handleAcceptAndFollowBack = (id: string, name: string) => {
     sound.playClick();
     const res = friendsService.followBackPlayer(id);
+    showToast(res.message, res.success);
+  };
+
+  const handleDeclineRequest = (id: string, name: string) => {
+    sound.playClick();
+    const res = friendsService.declineRequest(id);
     showToast(res.message, res.success);
   };
 
@@ -146,7 +152,7 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-amber-400" />
           <h2 className="font-royal font-bold text-sm sm:text-base text-amber-300">
-            Royal Realm Nobles & Followers
+            Royal Companions & Follow Requests
           </h2>
         </div>
 
@@ -168,6 +174,35 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
       )}
 
       <main className="w-full max-w-2xl px-4 py-6 space-y-5">
+        {/* Pending Follow Requests Callout Banner if user has incoming requests */}
+        {followers.length > 0 && activeTab !== 'followers' && (
+          <div className="p-4 rounded-3xl bg-gradient-to-r from-amber-950/80 via-slate-900 to-amber-900/60 border-2 border-amber-400 shadow-2xl flex items-center justify-between gap-3 animate-pulse">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shadow">
+                <Heart className="w-5 h-5 fill-slate-950" />
+              </div>
+              <div>
+                <h4 className="font-royal font-bold text-xs sm:text-sm text-amber-200">
+                  {followers.length} Pending Companion {followers.length > 1 ? 'Requests' : 'Request'}!
+                </h4>
+                <p className="text-[11px] text-slate-300">
+                  {followers[0].display_name} {followers.length > 1 ? `and ${followers.length - 1} other` : ''} wants to connect with you.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                sound.playClick();
+                setActiveTab('followers');
+              }}
+              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-royal font-black text-xs cursor-pointer shadow hover:scale-105 transition-transform whitespace-nowrap"
+            >
+              View & Accept 🤝
+            </button>
+          </div>
+        )}
+
         {/* Quick Search / Follow by Player ID or Username Form */}
         <form
           onSubmit={handleSearchSubmit}
@@ -186,7 +221,7 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
           <div className="flex items-center gap-2">
             <input
               type="text"
-              placeholder="Enter username or Player ID (e.g. RL-1001)..."
+              placeholder="Enter username or Player ID (e.g. RL-7777, ammar_admin)..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -199,7 +234,7 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
               className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 font-royal font-bold text-slate-950 text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow whitespace-nowrap"
             >
               <Send className="w-3.5 h-3.5" />
-              <span>Follow</span>
+              <span>Send</span>
             </button>
           </div>
         </form>
@@ -212,7 +247,7 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
               sound.playClick();
               setActiveTab('companions');
             }}
-            className={`flex-1 min-w-[100px] py-2 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`flex-1 min-w-[105px] py-2 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
               activeTab === 'companions'
                 ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 shadow font-black'
                 : 'text-slate-400 hover:text-slate-200'
@@ -220,6 +255,25 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
           >
             <Users className="w-3.5 h-3.5" />
             <span>Companions ({companions.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              sound.playClick();
+              setActiveTab('followers');
+            }}
+            className={`flex-1 min-w-[110px] py-2 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 relative ${
+              activeTab === 'followers'
+                ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 shadow font-black'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Heart className="w-3.5 h-3.5" />
+            <span>Followers ({followers.length})</span>
+            {followers.length > 0 && (
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 absolute top-1.5 right-1.5 animate-ping" />
+            )}
           </button>
 
           <button
@@ -236,25 +290,6 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
           >
             <UserCheck className="w-3.5 h-3.5" />
             <span>Following ({following.length})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              sound.playClick();
-              setActiveTab('followers');
-            }}
-            className={`flex-1 min-w-[95px] py-2 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 relative ${
-              activeTab === 'followers'
-                ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 shadow font-black'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Heart className="w-3.5 h-3.5" />
-            <span>Followers ({followers.length})</span>
-            {followers.length > 0 && (
-              <span className="w-2 h-2 rounded-full bg-amber-400 absolute top-1.5 right-1.5 animate-ping" />
-            )}
           </button>
 
           <button
@@ -294,7 +329,7 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
         {activeTab === 'companions' && (
           <div className="space-y-2.5">
             <div className="text-[11px] text-slate-400 px-1 flex items-center justify-between">
-              <span>Mutual followers who can direct message & challenge to rooms</span>
+              <span>Mutual companions can private chat & battle in private chambers</span>
               <span className="text-amber-400 font-bold">{companions.length} Royals</span>
             </div>
 
@@ -353,7 +388,7 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
                           <span className="text-amber-300">{friend.wins} Wins</span>
                           <span>&bull;</span>
                           <span className="text-emerald-400 font-semibold text-[10px]">
-                            🤝 Mutual Follow
+                            🤝 Mutual Companion
                           </span>
                           {timer > 0 && (
                             <span className="text-[10px] text-amber-400/90 font-medium">
@@ -432,7 +467,93 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
           </div>
         )}
 
-        {/* TAB 2: Following (Monarchs You Follow) */}
+        {/* TAB 2: Followers & Incoming Requests (WITH PROMINENT ACCEPT & FOLLOW BACK!) */}
+        {activeTab === 'followers' && (
+          <div className="space-y-2.5">
+            <div className="text-[11px] text-slate-400 px-1 flex items-center justify-between">
+              <span>Monarchs who sent you a follow request. Accept to become mutual companions!</span>
+              <span className="text-amber-400 font-bold">{followers.length} Requests / Followers</span>
+            </div>
+
+            {followers.length === 0 ? (
+              <div className="p-10 text-center bg-slate-900/40 rounded-3xl border border-slate-800 text-slate-400 text-xs space-y-3">
+                <Heart className="w-8 h-8 text-amber-400/50 mx-auto" />
+                <p>No incoming follow requests right now.</p>
+                <p className="text-[11px] text-slate-500">
+                  Share your Player ID <strong className="text-amber-300 font-mono">#{currentUser.player_id}</strong> with friends so they can follow you!
+                </p>
+              </div>
+            ) : (
+              followers.map((follower) => (
+                <div
+                  key={follower.id}
+                  className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-950/40 via-slate-900/95 to-slate-950 border-2 border-amber-400/80 flex items-center justify-between transition-all shadow-xl"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-12 h-12 rounded-2xl bg-slate-950 border-2 border-amber-400 flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {follower.avatar_url?.startsWith('avatar_') ? (
+                        <img
+                          src={`/avatars/${follower.avatar_url}.png`}
+                          alt={follower.display_name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <Crown className="w-6 h-6 text-amber-300" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-xs sm:text-sm text-slate-100">
+                          {follower.display_name}
+                        </span>
+                        <span className="text-[10px] text-amber-400 font-mono font-bold bg-amber-950 px-1.5 py-0.5 rounded border border-amber-500/40">
+                          #{follower.player_id}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-amber-300/90 flex items-center gap-1.5 mt-0.5">
+                        <span>Lv.{follower.level}</span>
+                        <span>&bull;</span>
+                        <span className="text-amber-400 font-semibold">{follower.wins} Wins</span>
+                        <span>&bull;</span>
+                        <span className="text-amber-400 font-bold flex items-center gap-0.5">
+                          <Heart className="w-3 h-3 fill-amber-400" /> Wants to connect
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {/* Golden Accept & Follow Back Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleAcceptAndFollowBack(follower.id, follower.display_name)}
+                      className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:brightness-110 text-slate-950 font-royal font-black text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-lg hover:scale-105 active:scale-95 animate-pulse"
+                      title="Accept request & follow back as Companion"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Accept 🤝</span>
+                    </button>
+
+                    {/* Decline Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleDeclineRequest(follower.id, follower.display_name)}
+                      className="p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-rose-400 hover:bg-slate-700 transition-colors cursor-pointer"
+                      title="Decline Request"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* TAB 3: Following (Monarchs You Follow) */}
         {activeTab === 'following' && (
           <div className="space-y-2.5">
             <div className="text-[11px] text-slate-400 px-1 flex items-center justify-between">
@@ -448,7 +569,7 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
                   onClick={() => setActiveTab('discover')}
                   className="px-4 py-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-400/40 text-xs font-bold hover:bg-amber-500/30 cursor-pointer"
                 >
-                  Discover Royals
+                  Discover Royals to Follow
                 </button>
               </div>
             ) : (
@@ -473,7 +594,7 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
                       <div className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
                         <span>Lv.{user.level}</span>
                         <span>&bull;</span>
-                        <span className="text-amber-400 font-medium">Following</span>
+                        <span className="text-amber-400 font-medium">Request Sent (Awaiting)</span>
                       </div>
                     </div>
                   </div>
@@ -485,86 +606,7 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
                       className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-950/60 hover:text-rose-300 text-slate-300 font-bold text-xs border border-slate-700 transition-all cursor-pointer flex items-center gap-1"
                     >
                       <UserMinus className="w-3.5 h-3.5" />
-                      <span>Unfollow</span>
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* TAB 3: Followers (Monarchs Following You - WITH FOLLOW BACK BUTTON!) */}
-        {activeTab === 'followers' && (
-          <div className="space-y-2.5">
-            <div className="text-[11px] text-slate-400 px-1 flex items-center justify-between">
-              <span>Nobles who are following you. Follow them back to unlock mutual companion chat!</span>
-              <span className="text-amber-400 font-bold">{followers.length} Followers</span>
-            </div>
-
-            {followers.length === 0 ? (
-              <div className="p-10 text-center bg-slate-900/40 rounded-3xl border border-slate-800 text-slate-400 text-xs space-y-3">
-                <Heart className="w-8 h-8 text-amber-400/50 mx-auto" />
-                <p>No followers yet. Play online battles to gain admirers and followers!</p>
-              </div>
-            ) : (
-              followers.map((follower) => (
-                <div
-                  key={follower.id}
-                  className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-950/20 via-slate-900/90 to-slate-950 border-2 border-amber-500/40 flex items-center justify-between transition-all shadow-lg"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="relative w-11 h-11 rounded-2xl bg-slate-950 border-2 border-amber-400 flex items-center justify-center overflow-hidden">
-                      {follower.avatar_url?.startsWith('avatar_') ? (
-                        <img
-                          src={`/avatars/${follower.avatar_url}.png`}
-                          alt={follower.display_name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLElement).style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <Crown className="w-5 h-5 text-amber-300" />
-                      )}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-xs sm:text-sm text-slate-100">
-                          {follower.display_name}
-                        </span>
-                        <span className="text-[10px] text-amber-400/90 font-mono font-bold">
-                          #{follower.player_id}
-                        </span>
-                      </div>
-                      <div className="text-[11px] text-amber-400/90 flex items-center gap-1.5 mt-0.5">
-                        <span>Lv.{follower.level}</span>
-                        <span>&bull;</span>
-                        <span className="text-amber-300 font-semibold">{follower.wins} Wins</span>
-                        <span>&bull;</span>
-                        <span className="text-amber-400 font-bold">Follows you</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {/* Golden Follow Back Button */}
-                    <button
-                      type="button"
-                      onClick={() => handleFollowBack(follower.id, follower.display_name)}
-                      className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 font-royal font-black text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-lg hover:scale-105 active:scale-95 animate-pulse"
-                    >
-                      <Heart className="w-3.5 h-3.5 fill-slate-950" />
-                      <span>Follow Back</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveFollower(follower.id, follower.display_name)}
-                      className="p-2 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors cursor-pointer"
-                      title="Remove Follower"
-                    >
-                      <Trash2 className="w-4 h-4" />
+                      <span>Cancel Request</span>
                     </button>
                   </div>
                 </div>
@@ -585,18 +627,18 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
               {discoverResults.map((user) => (
                 <div
                   key={user.id}
-                  className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-amber-500/40 flex items-center justify-between transition-all"
+                  className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-amber-500/40 flex items-center justify-between transition-all shadow"
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-slate-950 border border-amber-400/40 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-slate-950 border border-amber-400/40 flex items-center justify-center flex-shrink-0">
                       <Crown className="w-5 h-5 text-amber-300" />
                     </div>
-                    <div>
-                      <div className="font-bold text-xs text-slate-100 truncate max-w-[120px]">
+                    <div className="min-w-0">
+                      <div className="font-bold text-xs text-slate-100 truncate">
                         {user.display_name}
                       </div>
-                      <div className="text-[10px] text-slate-400">
-                        Lv.{user.level} &bull; {user.wins} Wins
+                      <div className="text-[10px] text-slate-400 font-mono">
+                        #{user.player_id} &bull; Lv.{user.level}
                       </div>
                     </div>
                   </div>
@@ -615,16 +657,16 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
                     </button>
                   ) : user.relationship === 'follower' ? (
                     <button
-                      onClick={() => handleFollowBack(user.id, user.display_name)}
+                      onClick={() => handleAcceptAndFollowBack(user.id, user.display_name)}
                       className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 text-[10px] font-black cursor-pointer shadow flex items-center gap-1 hover:brightness-110"
                     >
                       <Heart className="w-3 h-3 fill-slate-950" />
-                      <span>Follow Back</span>
+                      <span>Accept 🤝</span>
                     </button>
                   ) : (
                     <button
                       onClick={() => handleFollowUser(user)}
-                      className="px-2.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-bold cursor-pointer shadow flex items-center gap-1"
+                      className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 text-slate-950 font-royal font-bold text-[10px] cursor-pointer shadow flex items-center gap-1"
                     >
                       <UserPlus className="w-3 h-3" />
                       <span>Follow</span>

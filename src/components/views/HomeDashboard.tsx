@@ -26,6 +26,7 @@ import { sound } from '../../lib/audio';
 import { UserProfile } from '../../types/database';
 import { rewardService, DailyLoginStatus } from '../../services/rewardService';
 import { luckyWheelService } from '../../services/luckyWheelService';
+import { friendsService } from '../../services/friendsService';
 import { StakeSelectorModal } from './StakeSelectorModal';
 
 interface HomeDashboardProps {
@@ -78,6 +79,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   const [botDifficulty, setBotDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const [dailyStatus, setDailyStatus] = useState<DailyLoginStatus>(() => rewardService.getDailyLoginStatus());
   const [wheelStatus, setWheelStatus] = useState(() => luckyWheelService.getStatus());
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(() => friendsService.getFollowers().length);
   const [stakeModalConfig, setStakeModalConfig] = useState<{
     isOpen: boolean;
     mode: 'quick_2' | 'quick_4' | 'team_2v2' | 'vs_computer';
@@ -89,6 +91,13 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   useEffect(() => {
     setDailyStatus(rewardService.getDailyLoginStatus());
   }, [user]);
+
+  useEffect(() => {
+    const unsub = friendsService.subscribe(() => {
+      setPendingRequestsCount(friendsService.getFollowers().length);
+    });
+    return () => unsub();
+  }, []);
 
   // Level & XP math
   const currentLevel = user.level || 1;
@@ -582,9 +591,16 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
               sound.playClick();
               onNavigate('friends');
             }}
-            className="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-amber-500/40 hover:bg-slate-800 transition-all flex flex-col items-center gap-1.5 cursor-pointer"
+            className="relative p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-amber-500/40 hover:bg-slate-800 transition-all flex flex-col items-center gap-1.5 cursor-pointer group"
           >
-            <Users className="w-5 h-5 text-amber-400" />
+            <div className="relative">
+              <Users className="w-5 h-5 text-amber-400 group-hover:scale-110 transition-transform" />
+              {pendingRequestsCount > 0 && (
+                <span className="absolute -top-1 -right-2 px-1.5 py-0.2 rounded-full bg-rose-500 text-white font-black text-[9px] border border-slate-950 animate-bounce">
+                  {pendingRequestsCount}
+                </span>
+              )}
+            </div>
             <span className="text-xs font-bold text-slate-200">Friends</span>
           </button>
 

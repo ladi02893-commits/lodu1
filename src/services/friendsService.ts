@@ -1,6 +1,6 @@
 import { authService, StoredUserAccount } from './authService';
 import { UserProfile } from '../types/database';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, supabaseAdmin } from '../lib/supabase';
 import { sound } from '../lib/audio';
 
 export type FriendshipStatus =
@@ -25,6 +25,27 @@ export interface FriendEntry {
   status: 'friend' | 'pending_sent' | 'pending_received' | 'blocked';
   blockedAt?: number;
   followedAt?: number;
+}
+
+export interface UniversalSocialRequest {
+  id: string;
+  senderId: string;
+  senderUsername: string;
+  senderDisplayName: string;
+  senderAvatar: string;
+  senderPlayerId: string;
+  senderLevel: number;
+  senderWins: number;
+  senderXp: number;
+
+  receiverId: string;
+  receiverUsername: string;
+  receiverDisplayName: string;
+  receiverPlayerId: string;
+
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface SocialUserCard extends FriendEntry {
@@ -130,31 +151,54 @@ const GLOBAL_NOBLES: FriendEntry[] = [
   },
 ];
 
+const UNIVERSAL_LEDGER_KEY = 'royal_ludo_universal_social_ledger';
+const SOCIAL_BROADCAST_CHANNEL = 'royal_ludo_social_sync_channel';
+
 type FriendsListener = (friends: FriendEntry[]) => void;
 
 class FriendsService {
   private friends: FriendEntry[] = [];
   private listeners: FriendsListener[] = [];
   private currentUserId: string = '';
+  private broadcastChannel: BroadcastChannel | null = null;
 
   constructor() {
-    this.initForCurrentUser();
-
     if (typeof window !== 'undefined') {
+      try {
+        if ('BroadcastChannel' in window) {
+          this.broadcastChannel = new BroadcastChannel(SOCIAL_BROADCAST_CHANNEL);
+          this.broadcastChannel.onmessage = (event) => {
+            if (event.data?.type === 'SOCIAL_UPDATE') {
+              this.load();
+            }
+          };
+        }
+      } catch (e) {
+        console.warn('BroadcastChannel setup note:', e);
+      }
+
       window.addEventListener('storage', (e) => {
-        if (e.key && e.key.startsWith('royal_ludo_friends_')) {
+        if (
+          e.key &&
+          (e.key.startsWith('royal_ludo_friends_') ||
+            e.key === UNIVERSAL_LEDGER_KEY ||
+            e.key === 'royal_ludo_friends_list')
+        ) {
           this.load();
         }
       });
 
-      // Re-load when auth changes
+      window.addEventListener('royal_ludo_social_sync', () => {
+        this.load();
+      });
+
       authService.subscribe((u) => {
         if (u && u.id !== this.currentUserId) {
           this.initForCurrentUser();
         }
       });
 
-      // Realtime listener for cross-player follow sync
+      // Realtime listener for cross-player follow sync in Supabase
       if (isSupabaseConfigured) {
         try {
           supabase
@@ -166,18 +210,28 @@ class FriendsService {
                 this.syncWithSupabase();
               }
             )
+            .on(
+              'postgres_changes',
+              { event: '*', schema: 'public', table: 'friends' },
+              () => {
+                this.syncWithSupabase();
+              }
+            )
             .subscribe();
         } catch (e) {
           console.warn('Supabase social follows sync channel error:', e);
         }
       }
     }
+
+    this.initForCurrentUser();
   }
 
-  private getStorageKey(): string {
+  private getStorageKey(userId?: string): string {
     const curr = authService.getCurrentUser();
-    this.currentUserId = curr?.id || 'guest_default';
-    return `royal_ludo_friends_${this.currentUserId}`;
+    const uid = userId || curr?.id || 'guest_default';
+    this.currentUserId = uid;
+    return `royal_ludo_friends_${uid}`;
   }
 
   private initForCurrentUser() {
@@ -185,39 +239,212 @@ class FriendsService {
     this.syncWithSupabase();
   }
 
-  private load() {
+  // --- Universal Cross-Account Ledger ---
+  private getUniversalLedger(): UniversalSocialRequest[] {
+    if (typeof window === 'undefined') return [];
+    try {
+      const raw = localStorage.getItem(UNIVERSAL_LEDGER_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      console.warn('Failed to parse universal ledger:', e);
+      return [];
+    }
+  }
+
+  private saveUniversalLedger(ledger: UniversalSocialRequest[]): void {
     if (typeof window === 'undefined') return;
     try {
-      const key = this.getStorageKey();
-      const raw = localStorage.getItem(key);
-      if (raw) {
-        this.friends = JSON.parse(raw);
-      } else {
-        // Fallback or check global legacy key
-        const legacy = localStorage.getItem('royal_ludo_friends_list');
-        if (legacy) {
-          this.friends = JSON.parse(legacy);
-        } else {
-          this.friends = [...GLOBAL_NOBLES];
-        }
-        this.save();
+      localStorage.setItem(UNIVERSAL_LEDGER_KEY, JSON.stringify(ledger));
+    } catch (e) {
+      console.warn('Failed to save universal ledger:', e);
+    }
+  }
+
+  private broadcastChange() {
+    if (typeof window === 'undefined') return;
+    try {
+      if (this.broadcastChannel) {
+        this.broadcastChannel.postMessage({ type: 'SOCIAL_UPDATE', timestamp: Date.now() });
       }
+      window.dispatchEvent(new CustomEvent('royal_ludo_social_sync'));
     } catch (e) {
       console.warn(e);
+    }
+  }
+
+  /**
+   * Loads and integrates:
+   * 1. Private User Storage (`royal_ludo_friends_${uid}`)
+   * 2. Universal Requests Ledger (`royal_ludo_universal_social_ledger`)
+   * 3. Default Nobles for active gameplay experience
+   */
+  private load() {
+    if (typeof window === 'undefined') return;
+    const currentUser = authService.getCurrentUser();
+    this.currentUserId = currentUser?.id || 'guest_default';
+
+    try {
+      const key = this.getStorageKey(this.currentUserId);
+      const raw = localStorage.getItem(key);
+      let localList: FriendEntry[] = raw ? JSON.parse(raw) : [];
+
+      // If local list is completely empty, populate with base mock nobles
+      if (localList.length === 0) {
+        const legacy = localStorage.getItem('royal_ludo_friends_list');
+        if (legacy) {
+          try {
+            localList = JSON.parse(legacy);
+          } catch {
+            localList = [...GLOBAL_NOBLES];
+          }
+        } else {
+          localList = [...GLOBAL_NOBLES];
+        }
+      }
+
+      // Merge Universal Ledger requests for current user
+      const ledger = this.getUniversalLedger();
+      const myId = this.currentUserId.toLowerCase();
+      const myUsername = (currentUser.username || '').toLowerCase();
+      const myPlayerId = (currentUser.player_id || '').toLowerCase();
+
+      ledger.forEach((req) => {
+        const isReceiver =
+          req.receiverId.toLowerCase() === myId ||
+          req.receiverUsername.toLowerCase() === myUsername ||
+          req.receiverPlayerId.toLowerCase() === myPlayerId;
+
+        const isSender =
+          req.senderId.toLowerCase() === myId ||
+          req.senderUsername.toLowerCase() === myUsername ||
+          req.senderPlayerId.toLowerCase() === myPlayerId;
+
+        if (isReceiver) {
+          // Someone sent a request / followed ME
+          const senderIdx = localList.findIndex(
+            (f) =>
+              f.id.toLowerCase() === req.senderId.toLowerCase() ||
+              f.username.toLowerCase() === req.senderUsername.toLowerCase() ||
+              f.player_id.toLowerCase() === req.senderPlayerId.toLowerCase()
+          );
+
+          if (req.status === 'accepted') {
+            if (senderIdx !== -1) {
+              localList[senderIdx].status = 'friend';
+            } else {
+              localList.unshift({
+                id: req.senderId,
+                username: req.senderUsername,
+                display_name: req.senderDisplayName,
+                avatar_url: req.senderAvatar || 'avatar_1',
+                player_id: req.senderPlayerId,
+                level: req.senderLevel || 1,
+                xp: req.senderXp || 0,
+                wins: req.senderWins || 0,
+                is_online: true,
+                status: 'friend',
+                followedAt: req.updatedAt || req.createdAt,
+              });
+            }
+          } else if (req.status === 'pending') {
+            if (senderIdx !== -1) {
+              if (localList[senderIdx].status !== 'friend' && localList[senderIdx].status !== 'blocked') {
+                localList[senderIdx].status = 'pending_received';
+              }
+            } else {
+              localList.unshift({
+                id: req.senderId,
+                username: req.senderUsername,
+                display_name: req.senderDisplayName,
+                avatar_url: req.senderAvatar || 'avatar_1',
+                player_id: req.senderPlayerId,
+                level: req.senderLevel || 1,
+                xp: req.senderXp || 0,
+                wins: req.senderWins || 0,
+                is_online: true,
+                status: 'pending_received',
+                followedAt: req.createdAt,
+              });
+            }
+          } else if (req.status === 'rejected') {
+            if (senderIdx !== -1 && localList[senderIdx].status === 'pending_received') {
+              localList.splice(senderIdx, 1);
+            }
+          }
+        } else if (isSender) {
+          // I sent a request / followed SOMEONE
+          const receiverIdx = localList.findIndex(
+            (f) =>
+              f.id.toLowerCase() === req.receiverId.toLowerCase() ||
+              f.username.toLowerCase() === req.receiverUsername.toLowerCase() ||
+              f.player_id.toLowerCase() === req.receiverPlayerId.toLowerCase()
+          );
+
+          if (req.status === 'accepted') {
+            if (receiverIdx !== -1) {
+              localList[receiverIdx].status = 'friend';
+            } else {
+              localList.push({
+                id: req.receiverId,
+                username: req.receiverUsername,
+                display_name: req.receiverDisplayName,
+                avatar_url: 'avatar_1',
+                player_id: req.receiverPlayerId,
+                level: 1,
+                xp: 0,
+                wins: 0,
+                is_online: true,
+                status: 'friend',
+                followedAt: req.updatedAt || req.createdAt,
+              });
+            }
+          } else if (req.status === 'pending') {
+            if (receiverIdx !== -1) {
+              if (localList[receiverIdx].status !== 'friend') {
+                localList[receiverIdx].status = 'pending_sent';
+              }
+            } else {
+              localList.push({
+                id: req.receiverId,
+                username: req.receiverUsername,
+                display_name: req.receiverDisplayName,
+                avatar_url: 'avatar_1',
+                player_id: req.receiverPlayerId,
+                level: 1,
+                xp: 0,
+                wins: 0,
+                is_online: true,
+                status: 'pending_sent',
+                followedAt: req.createdAt,
+              });
+            }
+          }
+        }
+      });
+
+      this.friends = localList;
+      this.saveLocalOnly();
+    } catch (e) {
+      console.warn('Friends load error:', e);
       this.friends = [...GLOBAL_NOBLES];
     }
   }
 
-  private save() {
+  private saveLocalOnly() {
     if (typeof window === 'undefined') return;
     try {
-      const key = this.getStorageKey();
+      const key = this.getStorageKey(this.currentUserId);
       localStorage.setItem(key, JSON.stringify(this.friends));
-      localStorage.setItem('royal_ludo_friends_list', JSON.stringify(this.friends)); // keep legacy in sync
+      localStorage.setItem('royal_ludo_friends_list', JSON.stringify(this.friends));
       this.notify();
     } catch (e) {
       console.warn(e);
     }
+  }
+
+  private save() {
+    this.saveLocalOnly();
+    this.broadcastChange();
   }
 
   public subscribe(listener: FriendsListener): () => void {
@@ -243,22 +470,19 @@ class FriendsService {
     return this.friends.filter((f) => f.status === 'friend');
   }
 
-  /**
-   * Alias for backward compatibility with getActiveFriends
-   */
   public getActiveFriends(): FriendEntry[] {
     return this.getCompanions();
   }
 
   /**
-   * Users that the current user is following (sent follow request or following)
+   * Users that the current user is following
    */
   public getFollowing(): FriendEntry[] {
     return this.friends.filter((f) => f.status === 'pending_sent');
   }
 
   /**
-   * Users that are following the current user (awaiting follow back)
+   * Users that are following the current user (incoming requests / followers)
    */
   public getFollowers(): FriendEntry[] {
     return this.friends.filter((f) => f.status === 'pending_received');
@@ -318,9 +542,13 @@ class FriendsService {
   }
 
   /**
-   * Follow a player
-   * If the target user was already following the current player (pending_received),
-   * this immediately makes them Mutual Companions ('friend')!
+   * Follow or Send Friend Request to another Player
+   * Writes to:
+   * 1. Current user's local storage (Following / pending_sent)
+   * 2. Target user's local storage (Follower / pending_received)
+   * 3. Universal Ledger
+   * 4. Supabase DB
+   * 5. Real-time Notification Dispatch
    */
   public followPlayer(player: {
     id: string;
@@ -350,53 +578,39 @@ class FriendsService {
       };
     }
 
+    const targetId = player.id;
+    const targetUsername = player.username;
+    const targetDisplayName = player.display_name || player.username;
+    const targetPlayerId = player.player_id || `RL-${Math.floor(1000 + Math.random() * 9000)}`;
+
     const existingIdx = this.friends.findIndex(
       (f) =>
-        f.id === player.id ||
-        f.username.toLowerCase() === player.username.toLowerCase() ||
-        (player.player_id && f.player_id === player.player_id)
+        f.id.toLowerCase() === targetId.toLowerCase() ||
+        f.username.toLowerCase() === targetUsername.toLowerCase() ||
+        (player.player_id && f.player_id.toLowerCase() === player.player_id.toLowerCase())
     );
 
-    if (existingIdx !== -1) {
-      const currentStatus = this.friends[existingIdx].status;
-      if (currentStatus === 'pending_received') {
-        // Automatically accept & follow back -> Mutual Companion!
-        this.friends[existingIdx].status = 'friend';
-        this.friends[existingIdx].followedAt = Date.now();
-        this.save();
-        sound.playFollowChime();
-        this.saveFollowToSupabase(player.id, 'friend');
+    // Case 1: Target was already following current user -> Follow Back! (Instant Mutual Companion)
+    if (existingIdx !== -1 && this.friends[existingIdx].status === 'pending_received') {
+      return this.acceptAndFollowBack(this.friends[existingIdx]);
+    }
 
-        return {
-          success: true,
-          message: `🤝 Followed back ${player.display_name || player.username}! You are now mutual Companions.`,
-          status: 'friend',
-          isMutual: true,
-        };
-      }
-      if (currentStatus === 'friend') {
-        return {
-          success: true,
-          message: `Already mutual companions with ${player.display_name || player.username}.`,
-          status: 'friend',
-          isMutual: true,
-        };
-      }
+    if (existingIdx !== -1 && this.friends[existingIdx].status === 'friend') {
       return {
         success: true,
-        message: `Already following ${player.display_name || player.username}.`,
-        status: 'pending_sent',
-        isMutual: false,
+        message: `Already mutual companions with ${targetDisplayName}.`,
+        status: 'friend',
+        isMutual: true,
       };
     }
 
-    const randDigits = Math.floor(1000 + Math.random() * 9000);
+    // Case 2: New Follow Request
     const newEntry: FriendEntry = {
-      id: player.id || `friend_${Date.now()}`,
-      username: player.username,
-      display_name: player.display_name || player.username,
+      id: targetId,
+      username: targetUsername,
+      display_name: targetDisplayName,
       avatar_url: player.avatar_url || 'avatar_1',
-      player_id: player.player_id || `RL-${randDigits}`,
+      player_id: targetPlayerId,
       level: player.level || 1,
       xp: player.xp || (player.level || 1) * 250,
       wins: player.wins || 0,
@@ -405,43 +619,298 @@ class FriendsService {
       followedAt: Date.now(),
     };
 
-    this.friends.push(newEntry);
-    this.save();
+    if (existingIdx !== -1) {
+      this.friends[existingIdx] = newEntry;
+    } else {
+      this.friends.push(newEntry);
+    }
+    this.saveLocalOnly();
+
+    // 1. Record in Universal Ledger
+    const ledger = this.getUniversalLedger();
+    const reqId = `req_${currentUser.id}_${targetId}`;
+    const ledgerIdx = ledger.findIndex(
+      (r) =>
+        (r.senderId === currentUser.id && r.receiverId === targetId) ||
+        (r.senderUsername.toLowerCase() === currentUser.username.toLowerCase() &&
+          r.receiverUsername.toLowerCase() === targetUsername.toLowerCase())
+    );
+
+    const universalRecord: UniversalSocialRequest = {
+      id: reqId,
+      senderId: currentUser.id,
+      senderUsername: currentUser.username,
+      senderDisplayName: currentUser.display_name,
+      senderAvatar: currentUser.avatar_url || 'avatar_1',
+      senderPlayerId: currentUser.player_id,
+      senderLevel: currentUser.level || 1,
+      senderWins: currentUser.wins || 0,
+      senderXp: currentUser.xp || 0,
+
+      receiverId: targetId,
+      receiverUsername: targetUsername,
+      receiverDisplayName: targetDisplayName,
+      receiverPlayerId: targetPlayerId,
+
+      status: 'pending',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    if (ledgerIdx !== -1) {
+      ledger[ledgerIdx] = universalRecord;
+    } else {
+      ledger.unshift(universalRecord);
+    }
+    this.saveUniversalLedger(ledger);
+
+    // 2. Direct update into Target User's local storage partition so Target receives it immediately
+    this.injectRequestIntoTargetStorage(universalRecord);
+
+    // 3. Supabase Cloud Sync
+    this.saveFollowToSupabase(universalRecord);
+
+    // 4. Sound & Dispatch Notification Event for Target User
     sound.playFollowChime();
-    this.saveFollowToSupabase(player.id, 'pending');
+    this.dispatchTargetNotification(
+      targetId,
+      '👑 Companion Request Received',
+      `${currentUser.display_name} (#${currentUser.player_id}) sent you a follow request!`
+    );
+
+    this.broadcastChange();
 
     return {
       success: true,
-      message: `✨ You are now following ${player.display_name || player.username}!`,
+      message: `✨ Follow request sent to ${targetDisplayName}!`,
       status: 'pending_sent',
       isMutual: false,
     };
   }
 
   /**
-   * Follow back a player who is in your followers list
+   * Helper to write incoming follow into the target user's local storage key
+   */
+  private injectRequestIntoTargetStorage(req: UniversalSocialRequest) {
+    if (typeof window === 'undefined') return;
+    try {
+      const targetStorageKey = `royal_ludo_friends_${req.receiverId}`;
+      const raw = localStorage.getItem(targetStorageKey);
+      let targetList: FriendEntry[] = raw ? JSON.parse(raw) : [...GLOBAL_NOBLES];
+
+      const idx = targetList.findIndex(
+        (f) =>
+          f.id.toLowerCase() === req.senderId.toLowerCase() ||
+          f.username.toLowerCase() === req.senderUsername.toLowerCase() ||
+          f.player_id.toLowerCase() === req.senderPlayerId.toLowerCase()
+      );
+
+      const incomingEntry: FriendEntry = {
+        id: req.senderId,
+        username: req.senderUsername,
+        display_name: req.senderDisplayName,
+        avatar_url: req.senderAvatar || 'avatar_1',
+        player_id: req.senderPlayerId,
+        level: req.senderLevel || 1,
+        xp: req.senderXp || 0,
+        wins: req.senderWins || 0,
+        is_online: true,
+        status: req.status === 'accepted' ? 'friend' : 'pending_received',
+        followedAt: req.createdAt,
+      };
+
+      if (idx !== -1) {
+        targetList[idx] = incomingEntry;
+      } else {
+        targetList.unshift(incomingEntry);
+      }
+
+      localStorage.setItem(targetStorageKey, JSON.stringify(targetList));
+    } catch (e) {
+      console.warn('Failed to inject request into target storage:', e);
+    }
+  }
+
+  private dispatchTargetNotification(targetUserId: string, title: string, message: string) {
+    if (typeof window === 'undefined') return;
+    try {
+      window.dispatchEvent(
+        new CustomEvent('royal_ludo_notification', {
+          detail: {
+            targetUserId,
+            title,
+            message,
+          },
+        })
+      );
+    } catch (e) {
+      console.warn(e);
+    }
+  }
+
+  /**
+   * Accept request and follow back -> Upgrades to Mutual Companions
+   */
+  public acceptAndFollowBack(player: FriendEntry | { id: string; username?: string; display_name?: string }): {
+    success: boolean;
+    message: string;
+    status: 'friend';
+    isMutual: true;
+  } {
+    const currentUser = authService.getCurrentUser();
+    const targetId = player.id;
+
+    // 1. Update current user's list
+    const myIdx = this.friends.findIndex(
+      (f) => f.id.toLowerCase() === targetId.toLowerCase() || (player.username && f.username.toLowerCase() === player.username.toLowerCase())
+    );
+
+    const name = player.display_name || player.username || 'Monarch';
+
+    if (myIdx !== -1) {
+      this.friends[myIdx].status = 'friend';
+      this.friends[myIdx].followedAt = Date.now();
+    } else {
+      this.friends.unshift({
+        id: targetId,
+        username: player.username || `player_${targetId.slice(-4)}`,
+        display_name: name,
+        avatar_url: 'avatar_1',
+        player_id: `RL-${Math.floor(1000 + Math.random() * 9000)}`,
+        level: 1,
+        xp: 0,
+        wins: 0,
+        is_online: true,
+        status: 'friend',
+        followedAt: Date.now(),
+      });
+    }
+    this.saveLocalOnly();
+
+    // 2. Update Universal Ledger to 'accepted'
+    const ledger = this.getUniversalLedger();
+    const matched = ledger.find(
+      (r) =>
+        (r.senderId === targetId && r.receiverId === currentUser.id) ||
+        (r.senderId === currentUser.id && r.receiverId === targetId) ||
+        (player.username && r.senderUsername.toLowerCase() === player.username.toLowerCase() && r.receiverUsername.toLowerCase() === currentUser.username.toLowerCase())
+    );
+
+    if (matched) {
+      matched.status = 'accepted';
+      matched.updatedAt = Date.now();
+    } else {
+      ledger.unshift({
+        id: `req_${targetId}_${currentUser.id}`,
+        senderId: targetId,
+        senderUsername: player.username || 'noble',
+        senderDisplayName: name,
+        senderAvatar: 'avatar_1',
+        senderPlayerId: 'RL-1000',
+        senderLevel: 1,
+        senderWins: 0,
+        senderXp: 0,
+        receiverId: currentUser.id,
+        receiverUsername: currentUser.username,
+        receiverDisplayName: currentUser.display_name,
+        receiverPlayerId: currentUser.player_id,
+        status: 'accepted',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+    }
+    this.saveUniversalLedger(ledger);
+
+    // 3. Update Sender's storage key to 'friend'
+    try {
+      const senderStorageKey = `royal_ludo_friends_${targetId}`;
+      const raw = localStorage.getItem(senderStorageKey);
+      let senderList: FriendEntry[] = raw ? JSON.parse(raw) : [...GLOBAL_NOBLES];
+
+      const sIdx = senderList.findIndex(
+        (f) =>
+          f.id.toLowerCase() === currentUser.id.toLowerCase() ||
+          f.username.toLowerCase() === currentUser.username.toLowerCase()
+      );
+
+      const companionEntry: FriendEntry = {
+        id: currentUser.id,
+        username: currentUser.username,
+        display_name: currentUser.display_name,
+        avatar_url: currentUser.avatar_url || 'avatar_1',
+        player_id: currentUser.player_id,
+        level: currentUser.level || 1,
+        xp: currentUser.xp || 0,
+        wins: currentUser.wins || 0,
+        is_online: true,
+        status: 'friend',
+        followedAt: Date.now(),
+      };
+
+      if (sIdx !== -1) {
+        senderList[sIdx] = companionEntry;
+      } else {
+        senderList.unshift(companionEntry);
+      }
+      localStorage.setItem(senderStorageKey, JSON.stringify(senderList));
+    } catch (e) {
+      console.warn('Sender storage companion sync error:', e);
+    }
+
+    // 4. Supabase Cloud Sync (Mutual friendship)
+    this.saveMutualFriendshipToSupabase(currentUser.id, targetId);
+
+    // 5. Sound & Notify Sender
+    sound.playFollowChime();
+    this.dispatchTargetNotification(
+      targetId,
+      '🤝 Request Accepted & Followed Back!',
+      `${currentUser.display_name} followed you back! You are now mutual Companions.`
+    );
+
+    this.broadcastChange();
+
+    return {
+      success: true,
+      message: `🤝 Followed back ${name}! You are now mutual Companions.`,
+      status: 'friend',
+      isMutual: true,
+    };
+  }
+
+  /**
+   * Follow back button handler
    */
   public followBackPlayer(playerIdOrUsername: string): { success: boolean; message: string } {
     const target = playerIdOrUsername.toLowerCase();
-    const idx = this.friends.findIndex(
+    const found = this.friends.find(
       (f) =>
         f.id.toLowerCase() === target ||
         f.username.toLowerCase() === target ||
         f.player_id.toLowerCase() === target
     );
 
-    if (idx !== -1) {
-      this.friends[idx].status = 'friend';
-      this.friends[idx].followedAt = Date.now();
-      this.save();
-      sound.playFollowChime();
-      this.saveFollowToSupabase(this.friends[idx].id, 'friend');
+    if (found) {
+      const res = this.acceptAndFollowBack(found);
+      return { success: res.success, message: res.message };
+    }
 
-      const name = this.friends[idx].display_name || this.friends[idx].username;
-      return {
-        success: true,
-        message: `🤝 Followed back ${name}! You are now mutual Companions.`,
-      };
+    // Look up in registered accounts
+    const registered = authService.getRegisteredUsers();
+    const regUser = registered.find(
+      (u) =>
+        u.id.toLowerCase() === target ||
+        u.username.toLowerCase() === target ||
+        u.player_id.toLowerCase() === target
+    );
+
+    if (regUser) {
+      const res = this.acceptAndFollowBack({
+        id: regUser.id,
+        username: regUser.username,
+        display_name: regUser.display_name,
+      });
+      return { success: res.success, message: res.message };
     }
 
     return {
@@ -451,9 +920,57 @@ class FriendsService {
   }
 
   /**
+   * Accept incoming request without necessarily following back
+   */
+  public acceptRequest(playerId: string): { success: boolean; message: string } {
+    return this.followBackPlayer(playerId);
+  }
+
+  /**
+   * Decline incoming request
+   */
+  public declineRequest(playerId: string): { success: boolean; message: string } {
+    const currentUser = authService.getCurrentUser();
+    const target = playerId.toLowerCase();
+
+    // Remove from current user's list
+    this.friends = this.friends.filter(
+      (f) =>
+        f.id.toLowerCase() !== target &&
+        f.username.toLowerCase() !== target &&
+        f.player_id.toLowerCase() !== target
+    );
+    this.saveLocalOnly();
+
+    // Update Universal Ledger to 'rejected'
+    const ledger = this.getUniversalLedger();
+    const matched = ledger.find(
+      (r) =>
+        (r.senderId.toLowerCase() === target && r.receiverId === currentUser.id) ||
+        (r.senderUsername.toLowerCase() === target && r.receiverUsername.toLowerCase() === currentUser.username.toLowerCase())
+    );
+
+    if (matched) {
+      matched.status = 'rejected';
+      matched.updatedAt = Date.now();
+      this.saveUniversalLedger(ledger);
+    }
+
+    if (isSupabaseConfigured) {
+      supabase
+        .from('friend_requests')
+        .update({ status: 'rejected' })
+        .eq('sender_id', playerId)
+        .eq('receiver_id', currentUser.id)
+        .then();
+    }
+
+    this.broadcastChange();
+    return { success: true, message: 'Request declined.' };
+  }
+
+  /**
    * Unfollow a player
-   * If they were mutual companions, target stays in followers (pending_received).
-   * If only following, removes entry.
    */
   public unfollowPlayer(playerIdOrUsername: string): { success: boolean; message: string } {
     const target = playerIdOrUsername.toLowerCase();
@@ -469,12 +986,10 @@ class FriendsService {
       const name = entry.display_name || entry.username;
 
       if (entry.status === 'friend') {
-        // They still follow me, but I no longer follow them -> status becomes follower (pending_received)
         this.friends[idx].status = 'pending_received';
         this.save();
         return { success: true, message: `Unfollowed ${name}. They are still following you.` };
       } else {
-        // Just remove from following
         this.friends = this.friends.filter((_, i) => i !== idx);
         this.save();
         return { success: true, message: `Unfollowed ${name}.` };
@@ -485,7 +1000,7 @@ class FriendsService {
   }
 
   /**
-   * Remove a follower from following the current user
+   * Remove a follower
    */
   public removeFollower(playerIdOrUsername: string): { success: boolean; message: string } {
     const target = playerIdOrUsername.toLowerCase();
@@ -501,7 +1016,6 @@ class FriendsService {
       const name = entry.display_name || entry.username;
 
       if (entry.status === 'friend') {
-        // I still follow them, but they no longer follow me -> status becomes following (pending_sent)
         this.friends[idx].status = 'pending_sent';
       } else {
         this.friends = this.friends.filter((_, i) => i !== idx);
@@ -520,18 +1034,20 @@ class FriendsService {
     const currentUser = authService.getCurrentUser();
     if (
       trimmed.toLowerCase() === currentUser.username.toLowerCase() ||
-      trimmed.toUpperCase() === currentUser.player_id.toUpperCase()
+      trimmed.toUpperCase() === currentUser.player_id.toUpperCase() ||
+      (currentUser.email && trimmed.toLowerCase() === currentUser.email.toLowerCase())
     ) {
       return { success: false, message: 'You cannot add yourself.' };
     }
 
-    // Check if player exists in registered users or global nobles
+    // 1. Check registered users list first
     const registered = authService.getRegisteredUsers();
     const foundReg = registered.find(
       (u) =>
         u.username.toLowerCase() === trimmed.toLowerCase() ||
         u.player_id.toUpperCase() === trimmed.toUpperCase() ||
-        u.email?.toLowerCase() === trimmed.toLowerCase()
+        u.email?.toLowerCase() === trimmed.toLowerCase() ||
+        u.display_name.toLowerCase() === trimmed.toLowerCase()
     );
 
     if (foundReg) {
@@ -548,31 +1064,23 @@ class FriendsService {
       return { success: true, message: res.message };
     }
 
-    const existing = this.friends.find(
-      (f) =>
-        f.username.toLowerCase() === trimmed.toLowerCase() ||
-        f.player_id.toUpperCase() === trimmed.toUpperCase()
+    // 2. Check global mock nobles
+    const foundNoble = GLOBAL_NOBLES.find(
+      (n) =>
+        n.username.toLowerCase() === trimmed.toLowerCase() ||
+        n.player_id.toUpperCase() === trimmed.toUpperCase() ||
+        n.display_name.toLowerCase() === trimmed.toLowerCase()
     );
 
-    if (existing) {
-      if (existing.status === 'blocked') {
-        return {
-          success: false,
-          message: 'This user is currently blocked. Unblock them first.',
-        };
-      }
-      if (existing.status === 'pending_received') {
-        return this.followBackPlayer(existing.id);
-      }
-      return {
-        success: false,
-        message: 'Player is already in your companions or following list.',
-      };
+    if (foundNoble) {
+      const res = this.followPlayer(foundNoble);
+      return { success: true, message: res.message };
     }
 
+    // 3. Fallback: Create dynamic noble card
     const randDigits = Math.floor(1000 + Math.random() * 9000);
-    const newFriend: FriendEntry = {
-      id: `friend_${Date.now()}`,
+    const newTarget = {
+      id: `noble_user_${Date.now()}`,
       username: trimmed.toLowerCase().replace(/[^a-z0-9_]/g, ''),
       display_name: trimmed,
       avatar_url: `avatar_${Math.floor(1 + Math.random() * 4)}`,
@@ -580,43 +1088,10 @@ class FriendsService {
       level: Math.floor(1 + Math.random() * 10),
       xp: Math.floor(100 + Math.random() * 2000),
       wins: Math.floor(Math.random() * 20),
-      is_online: true,
-      status: 'pending_sent',
-      followedAt: Date.now(),
     };
 
-    this.friends.push(newFriend);
-    this.save();
-    sound.playFollowChime();
-
-    // Query Supabase profiles asynchronously to attach real avatar & details if available
-    if (isSupabaseConfigured) {
-      supabase
-        .from('profiles')
-        .select('*')
-        .or(`username.ilike.${trimmed},player_id.ilike.${trimmed}`)
-        .limit(1)
-        .then(({ data }) => {
-          if (data && data.length > 0) {
-            const profile = data[0];
-            this.friends = this.friends.map((f) =>
-              f.id === newFriend.id
-                ? {
-                    ...f,
-                    display_name: profile.display_name,
-                    avatar_url: profile.avatar_url,
-                    level: profile.level,
-                    xp: profile.xp,
-                    wins: profile.wins,
-                  }
-                : f
-            );
-            this.save();
-          }
-        });
-    }
-
-    return { success: true, message: `✨ Follow request sent to ${trimmed}!` };
+    const res = this.followPlayer(newTarget);
+    return { success: true, message: res.message };
   }
 
   public acceptFriendRequest(id: string): void {
@@ -668,10 +1143,9 @@ class FriendsService {
     const currentUser = authService.getCurrentUser();
     const registered = authService.getRegisteredUsers();
 
-    // Map registered users to FriendEntry cards
     const allCandidates: FriendEntry[] = [
       ...registered
-        .filter((u) => u.id !== currentUser.id)
+        .filter((u) => u.id !== currentUser.id && u.username.toLowerCase() !== currentUser.username.toLowerCase())
         .map((u) => ({
           id: u.id,
           username: u.username,
@@ -687,7 +1161,6 @@ class FriendsService {
       ...GLOBAL_NOBLES,
     ];
 
-    // Deduplicate by ID and username
     const uniqueMap = new Map<string, FriendEntry>();
     allCandidates.forEach((c) => {
       if (!uniqueMap.has(c.id) && !uniqueMap.has(c.username.toLowerCase())) {
@@ -721,52 +1194,62 @@ class FriendsService {
     });
   }
 
-  /**
-   * Suggested players to follow
-   */
   public getSuggestedNobles(): SocialUserCard[] {
     const all = this.searchAllNobles('');
-    return all.filter((u) => u.relationship === 'none' || u.relationship === 'follower').slice(0, 6);
+    return all.filter((u) => u.relationship === 'none' || u.relationship === 'follower').slice(0, 8);
   }
 
-  private async saveFollowToSupabase(targetId: string, status: string) {
+  // --- Cloud Sync Helpers ---
+  private async saveFollowToSupabase(req: UniversalSocialRequest) {
     if (!isSupabaseConfigured) return;
-    const currentUser = authService.getCurrentUser();
-    if (!currentUser || currentUser.id.startsWith('guest_')) return;
-
     try {
-      if (status === 'friend') {
-        await supabase.from('friends').upsert([
-          { user_id: currentUser.id, friend_id: targetId },
-          { user_id: targetId, friend_id: currentUser.id },
-        ]);
-      } else {
-        await supabase.from('friend_requests').upsert({
-          sender_id: currentUser.id,
-          receiver_id: targetId,
-          status: 'pending',
-        });
-      }
+      const dbClient = supabaseAdmin || supabase;
+      await dbClient.from('friend_requests').upsert({
+        id: req.id,
+        sender_id: req.senderId,
+        receiver_id: req.receiverId,
+        status: req.status,
+        created_at: new Date(req.createdAt).toISOString(),
+      });
     } catch (e) {
-      console.warn('Supabase follow sync warning:', e);
+      console.warn('Supabase follow save warning:', e);
+    }
+  }
+
+  private async saveMutualFriendshipToSupabase(userAId: string, userBId: string) {
+    if (!isSupabaseConfigured) return;
+    try {
+      const dbClient = supabaseAdmin || supabase;
+      await dbClient.from('friends').upsert([
+        { user_id: userAId, friend_id: userBId },
+        { user_id: userBId, friend_id: userAId },
+      ]);
+      await dbClient
+        .from('friend_requests')
+        .update({ status: 'accepted' })
+        .or(`and(sender_id.eq.${userAId},receiver_id.eq.${userBId}),and(sender_id.eq.${userBId},receiver_id.eq.${userAId})`);
+    } catch (e) {
+      console.warn('Supabase mutual friendship sync warning:', e);
     }
   }
 
   private async syncWithSupabase() {
     if (!isSupabaseConfigured) return;
     const currentUser = authService.getCurrentUser();
-    if (!currentUser || currentUser.id.startsWith('guest_')) return;
+    if (!currentUser || !currentUser.id) return;
 
     try {
-      // Fetch mutual friends
-      const { data: friendsData } = await supabase
+      const dbClient = supabaseAdmin || supabase;
+
+      // 1. Fetch mutual friends from DB
+      const { data: friendsData } = await dbClient
         .from('friends')
         .select('friend_id')
         .eq('user_id', currentUser.id);
 
       if (friendsData && friendsData.length > 0) {
         const friendIds = friendsData.map((f: any) => f.friend_id);
-        const { data: profiles } = await supabase
+        const { data: profiles } = await dbClient
           .from('profiles')
           .select('*')
           .in('id', friendIds);
@@ -776,17 +1259,17 @@ class FriendsService {
             const exists = this.friends.findIndex((f) => f.id === p.id);
             if (exists !== -1) {
               this.friends[exists].status = 'friend';
-              this.friends[exists].display_name = p.display_name;
-              this.friends[exists].avatar_url = p.avatar_url;
-              this.friends[exists].level = p.level;
-              this.friends[exists].wins = p.wins;
+              this.friends[exists].display_name = p.display_name || this.friends[exists].display_name;
+              this.friends[exists].avatar_url = p.avatar_url || this.friends[exists].avatar_url;
+              this.friends[exists].level = p.level || this.friends[exists].level;
+              this.friends[exists].wins = p.wins || this.friends[exists].wins;
             } else {
-              this.friends.push({
+              this.friends.unshift({
                 id: p.id,
-                username: p.username,
-                display_name: p.display_name,
+                username: p.username || 'noble',
+                display_name: p.display_name || 'Noble Companion',
                 avatar_url: p.avatar_url || 'avatar_1',
-                player_id: p.player_id,
+                player_id: p.player_id || 'RL-1000',
                 level: p.level || 1,
                 xp: p.xp || 0,
                 wins: p.wins || 0,
@@ -795,20 +1278,20 @@ class FriendsService {
               });
             }
           });
-          this.save();
+          this.saveLocalOnly();
         }
       }
 
-      // Fetch pending requests received (followers)
-      const { data: reqs } = await supabase
+      // 2. Fetch pending requests received (Followers awaiting acceptance)
+      const { data: reqs } = await dbClient
         .from('friend_requests')
-        .select('sender_id')
+        .select('*')
         .eq('receiver_id', currentUser.id)
         .eq('status', 'pending');
 
       if (reqs && reqs.length > 0) {
         const senderIds = reqs.map((r: any) => r.sender_id);
-        const { data: senderProfiles } = await supabase
+        const { data: senderProfiles } = await dbClient
           .from('profiles')
           .select('*')
           .in('id', senderIds);
@@ -821,12 +1304,12 @@ class FriendsService {
                 this.friends[exists].status = 'pending_received';
               }
             } else {
-              this.friends.push({
+              this.friends.unshift({
                 id: p.id,
-                username: p.username,
-                display_name: p.display_name,
+                username: p.username || 'noble',
+                display_name: p.display_name || 'Noble Follower',
                 avatar_url: p.avatar_url || 'avatar_1',
-                player_id: p.player_id,
+                player_id: p.player_id || 'RL-1000',
                 level: p.level || 1,
                 xp: p.xp || 0,
                 wins: p.wins || 0,
@@ -835,7 +1318,7 @@ class FriendsService {
               });
             }
           });
-          this.save();
+          this.saveLocalOnly();
         }
       }
     } catch (e) {
