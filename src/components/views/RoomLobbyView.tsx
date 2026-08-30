@@ -7,8 +7,10 @@ import {
   Coins,
   Copy,
   Crown,
+  Link,
   Play,
   Plus,
+  Share2,
   Shield,
   Sparkles,
   Trophy,
@@ -37,6 +39,7 @@ export const RoomLobbyView: React.FC<RoomLobbyViewProps> = ({
 }) => {
   const [room, setRoom] = useState<RoomRecord>(initialRoom);
   const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [botDifficulty, setBotDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const [currentUser, setCurrentUser] = useState<UserProfile>(() => authService.getCurrentUser());
   const [showBuyCoinsModal, setShowBuyCoinsModal] = useState(false);
@@ -105,6 +108,29 @@ export const RoomLobbyView: React.FC<RoomLobbyViewProps> = ({
     sound.playClick();
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      const inviteUrl = `${window.location.origin}${window.location.pathname}?room=${room.code}`;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(inviteUrl);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = inviteUrl;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+    } catch (err) {
+      console.error('Failed to copy invite link', err);
+    }
+    sound.playClick();
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2500);
   };
 
   const handleToggleReady = () => {
@@ -204,29 +230,55 @@ export const RoomLobbyView: React.FC<RoomLobbyViewProps> = ({
               </span>
             </div>
 
-            <button
-              id="copy-room-code-btn"
-              type="button"
-              onClick={handleCopyCode}
-              className={`px-5 py-3 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 ${
-                copied
-                  ? 'bg-emerald-500 text-slate-950 ring-2 ring-emerald-300'
-                  : 'bg-amber-500 hover:bg-amber-400 text-slate-950 hover:scale-105 active:scale-95'
-              }`}
-              title="Copy Room Code to Clipboard"
-            >
-              {copied ? (
-                <>
-                  <Check className="w-4 h-4 text-slate-950" />
-                  <span>Code Copied!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4 text-slate-950" />
-                  <span>Copy Code</span>
-                </>
-              )}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                id="copy-room-code-btn"
+                type="button"
+                onClick={handleCopyCode}
+                className={`px-4 py-3 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 ${
+                  copied
+                    ? 'bg-emerald-500 text-slate-950 ring-2 ring-emerald-300'
+                    : 'bg-amber-500 hover:bg-amber-400 text-slate-950 hover:scale-105 active:scale-95'
+                }`}
+                title="Copy Room Code"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-4 h-4 text-slate-950" />
+                    <span>Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 text-slate-950" />
+                    <span>Copy Code</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                id="copy-invite-link-btn"
+                type="button"
+                onClick={handleCopyLink}
+                className={`px-4 py-3 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 ${
+                  copiedLink
+                    ? 'bg-emerald-500 text-slate-950 ring-2 ring-emerald-300'
+                    : 'bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 hover:scale-105 active:scale-95'
+                }`}
+                title="Copy Direct Invite Link"
+              >
+                {copiedLink ? (
+                  <>
+                    <Check className="w-4 h-4 text-slate-950" />
+                    <span>Link Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="w-4 h-4 text-amber-400" />
+                    <span>Share Link</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           <p className="text-xs text-slate-400 max-w-sm mx-auto">

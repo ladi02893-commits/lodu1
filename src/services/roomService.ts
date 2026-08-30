@@ -83,7 +83,101 @@ class RoomService {
   }
 
   /**
-   * Subscribe to Supabase Realtime Channel for a room
+   * Helper to query Supabase Database for a room by code
+   */
+  public async fetchRoomFromDb(code: string): Promise<RoomRecord | null> {
+    const cleanCode = (code || '').trim().toUpperCase();
+    if (!cleanCode || !isSupabaseConfigured) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('code', cleanCode)
+        .maybeSingle();
+
+      if (error) {
+        console.warn('Supabase fetchRoom error:', error.message);
+        return null;
+      }
+
+      if (!data) return null;
+
+      const settings = (data.settings as any) || {};
+      const playersList: RoomPlayerRecord[] = Array.isArray(settings.players)
+        ? settings.players
+        : [];
+
+      const betAmount = Number(settings.betAmount ?? 0);
+      const totalPot = Number(settings.totalPot ?? betAmount * Math.max(1, playersList.length));
+
+      const room: RoomRecord = {
+        id: data.id || `room_${cleanCode}`,
+        code: data.code,
+        host_id: data.host_id,
+        mode: data.mode || 'room_private',
+        max_players: data.max_players || 4,
+        bet_amount: betAmount,
+        total_pot: totalPot,
+        status: data.status || 'open',
+        settings: {
+          turnDurationSeconds: 30,
+          ...settings,
+          betAmount,
+          totalPot,
+          players: playersList,
+        },
+        created_at: data.created_at || new Date().toISOString(),
+        players: playersList,
+      };
+
+      this.activeRooms.set(cleanCode, room);
+      this.save();
+      return room;
+    } catch (e) {
+      console.warn('Supabase fetchRoom exception:', e);
+      return null;
+    }
+  }
+
+  /**
+   * Sync complete room state to Supabase Database
+   */
+  private async syncRoomToDb(room: RoomRecord): Promise<void> {
+    if (!isSupabaseConfigured || !room?.code) return;
+
+    try {
+      const cleanCode = room.code.toUpperCase();
+      const settingsPayload = {
+        ...(room.settings || {}),
+        betAmount: room.bet_amount || 0,
+        totalPot: room.total_pot || 0,
+        turnDurationSeconds: room.settings?.turnDurationSeconds || 30,
+        players: room.players || [],
+      };
+
+      const { error } = await supabase.from('rooms').upsert(
+        {
+          code: cleanCode,
+          host_id: room.host_id,
+          mode: room.mode || 'room_private',
+          status: room.status || 'open',
+          max_players: room.max_players || 4,
+          settings: settingsPayload,
+        },
+        { onConflict: 'code' }
+      );
+
+      if (error) {
+        console.warn('Supabase syncRoomToDb warning:', error.message);
+      }
+    } catch (e) {
+      console.warn('Supabase syncRoomToDb exception:', e);
+    }
+  }
+
+  /**
+   * Subscribe to Supabase Realtime Channel & Postgres Changes for a room
    */
   private subscribeToSupabaseRealtime(code: string) {
     const cleanCode = code.toUpperCase();
@@ -113,6 +207,50 @@ class RoomService {
             this.notifyGlobal('ROOM_MATCH_STARTED', updated);
           }
         })
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'rooms', filter: `code=eq.${cleanCode}` },
+          (payload: any) => {
+            const row = payload.new;
+            if (row && row.code) {
+              const settings = (row.settings as any) || {};
+              const playersList: RoomPlayerRecord[] = Array.isArray(settings.players)
+                ? settings.players
+                : [];
+              const betAmount = Number(settings.betAmount ?? 0);
+              const totalPot = Number(settings.totalPot ?? betAmount * Math.max(1, playersList.length));
+
+              const updated: RoomRecord = {
+                id: row.id,
+                code: row.code,
+                host_id: row.host_id,
+                mode: row.mode || 'room_private',
+                max_players: row.max_players || 4,
+                bet_amount: betAmount,
+                total_pot: totalPot,
+                status: row.status || 'open',
+                settings: {
+                  turnDurationSeconds: 30,
+                  ...settings,
+                  betAmount,
+                  totalPot,
+                  players: playersList,
+                },
+                created_at: row.created_at || new Date().toISOString(),
+                players: playersList,
+              };
+
+              this.activeRooms.set(cleanCode, updated);
+              this.save();
+              this.notifyRoom(cleanCode);
+              if (updated.status === 'in_game') {
+                this.notifyGlobal('ROOM_MATCH_STARTED', updated);
+              } else {
+                this.notifyGlobal('ROOM_UPDATED', updated);
+              }
+            }
+          }
+        )
         .subscribe();
 
       this.realtimeChannels.set(cleanCode, channel);
@@ -144,11 +282,13 @@ class RoomService {
         channel = this.realtimeChannels.get(cleanCode);
       }
       if (channel) {
-        channel.send({
-          type: 'broadcast',
-          event: type,
-          payload: { room },
-        }).catch((e) => console.warn('Supabase Realtime send error:', e));
+        channel
+          .send({
+            type: 'broadcast',
+            event: type,
+            payload: { room },
+          })
+          .catch((e) => console.warn('Supabase Realtime send error:', e));
       }
     }
   }
@@ -186,6 +326,7 @@ class RoomService {
         turnDurationSeconds: 30,
         betAmount: Math.max(0, betAmount || 0),
         totalPot: initialPot,
+        players: [hostPlayer],
       },
       created_at: new Date().toISOString(),
       players: [hostPlayer],
@@ -195,22 +336,8 @@ class RoomService {
     this.save();
     this.subscribeToSupabaseRealtime(code);
     this.broadcastEvent('ROOM_UPDATED', room);
+    this.syncRoomToDb(room);
     this.notifyRoom(code);
-
-    // Asynchronously save to Supabase Database
-    if (isSupabaseConfigured) {
-      supabase.from('rooms').upsert({
-        id: roomId.startsWith('room_') ? undefined : roomId,
-        code,
-        host_id: user.id,
-        mode: 'room_private',
-        status: 'open',
-        max_players: maxPlayers,
-        settings: { betAmount: betAmount || 0, totalPot: initialPot },
-      }).then(({ error }) => {
-        if (error) console.warn('Supabase rooms insert warning:', error.message);
-      });
-    }
 
     return room;
   }
@@ -235,37 +362,42 @@ class RoomService {
 
     room.bet_amount = Math.max(0, betAmount);
     room.total_pot = room.bet_amount * (room.players?.length || 1);
-    room.settings = { ...room.settings, betAmount: room.bet_amount, totalPot: room.total_pot };
+    room.settings = {
+      ...room.settings,
+      betAmount: room.bet_amount,
+      totalPot: room.total_pot,
+      players: room.players || [],
+    };
 
     this.activeRooms.set(cleanCode, room);
     this.save();
     this.broadcastEvent('ROOM_UPDATED', room);
+    this.syncRoomToDb(room);
     this.notifyRoom(cleanCode);
-
-    // Update in Supabase
-    if (isSupabaseConfigured) {
-      supabase.from('rooms').update({
-        settings: { betAmount: room.bet_amount, totalPot: room.total_pot },
-      }).eq('code', cleanCode).then();
-    }
 
     return { success: true, room, message: `Bet updated to ${room.bet_amount.toLocaleString()} Coins!` };
   }
 
-  public joinRoom(code: string): { success: boolean; room?: RoomRecord; message: string } {
+  public async joinRoom(code: string): Promise<{ success: boolean; room?: RoomRecord; message: string }> {
     this.load();
-    const cleanCode = code.trim().toUpperCase();
+    const cleanCode = (code || '').trim().toUpperCase();
     if (!cleanCode) {
       return { success: false, message: 'Please enter a valid room code.' };
     }
 
-    const room = this.activeRooms.get(cleanCode);
+    let room = this.activeRooms.get(cleanCode);
+
+    // If not found in local memory, fetch from Supabase Cloud
+    if (!room) {
+      room = (await this.fetchRoomFromDb(cleanCode)) || undefined;
+    }
+
     if (!room) {
       return { success: false, message: `Room "${cleanCode}" not found. Check code and try again.` };
     }
 
     if (room.status !== 'open') {
-      return { success: false, message: 'Match already in progress or closed.' };
+      return { success: false, message: 'Match already in progress or chamber closed.' };
     }
 
     const user = authService.getCurrentUser();
@@ -275,7 +407,7 @@ class RoomService {
     const existing = players.find((p) => p.user_id === user.id);
     if (existing) {
       this.subscribeToSupabaseRealtime(cleanCode);
-      return { success: true, room, message: 'Rejoined room' };
+      return { success: true, room, message: 'Rejoined room successfully' };
     }
 
     if (players.length >= room.max_players) {
@@ -315,10 +447,18 @@ class RoomService {
 
     room.players = [...players, newPlayer];
     room.total_pot = (room.bet_amount || 0) * room.players.length;
+    room.settings = {
+      ...room.settings,
+      betAmount: room.bet_amount,
+      totalPot: room.total_pot,
+      players: room.players,
+    };
+
     this.activeRooms.set(cleanCode, room);
     this.save();
     this.subscribeToSupabaseRealtime(cleanCode);
     this.broadcastEvent('ROOM_UPDATED', room);
+    this.syncRoomToDb(room);
     this.notifyRoom(cleanCode);
 
     return { success: true, room, message: 'Joined room successfully' };
@@ -379,9 +519,17 @@ class RoomService {
 
     room.players = [...players, botPlayer];
     room.total_pot = (room.bet_amount || 0) * room.players.length;
+    room.settings = {
+      ...room.settings,
+      betAmount: room.bet_amount,
+      totalPot: room.total_pot,
+      players: room.players,
+    };
+
     this.activeRooms.set(cleanCode, room);
     this.save();
     this.broadcastEvent('ROOM_UPDATED', room);
+    this.syncRoomToDb(room);
     this.notifyRoom(cleanCode);
     return room;
   }
@@ -394,9 +542,17 @@ class RoomService {
 
     room.players = (room.players || []).filter((p) => p.user_id !== userId);
     room.total_pot = (room.bet_amount || 0) * (room.players.length || 1);
+    room.settings = {
+      ...room.settings,
+      betAmount: room.bet_amount,
+      totalPot: room.total_pot,
+      players: room.players,
+    };
+
     this.activeRooms.set(cleanCode, room);
     this.save();
     this.broadcastEvent('ROOM_UPDATED', room);
+    this.syncRoomToDb(room);
     this.notifyRoom(cleanCode);
     return room;
   }
@@ -415,9 +571,15 @@ class RoomService {
     room.players = (room.players || []).map((p) =>
       p.user_id === userId ? { ...p, is_ready: !p.is_ready } : p
     );
+    room.settings = {
+      ...room.settings,
+      players: room.players,
+    };
+
     this.activeRooms.set(cleanCode, room);
     this.save();
     this.broadcastEvent('ROOM_UPDATED', room);
+    this.syncRoomToDb(room);
     this.notifyRoom(cleanCode);
     return room;
   }
@@ -436,9 +598,15 @@ class RoomService {
     room.players = players.map((p) =>
       p.user_id === userId ? { ...p, seat: targetSeat, color } : p
     );
+    room.settings = {
+      ...room.settings,
+      players: room.players,
+    };
+
     this.activeRooms.set(cleanCode, room);
     this.save();
     this.broadcastEvent('ROOM_UPDATED', room);
+    this.syncRoomToDb(room);
     this.notifyRoom(cleanCode);
     return room;
   }
@@ -453,12 +621,8 @@ class RoomService {
     this.activeRooms.set(cleanCode, room);
     this.save();
     this.broadcastEvent('ROOM_MATCH_STARTED', room);
+    this.syncRoomToDb(room);
     this.notifyRoom(cleanCode);
-
-    // Update in Supabase
-    if (isSupabaseConfigured) {
-      supabase.from('rooms').update({ status: 'in_game' }).eq('code', cleanCode).then();
-    }
 
     return room;
   }
@@ -469,6 +633,13 @@ class RoomService {
     return this.activeRooms.get(cleanCode) || null;
   }
 
+  public async fetchRoom(code: string): Promise<RoomRecord | null> {
+    const cleanCode = (code || '').trim().toUpperCase();
+    const local = this.getRoom(cleanCode);
+    if (local) return local;
+    return this.fetchRoomFromDb(cleanCode);
+  }
+
   public subscribe(code: string, listener: RoomListener): () => void {
     const cleanCode = (code || '').trim().toUpperCase();
     if (!this.listeners[cleanCode]) {
@@ -476,7 +647,18 @@ class RoomService {
     }
     this.listeners[cleanCode].push(listener);
     this.subscribeToSupabaseRealtime(cleanCode);
-    listener(this.getRoom(cleanCode));
+
+    const current = this.getRoom(cleanCode);
+    listener(current);
+
+    // Also fetch asynchronously to guarantee newest remote state
+    if (!current && isSupabaseConfigured) {
+      this.fetchRoomFromDb(cleanCode).then((fetched) => {
+        if (fetched) {
+          listener(fetched);
+        }
+      });
+    }
 
     return () => {
       this.listeners[cleanCode] = (this.listeners[cleanCode] || []).filter((l) => l !== listener);
@@ -511,3 +693,4 @@ class RoomService {
 }
 
 export const roomService = new RoomService();
+

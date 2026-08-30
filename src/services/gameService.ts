@@ -101,7 +101,8 @@ class GameService {
 
     if (action.type === 'ROLL_DICE') {
       sound.playDiceRoll();
-      const updated = rollDice(this.activeState);
+      const forcedValue = (action as any).diceValue;
+      const updated = rollDice(this.activeState, forcedValue);
       const rolledVal = updated.dice.value;
       if (rolledVal !== null) {
         setTimeout(() => sound.playDiceResult(rolledVal), 150);
@@ -189,7 +190,8 @@ class GameService {
     mode: GameMode,
     customPlayers?: Partial<PlayerState>[],
     botDifficulty: 'easy' | 'medium' | 'hard' = 'medium',
-    betAmount: number = 0
+    betAmount: number = 0,
+    customMatchId?: string
   ): GameState {
     this.clearTimers();
     const currentUser = authService.getCurrentUser();
@@ -277,6 +279,7 @@ class GameService {
     const state = createInitialGameState({
       mode,
       players,
+      matchId: customMatchId,
     });
 
     state.betAmount = actualBet;
@@ -308,6 +311,7 @@ class GameService {
     this.broadcastAction({
       type: 'ROLL_DICE',
       seat: currentSeat,
+      diceValue: rolledVal || undefined,
       timestamp: Date.now(),
     });
 

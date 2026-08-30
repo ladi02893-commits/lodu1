@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Coins, Sparkles, X } from 'lucide-react';
+import { Coins, Loader2, Sparkles, X } from 'lucide-react';
 import { AuthModal } from './components/views/AuthModal';
 import { GameArenaView } from './components/views/GameArenaView';
 import { HomeDashboard } from './components/views/HomeDashboard';
@@ -64,6 +64,26 @@ export const App: React.FC = () => {
   const [joinCodeInput, setJoinCodeInput] = useState('');
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
+  const [isJoiningRoom, setIsJoiningRoom] = useState(false);
+
+  // Auto-detect room invite in URL parameters (e.g. ?room=XYZ123 or #room=XYZ123)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const urlCode =
+        params.get('room') ||
+        params.get('code') ||
+        (window.location.hash.includes('room=') ? window.location.hash.split('room=')[1] : '');
+      if (urlCode && urlCode.trim().length >= 4) {
+        const clean = urlCode.trim().toUpperCase();
+        setJoinCodeInput(clean);
+        setShowJoinModal(true);
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+  }, []);
 
   // Global Room sync: if any joined player's room begins a match
   useEffect(() => {
@@ -172,19 +192,29 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleJoinRoomSubmit = (e: React.FormEvent) => {
+  const handleJoinRoomSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const clean = joinCodeInput.trim().toUpperCase();
-    if (!clean) return;
+    if (!clean || isJoiningRoom) return;
 
     sound.playClick();
-    const res = roomService.joinRoom(clean);
-    if (res.success && res.room) {
-      setActiveRoom(res.room);
-      setShowJoinModal(false);
-      setCurrentView('room_lobby');
-    } else {
-      setJoinError(res.message);
+    setIsJoiningRoom(true);
+    setJoinError(null);
+
+    try {
+      const res = await roomService.joinRoom(clean);
+      if (res.success && res.room) {
+        setActiveRoom(res.room);
+        setShowJoinModal(false);
+        setJoinCodeInput('');
+        setCurrentView('room_lobby');
+      } else {
+        setJoinError(res.message);
+      }
+    } catch (err: any) {
+      setJoinError(err?.message || 'Failed to connect to chamber. Please check your network.');
+    } finally {
+      setIsJoiningRoom(false);
     }
   };
 
@@ -200,7 +230,8 @@ export const App: React.FC = () => {
       isHost: p.is_host,
     }));
 
-    gameService.startMatch('room_private', mapped, 'medium', room.bet_amount || 0);
+    const unifiedMatchId = `room_${room.code.toUpperCase()}`;
+    gameService.startMatch('room_private', mapped, 'medium', room.bet_amount || 0, unifiedMatchId);
     setCurrentView('game');
   };
 
@@ -397,14 +428,23 @@ export const App: React.FC = () => {
               <div className="flex items-center gap-2 pt-2">
                 <button
                   type="submit"
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 font-royal font-bold text-xs uppercase tracking-wider text-slate-950 shadow cursor-pointer hover:brightness-110"
+                  disabled={isJoiningRoom || !joinCodeInput.trim()}
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 font-royal font-bold text-xs uppercase tracking-wider text-slate-950 shadow cursor-pointer hover:brightness-110 disabled:opacity-60 flex items-center justify-center gap-2"
                 >
-                  Join Chamber
+                  {isJoiningRoom ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                      <span>Connecting...</span>
+                    </>
+                  ) : (
+                    <span>Join Chamber</span>
+                  )}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowJoinModal(false)}
-                  className="w-full py-3 rounded-xl bg-slate-800 text-slate-300 font-semibold text-xs cursor-pointer hover:bg-slate-700"
+                  disabled={isJoiningRoom}
+                  className="w-full py-3 rounded-xl bg-slate-800 text-slate-300 font-semibold text-xs cursor-pointer hover:bg-slate-700 disabled:opacity-60"
                 >
                   Cancel
                 </button>
