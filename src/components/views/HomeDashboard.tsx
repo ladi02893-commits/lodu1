@@ -24,10 +24,15 @@ import {
 import { sound } from '../../lib/audio';
 import { UserProfile } from '../../types/database';
 import { rewardService, DailyLoginStatus } from '../../services/rewardService';
+import { StakeSelectorModal } from './StakeSelectorModal';
 
 interface HomeDashboardProps {
   user: UserProfile;
-  onSelectMode: (mode: 'quick_2' | 'quick_4' | 'vs_computer' | 'local_2' | 'local_3' | 'local_4' | 'room_create' | 'room_join', botDifficulty?: 'easy' | 'medium' | 'hard') => void;
+  onSelectMode: (
+    mode: 'quick_2' | 'quick_4' | 'vs_computer' | 'local_2' | 'local_3' | 'local_4' | 'room_create' | 'room_join',
+    botDifficulty?: 'easy' | 'medium' | 'hard',
+    betAmount?: number
+  ) => void;
   onNavigate: (view: 'profile' | 'friends' | 'leaderboard' | 'missions' | 'achievements' | 'shop' | 'settings' | 'admin') => void;
   onOpenDailyLogin?: () => void;
   onOpenPayment?: () => void;
@@ -44,6 +49,13 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   const [showLocalModal, setShowLocalModal] = useState(false);
   const [botDifficulty, setBotDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const [dailyStatus, setDailyStatus] = useState<DailyLoginStatus>(() => rewardService.getDailyLoginStatus());
+  const [stakeModalConfig, setStakeModalConfig] = useState<{
+    isOpen: boolean;
+    mode: 'quick_2' | 'quick_4' | 'vs_computer';
+    modeTitle: string;
+    playerCount: number;
+    botDifficulty?: 'easy' | 'medium' | 'hard';
+  } | null>(null);
 
   useEffect(() => {
     setDailyStatus(rewardService.getDailyLoginStatus());
@@ -253,7 +265,12 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
             type="button"
             onClick={() => {
               sound.playClick();
-              onSelectMode('quick_4');
+              setStakeModalConfig({
+                isOpen: true,
+                mode: 'quick_4',
+                modeTitle: 'Quick Match (4 Monarchs)',
+                playerCount: 4,
+              });
             }}
             className="group relative p-5 rounded-3xl bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-amber-500/40 hover:border-amber-400 hover:shadow-xl hover:shadow-amber-500/20 transition-all duration-300 flex flex-col items-start justify-between min-h-[160px] text-left cursor-pointer"
           >
@@ -271,7 +288,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                 Quick Match (4P)
               </h4>
               <p className="text-xs text-slate-400 mt-0.5">
-                Instant matchmaking into a 4-monarch arena.
+                4-Monarch arena with customizable bet stakes.
               </p>
             </div>
           </button>
@@ -282,7 +299,12 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
             type="button"
             onClick={() => {
               sound.playClick();
-              onSelectMode('quick_2');
+              setStakeModalConfig({
+                isOpen: true,
+                mode: 'quick_2',
+                modeTitle: 'Royal Duel (2 Players)',
+                playerCount: 2,
+              });
             }}
             className="group relative p-5 rounded-3xl bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 hover:border-rose-500/50 hover:shadow-xl hover:shadow-rose-500/20 transition-all duration-300 flex flex-col items-start justify-between min-h-[160px] text-left cursor-pointer"
           >
@@ -295,7 +317,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                 Royal Duel (2P)
               </h4>
               <p className="text-xs text-slate-400 mt-0.5">
-                Fast 1-on-1 strategic showdown across the board.
+                Fast 1-on-1 strategic showdown with double stakes.
               </p>
             </div>
           </button>
@@ -482,11 +504,17 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                 type="button"
                 onClick={() => {
                   setShowBotModal(false);
-                  onSelectMode('vs_computer', botDifficulty);
+                  setStakeModalConfig({
+                    isOpen: true,
+                    mode: 'vs_computer',
+                    modeTitle: `Vs Royal AI (${botDifficulty.toUpperCase()})`,
+                    playerCount: 2,
+                    botDifficulty,
+                  });
                 }}
                 className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold text-xs uppercase tracking-wider transition-all shadow cursor-pointer"
               >
-                Start Match
+                Choose Stake & Play
               </button>
               <button
                 type="button"
@@ -549,6 +577,23 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
             </button>
           </div>
         </div>
+      )}
+
+      {/* Stake / Bet Selector Modal */}
+      {stakeModalConfig && (
+        <StakeSelectorModal
+          isOpen={stakeModalConfig.isOpen}
+          onClose={() => setStakeModalConfig(null)}
+          onConfirmStake={(stake) => {
+            const config = stakeModalConfig;
+            setStakeModalConfig(null);
+            onSelectMode(config.mode, config.botDifficulty, stake);
+          }}
+          onOpenBuyCoins={onOpenPayment}
+          user={user}
+          modeTitle={stakeModalConfig.modeTitle}
+          playerCount={stakeModalConfig.playerCount}
+        />
       )}
     </div>
   );

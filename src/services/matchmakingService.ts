@@ -17,6 +17,8 @@ class MatchmakingService {
   private elapsedSeconds: number = 0;
   private listeners: MatchmakingListener[] = [];
 
+  private betAmount: number = 0;
+
   public subscribe(callback: MatchmakingListener): () => void {
     this.listeners.push(callback);
     this.notify();
@@ -42,10 +44,11 @@ class MatchmakingService {
     );
   }
 
-  public startSearch(mode: GameMode = 'quick_4'): void {
+  public startSearch(mode: GameMode = 'quick_4', betAmount: number = 0): void {
     this.cancelSearch();
     this.isSearching = true;
     this.currentMode = mode;
+    this.betAmount = betAmount;
     this.elapsedSeconds = 0;
     this.notify();
 
@@ -65,18 +68,20 @@ class MatchmakingService {
     this.searchTimer = null;
     this.isSearching = false;
     this.currentMode = null;
+    this.betAmount = 0;
     this.elapsedSeconds = 0;
     this.notify();
   }
 
   private matchFound(mode: GameMode): void {
     if (this.searchTimer) clearInterval(this.searchTimer);
+    const bet = this.betAmount;
     this.searchTimer = null;
     this.isSearching = false;
     this.notify();
 
     // Start match via gameService
-    gameService.startMatch(mode);
+    gameService.startMatch(mode, undefined, 'medium', bet);
   }
 }
 

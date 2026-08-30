@@ -553,8 +553,8 @@ export function moveToken(gameState: GameState, seat: number, tokenId: number, d
     players: updatedPlayers,
     turn: updatedTurn,
     dice: {
-      value: currentDice,
-      rolledAt: now,
+      value: null,
+      rolledAt: null,
       canRoll: true,
       rollsThisTurn: 0,
     },

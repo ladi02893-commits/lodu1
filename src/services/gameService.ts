@@ -292,6 +292,8 @@ class GameService {
     return state;
   }
 
+  private autoMoveTimer: NodeJS.Timeout | null = null;
+
   public rollCurrentDice(): boolean {
     if (!this.activeState || this.activeState.status !== 'in_progress') return false;
     if (!this.activeState.dice.canRoll) return false;
@@ -317,6 +319,24 @@ class GameService {
 
     this.startTurnCountdown();
     this.notify();
+
+    // Auto-move algorithm: If exactly 1 legal move exists, auto-move after dice animation
+    if (rolledVal !== null) {
+      const legalMoves = getLegalMoves(this.activeState, currentSeat, rolledVal);
+      if (legalMoves.length === 1 && this.activeState.status === 'in_progress') {
+        if (this.autoMoveTimer) clearTimeout(this.autoMoveTimer);
+        this.autoMoveTimer = setTimeout(() => {
+          if (
+            this.activeState &&
+            this.activeState.turn.currentSeat === currentSeat &&
+            this.activeState.dice.value === rolledVal
+          ) {
+            this.movePlayerToken(legalMoves[0].tokenId);
+          }
+        }, 420);
+      }
+    }
+
     return true;
   }
 
@@ -471,8 +491,10 @@ class GameService {
   private clearTimers() {
     if (this.botTimer) clearTimeout(this.botTimer);
     if (this.turnTimer) clearTimeout(this.turnTimer);
+    if (this.autoMoveTimer) clearTimeout(this.autoMoveTimer);
     this.botTimer = null;
     this.turnTimer = null;
+    this.autoMoveTimer = null;
   }
 
   public leaveMatch() {

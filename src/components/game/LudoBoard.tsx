@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { Crown, Shield, Sparkles, Star } from 'lucide-react';
 import { COLOR_CONFIG } from '../../lib/ludo/constants';
 import { getTokenCoordinates } from '../../lib/ludo/board';
@@ -308,9 +309,11 @@ export const LudoBoard: React.FC<LudoBoardProps> = ({
             const cellSizePct = 100 / 15;
 
             return (
-              <div
+              <motion.div
                 key={`${t.seat}-${t.tokenId}`}
-                className="absolute pointer-events-auto flex items-center justify-center transition-all duration-300 ease-out"
+                layout
+                transition={{ type: 'spring', damping: 22, stiffness: 260 }}
+                className="absolute pointer-events-auto flex items-center justify-center"
                 style={{
                   top: `${topPct}%`,
                   left: `${leftPct}%`,
@@ -327,7 +330,7 @@ export const LudoBoard: React.FC<LudoBoardProps> = ({
                   stackCount={t.stackCount}
                   onClick={() => onMoveToken(t.tokenId)}
                 />
-              </div>
+              </motion.div>
             );
           })}
         </div>

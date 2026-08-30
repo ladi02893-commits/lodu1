@@ -163,11 +163,12 @@ export const App: React.FC = () => {
       | 'local_4'
       | 'room_create'
       | 'room_join',
-    botDifficulty?: 'easy' | 'medium' | 'hard'
+    botDifficulty?: 'easy' | 'medium' | 'hard',
+    betAmount: number = 0
   ) => {
     if (mode === 'quick_2' || mode === 'quick_4') {
       setIsMatchmaking(true);
-      matchmakingService.startSearch(mode);
+      matchmakingService.startSearch(mode, betAmount);
       const unsub = gameService.subscribe((state) => {
         if (state.status === 'in_progress') {
           setIsMatchmaking(false);
@@ -176,13 +177,13 @@ export const App: React.FC = () => {
         }
       });
     } else if (mode === 'vs_computer') {
-      gameService.startMatch('vs_computer', undefined, botDifficulty || 'medium');
+      gameService.startMatch('vs_computer', undefined, botDifficulty || 'medium', betAmount);
       setCurrentView('game');
     } else if (mode.startsWith('local_')) {
-      gameService.startMatch(mode as GameMode);
+      gameService.startMatch(mode as GameMode, undefined, undefined, betAmount);
       setCurrentView('game');
     } else if (mode === 'room_create') {
-      const room = roomService.createRoom(4, 0);
+      const room = roomService.createRoom(4, betAmount);
       setActiveRoom(room);
       setCurrentView('room_lobby');
     } else if (mode === 'room_join') {
