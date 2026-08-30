@@ -179,6 +179,12 @@ class PaymentService {
   constructor() {
     this.loadFromStorage();
     this.initRealtime();
+    // Eagerly fetch from Supabase in background
+    if (typeof window !== 'undefined') {
+      setTimeout(() => {
+        this.fetchAllRequests().catch(() => {});
+      }, 500);
+    }
   }
 
   private initRealtime(): void {
@@ -186,11 +192,13 @@ class PaymentService {
       try {
         this.broadcastChannel = new BroadcastChannel('royal_ludo_payments_channel');
         this.broadcastChannel.onmessage = (event) => {
-          const { type, request, requestId, coins, targetUserId } = event.data || {};
+          const { type, request, requestId, coins, targetUserId, status, note } = event.data || {};
           if (type === 'NEW_DEPOSIT' && request) {
             this.handleIncomingDeposit(request);
           } else if (type === 'DEPOSIT_APPROVED') {
             this.handleApprovedDeposit(requestId, targetUserId, coins);
+          } else if (type === 'DEPOSIT_REJECTED') {
+            this.handleRejectedDeposit(requestId, note);
           }
         };
       } catch (e) {
@@ -204,6 +212,7 @@ class PaymentService {
           config: { broadcast: { self: false } },
         });
 
+        // 1. Listen for Broadcast Events (Cross-client notification)
         this.realtimeChannel
           .on('broadcast', { event: 'NEW_DEPOSIT' }, (payload) => {
             if (payload.payload?.request) {
@@ -214,6 +223,36 @@ class PaymentService {
             const { requestId, targetUserId, coins } = payload.payload || {};
             this.handleApprovedDeposit(requestId, targetUserId, coins);
           })
+          .on('broadcast', { event: 'DEPOSIT_REJECTED' }, (payload) => {
+            const { requestId, note } = payload.payload || {};
+            this.handleRejectedDeposit(requestId, note);
+          });
+
+        // 2. Listen for Postgres Changes on deposit_requests table
+        this.realtimeChannel
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'deposit_requests' },
+            (payload) => {
+              if (payload.eventType === 'INSERT' && payload.new) {
+                this.handleIncomingDeposit(payload.new as DepositRequestRecord);
+              } else if (payload.eventType === 'UPDATE' && payload.new) {
+                const updated = payload.new as DepositRequestRecord;
+                const idx = this.depositRequests.findIndex((r) => r.id === updated.id);
+                if (idx !== -1) {
+                  this.depositRequests[idx] = updated;
+                } else {
+                  this.depositRequests.unshift(updated);
+                }
+                this.saveToStorage();
+                this.notify();
+
+                if (updated.status === 'approved') {
+                  this.handleApprovedDeposit(updated.id, updated.user_id, updated.coins_amount);
+                }
+              }
+            }
+          )
           .subscribe();
       } catch (e) {
         console.warn('Supabase payments channel warning:', e);
@@ -297,14 +336,81 @@ class PaymentService {
     return this.depositRequests.filter((r) => r.status === 'pending').length;
   }
 
-  public createDepositRequest(params: {
+  /**
+   * Asynchronously fetch latest deposit requests from Supabase cloud database
+   */
+  public async fetchAllRequests(): Promise<DepositRequestRecord[]> {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('deposit_requests')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!error && Array.isArray(data) && data.length > 0) {
+          // Merge remote records with local records
+          const remoteMap = new Map<string, DepositRequestRecord>();
+          data.forEach((item: any) => {
+            remoteMap.set(item.id, {
+              id: item.id,
+              user_id: item.user_id,
+              username: item.username,
+              display_name: item.display_name,
+              package_id: item.package_id,
+              coins_amount: Number(item.coins_amount),
+              bonus_coins: Number(item.bonus_coins || 0),
+              fiat_amount: Number(item.fiat_amount),
+              currency: item.currency || 'PKR',
+              payment_method: item.payment_method,
+              sender_account_or_name: item.sender_account_or_name,
+              transaction_reference_id: item.transaction_reference_id,
+              screenshot_url: item.screenshot_url,
+              status: item.status || 'pending',
+              admin_note: item.admin_note,
+              created_at: item.created_at,
+              reviewed_at: item.reviewed_at,
+              reviewed_by: item.reviewed_by,
+            });
+          });
+
+          // Keep any local requests not yet in remote
+          this.depositRequests.forEach((local) => {
+            if (!remoteMap.has(local.id)) {
+              remoteMap.set(local.id, local);
+            }
+          });
+
+          this.depositRequests = Array.from(remoteMap.values()).sort(
+            (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
+
+          this.saveToStorage();
+          this.notify();
+          return this.depositRequests;
+        }
+      } catch (err) {
+        console.warn('Supabase fetchAllRequests note:', err);
+      }
+    }
+    return this.depositRequests;
+  }
+
+  /**
+   * Asynchronously fetch specific user's requests from Supabase
+   */
+  public async fetchUserRequests(userId: string): Promise<DepositRequestRecord[]> {
+    await this.fetchAllRequests();
+    return this.getUserRequests(userId);
+  }
+
+  public async createDepositRequest(params: {
     packageId: string;
     paymentMethod: PaymentMethodConfig['id'];
     senderAccountOrName: string;
     transactionReferenceId: string;
     customCoins?: number;
     customPricePKR?: number;
-  }): { success: boolean; request?: DepositRequestRecord; message: string } {
+  }): Promise<{ success: boolean; request?: DepositRequestRecord; message: string }> {
     const user = authService.getCurrentUser();
     const pkg = COIN_PACKAGES.find((p) => p.id === params.packageId);
 
@@ -358,7 +464,7 @@ class PaymentService {
     this.saveToStorage();
     this.notify();
 
-    // Broadcast across tabs and Supabase Realtime
+    // 1. Broadcast across tabs and Supabase Realtime
     if (this.broadcastChannel) {
       this.broadcastChannel.postMessage({ type: 'NEW_DEPOSIT', request: newRequest });
     }
@@ -370,16 +476,41 @@ class PaymentService {
       }).catch(() => {});
     }
 
-    // Record into Supabase transactions table
-    if (isSupabaseConfigured && !user.id.startsWith('guest_')) {
-      supabase.from('transactions').insert({
-        user_id: user.id,
-        type: 'deposit_request',
-        amount: totalCoins,
-        balance_after: user.coins,
-        reference_type: params.paymentMethod,
-        reference_id: params.transactionReferenceId.trim(),
-      }).then();
+    // 2. Persist directly into Supabase deposit_requests table
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from('deposit_requests').upsert({
+          id: newRequest.id,
+          user_id: newRequest.user_id,
+          username: newRequest.username,
+          display_name: newRequest.display_name,
+          package_id: newRequest.package_id,
+          coins_amount: newRequest.coins_amount,
+          bonus_coins: newRequest.bonus_coins,
+          fiat_amount: newRequest.fiat_amount,
+          currency: newRequest.currency,
+          payment_method: newRequest.payment_method,
+          sender_account_or_name: newRequest.sender_account_or_name,
+          transaction_reference_id: newRequest.transaction_reference_id,
+          status: newRequest.status,
+          created_at: newRequest.created_at,
+        });
+      } catch (dbErr) {
+        console.warn('Supabase deposit_requests insert warning:', dbErr);
+      }
+
+      // Record into Supabase transactions ledger
+      if (!user.id.startsWith('guest_')) {
+        supabase.from('transactions').insert({
+          user_id: user.id,
+          type: 'deposit_request',
+          amount: totalCoins,
+          balance_after: user.coins,
+          reference_type: params.paymentMethod,
+          reference_id: params.transactionReferenceId.trim(),
+          description: `Deposit Request: ${totalCoins.toLocaleString()} Coins via ${params.paymentMethod}`,
+        }).then();
+      }
     }
 
     return {
@@ -421,6 +552,29 @@ class PaymentService {
     // Credit coins directly to active user
     authService.addCoinsAndXp(totalCoins, Math.floor(totalCoins * 0.1), 'shop_purchase', 'Instant Sandbox Payment');
 
+    // Persist to Supabase if configured
+    if (isSupabaseConfigured) {
+      supabase.from('deposit_requests').upsert({
+        id: request.id,
+        user_id: request.user_id,
+        username: request.username,
+        display_name: request.display_name,
+        package_id: request.package_id,
+        coins_amount: request.coins_amount,
+        bonus_coins: request.bonus_coins,
+        fiat_amount: request.fiat_amount,
+        currency: request.currency,
+        payment_method: request.payment_method,
+        sender_account_or_name: request.sender_account_or_name,
+        transaction_reference_id: request.transaction_reference_id,
+        status: request.status,
+        admin_note: request.admin_note,
+        reviewed_at: request.reviewed_at,
+        reviewed_by: request.reviewed_by,
+        created_at: request.created_at,
+      }).then();
+    }
+
     return {
       success: true,
       coinsGranted: totalCoins,
@@ -428,30 +582,48 @@ class PaymentService {
     };
   }
 
-  public approveDeposit(requestId: string, adminNote?: string): boolean {
+  public async approveDeposit(requestId: string, adminNote?: string): Promise<boolean> {
     const idx = this.depositRequests.findIndex((r) => r.id === requestId);
     if (idx === -1) return false;
 
     const req = this.depositRequests[idx];
     if (req.status === 'approved') return false;
 
+    const note = adminNote || 'Approved and credited by Imperial Admin Command.';
+    const nowStr = new Date().toISOString();
+
     req.status = 'approved';
-    req.admin_note = adminNote || 'Approved and credited by Imperial Admin Command.';
-    req.reviewed_at = new Date().toISOString();
+    req.admin_note = note;
+    req.reviewed_at = nowStr;
     req.reviewed_by = 'admin_ammar_001';
 
     this.depositRequests[idx] = req;
     this.saveToStorage();
     this.notify();
 
-    // Credit target user's balance
-    authService.adminGiftCoins(
+    // 1. Credit target user's balance in local state and Supabase profiles table
+    await authService.adminGiftCoins(
       req.user_id,
       req.coins_amount,
       `Coin Purchase: ${req.coins_amount.toLocaleString()} Coins via ${req.payment_method} (Ref: ${req.transaction_reference_id})`
     );
 
-    // Broadcast across tabs and Supabase Realtime
+    // 2. Update status in Supabase deposit_requests table
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from('deposit_requests').update({
+          status: 'approved',
+          admin_note: note,
+          reviewed_at: nowStr,
+          reviewed_by: 'admin_ammar_001',
+          updated_at: nowStr,
+        }).eq('id', requestId);
+      } catch (err) {
+        console.warn('Supabase deposit update error:', err);
+      }
+    }
+
+    // 3. Broadcast across tabs and Supabase Realtime
     if (this.broadcastChannel) {
       this.broadcastChannel.postMessage({
         type: 'DEPOSIT_APPROVED',
@@ -471,26 +643,63 @@ class PaymentService {
     return true;
   }
 
-  public rejectDeposit(requestId: string, reason: string): boolean {
+  public async rejectDeposit(requestId: string, reason: string): Promise<boolean> {
     const idx = this.depositRequests.findIndex((r) => r.id === requestId);
     if (idx === -1) return false;
 
     const req = this.depositRequests[idx];
+    const note = reason || 'Payment could not be verified.';
+    const nowStr = new Date().toISOString();
+
     req.status = 'rejected';
-    req.admin_note = reason || 'Payment could not be verified.';
-    req.reviewed_at = new Date().toISOString();
+    req.admin_note = note;
+    req.reviewed_at = nowStr;
     req.reviewed_by = 'admin_ammar_001';
 
     this.depositRequests[idx] = req;
     this.saveToStorage();
     this.notify();
 
+    // Update in Supabase deposit_requests
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from('deposit_requests').update({
+          status: 'rejected',
+          admin_note: note,
+          reviewed_at: nowStr,
+          reviewed_by: 'admin_ammar_001',
+          updated_at: nowStr,
+        }).eq('id', requestId);
+      } catch (err) {
+        console.warn('Supabase deposit reject error:', err);
+      }
+    }
+
+    if (this.broadcastChannel) {
+      this.broadcastChannel.postMessage({
+        type: 'DEPOSIT_REJECTED',
+        requestId,
+        note,
+      });
+    }
+    if (this.realtimeChannel) {
+      this.realtimeChannel.send({
+        type: 'broadcast',
+        event: 'DEPOSIT_REJECTED',
+        payload: { requestId, note },
+      }).catch(() => {});
+    }
+
     return true;
   }
 
   private handleIncomingDeposit(request: DepositRequestRecord): void {
-    if (this.depositRequests.some((r) => r.id === request.id)) return;
-    this.depositRequests.unshift(request);
+    const existingIdx = this.depositRequests.findIndex((r) => r.id === request.id);
+    if (existingIdx !== -1) {
+      this.depositRequests[existingIdx] = request;
+    } else {
+      this.depositRequests.unshift(request);
+    }
     this.saveToStorage();
     this.notify();
   }
@@ -507,6 +716,18 @@ class PaymentService {
     const currentUser = authService.getCurrentUser();
     if (targetUserId && currentUser.id === targetUserId && coins) {
       authService.addCoinsAndXp(coins, 0, 'shop_purchase', 'Deposit Approved & Credited');
+    }
+  }
+
+  private handleRejectedDeposit(requestId?: string, note?: string): void {
+    if (requestId) {
+      const idx = this.depositRequests.findIndex((r) => r.id === requestId);
+      if (idx !== -1) {
+        this.depositRequests[idx].status = 'rejected';
+        if (note) this.depositRequests[idx].admin_note = note;
+        this.saveToStorage();
+        this.notify();
+      }
     }
   }
 }

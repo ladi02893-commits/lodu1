@@ -126,7 +126,30 @@ CREATE TABLE IF NOT EXISTS public.friend_requests (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 10. ENABLE ROW LEVEL SECURITY (RLS)
+-- 10. DEPOSIT REQUESTS TABLE (Coin Purchases / Payment Orders)
+CREATE TABLE IF NOT EXISTS public.deposit_requests (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  username TEXT NOT NULL,
+  display_name TEXT NOT NULL,
+  package_id TEXT NOT NULL,
+  coins_amount BIGINT NOT NULL,
+  bonus_coins BIGINT DEFAULT 0,
+  fiat_amount NUMERIC NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'PKR',
+  payment_method TEXT NOT NULL,
+  sender_account_or_name TEXT NOT NULL,
+  transaction_reference_id TEXT NOT NULL,
+  screenshot_url TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  admin_note TEXT,
+  reviewed_at TIMESTAMPTZ,
+  reviewed_by TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 11. ENABLE ROW LEVEL SECURITY (RLS)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.room_players ENABLE ROW LEVEL SECURITY;
@@ -136,8 +159,9 @@ ALTER TABLE public.game_moves ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.friends ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.friend_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.deposit_requests ENABLE ROW LEVEL SECURITY;
 
--- 11. PUBLIC POLICIES (Allow read and write for real-time game functionality)
+-- 12. PUBLIC POLICIES (Allow read and write for real-time game functionality)
 CREATE POLICY IF NOT EXISTS "Public Read Profiles" ON public.profiles FOR SELECT USING (true);
 CREATE POLICY IF NOT EXISTS "Public Insert Profiles" ON public.profiles FOR INSERT WITH CHECK (true);
 CREATE POLICY IF NOT EXISTS "Public Update Profiles" ON public.profiles FOR UPDATE USING (true);
@@ -174,3 +198,8 @@ CREATE POLICY IF NOT EXISTS "Public Read Friend Requests" ON public.friend_reque
 CREATE POLICY IF NOT EXISTS "Public Insert Friend Requests" ON public.friend_requests FOR INSERT WITH CHECK (true);
 CREATE POLICY IF NOT EXISTS "Public Update Friend Requests" ON public.friend_requests FOR UPDATE USING (true);
 CREATE POLICY IF NOT EXISTS "Public Delete Friend Requests" ON public.friend_requests FOR DELETE USING (true);
+
+CREATE POLICY IF NOT EXISTS "Public Read Deposit Requests" ON public.deposit_requests FOR SELECT USING (true);
+CREATE POLICY IF NOT EXISTS "Public Insert Deposit Requests" ON public.deposit_requests FOR INSERT WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "Public Update Deposit Requests" ON public.deposit_requests FOR UPDATE USING (true);
+CREATE POLICY IF NOT EXISTS "Public Delete Deposit Requests" ON public.deposit_requests FOR DELETE USING (true);

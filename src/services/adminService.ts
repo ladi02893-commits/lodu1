@@ -205,12 +205,12 @@ class AdminService {
     return authService.addCoinsAndXp(0, amount, 'admin_grant', 'Admin XP Grant');
   }
 
-  public grantTargetUserCoins(userId: string, amount: number, note: string = 'Imperial Gift from Sovereign Admin'): boolean {
-    return authService.adminGiftCoins(userId, amount, note);
+  public async grantTargetUserCoins(userId: string, amount: number, note: string = 'Imperial Gift from Sovereign Admin'): Promise<boolean> {
+    return await authService.adminGiftCoins(userId, amount, note);
   }
 
-  public deductTargetUserCoins(userId: string, amount: number, reason: string = 'Administrative Penalty / Deduction'): boolean {
-    return authService.adminDeductCoins(userId, amount, reason);
+  public async deductTargetUserCoins(userId: string, amount: number, reason: string = 'Administrative Penalty / Deduction'): Promise<boolean> {
+    return await authService.adminDeductCoins(userId, amount, reason);
   }
 
   public unlockAllCosmetics(): void {

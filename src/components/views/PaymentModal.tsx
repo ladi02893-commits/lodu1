@@ -11,6 +11,7 @@ import {
   Crown,
   History,
   QrCode,
+  RefreshCw,
   Shield,
   ShoppingBag,
   Smartphone,
@@ -55,6 +56,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
   // History state
   const [userDeposits, setUserDeposits] = useState<DepositRequestRecord[]>([]);
+  const [isRefreshingHistory, setIsRefreshingHistory] = useState(false);
 
   useEffect(() => {
     const unsub = authService.subscribe((u) => {
@@ -63,9 +65,22 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     return () => unsub();
   }, []);
 
+  const refreshHistory = async () => {
+    setIsRefreshingHistory(true);
+    try {
+      const latest = await paymentService.fetchUserRequests(currentUser.id);
+      setUserDeposits(latest);
+    } catch (e) {
+      console.warn(e);
+      setUserDeposits(paymentService.getUserRequests(currentUser.id));
+    } finally {
+      setIsRefreshingHistory(false);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
-      setUserDeposits(paymentService.getUserRequests(currentUser.id));
+      refreshHistory();
       if (initialPackageId) {
         const found = COIN_PACKAGES.find((p) => p.id === initialPackageId);
         if (found) {
@@ -135,7 +150,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         const coinsVal = isCustomMode ? parseInt(customCoins, 10) || 10000 : undefined;
         const priceVal = isCustomMode ? calculatedCustomPricePKR() : undefined;
 
-        const res = paymentService.createDepositRequest({
+        const res = await paymentService.createDepositRequest({
           packageId: pkgId,
           paymentMethod: selectedMethod.id,
           senderAccountOrName: senderInfo,
@@ -638,10 +653,12 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             <div className="flex items-center justify-between text-xs text-slate-400 pb-1">
               <span>Your Recent Coin Orders ({userDeposits.length})</span>
               <button
-                onClick={() => setUserDeposits(paymentService.getUserRequests(currentUser.id))}
-                className="text-amber-400 hover:underline font-semibold cursor-pointer text-[11px]"
+                onClick={refreshHistory}
+                disabled={isRefreshingHistory}
+                className="text-amber-400 hover:text-amber-300 font-semibold cursor-pointer text-[11px] flex items-center gap-1 bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg hover:border-amber-500/40 transition-colors disabled:opacity-50"
               >
-                Refresh
+                <RefreshCw className={`w-3 h-3 ${isRefreshingHistory ? 'animate-spin' : ''}`} />
+                <span>{isRefreshingHistory ? 'Syncing...' : 'Refresh Status'}</span>
               </button>
             </div>
 

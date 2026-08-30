@@ -7,6 +7,7 @@ import {
   Bot,
   Check,
   Coins,
+  Copy,
   Crown,
   Database,
   Edit,
@@ -83,6 +84,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
   );
   const [depositFilter, setDepositFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [paymentSearchQuery, setPaymentSearchQuery] = useState('');
+  const [isRefreshingPayments, setIsRefreshingPayments] = useState(false);
+  const [copiedTx, setCopiedTx] = useState<string | null>(null);
 
   // Gift modal state
   const [giftTargetUser, setGiftTargetUser] = useState<AdminPlayerRecord | null>(null);
@@ -130,6 +133,27 @@ export const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
   const showNotification = (msg: string) => {
     setFeedback(msg);
     setTimeout(() => setFeedback(null), 3500);
+  };
+
+  const handleCopyText = (text: string, id: string) => {
+    sound.playClick();
+    navigator.clipboard?.writeText(text);
+    setCopiedTx(id);
+    setTimeout(() => setCopiedTx(null), 2500);
+  };
+
+  const refreshAllPayments = async () => {
+    setIsRefreshingPayments(true);
+    try {
+      const latest = await paymentService.fetchAllRequests();
+      setDepositRequests([...latest]);
+      setStats(adminService.getStats());
+    } catch (e) {
+      console.warn('Payment fetch error:', e);
+      setDepositRequests([...paymentService.getAllRequests()]);
+    } finally {
+      setIsRefreshingPayments(false);
+    }
   };
 
   const refreshAllPlayers = async () => {
@@ -184,6 +208,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
 
   useEffect(() => {
     refreshAllPlayers();
+    refreshAllPayments();
 
     const unsubPayments = paymentService.subscribe((reqs) => {
       setDepositRequests(reqs);
@@ -192,6 +217,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
 
     const handleSync = () => {
       refreshAllPlayers();
+      refreshAllPayments();
     };
 
     window.addEventListener('royal_ludo_sync', handleSync);
@@ -204,6 +230,9 @@ export const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
           .channel('admin_live_users')
           .on('broadcast', { event: 'USER_REGISTERED' }, () => {
             refreshAllPlayers();
+          })
+          .on('broadcast', { event: 'NEW_DEPOSIT' }, () => {
+            refreshAllPayments();
           })
           .subscribe();
       } catch (e) {
@@ -236,6 +265,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
         setCurrentUser(res.user);
         setPlayers(adminService.getPlayers());
         setStats(adminService.getStats());
+        refreshAllPayments();
         showNotification('Sovereign Administrator Verified! Welcome, Ammar.');
       }
     } catch (err: any) {
@@ -245,17 +275,17 @@ export const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
     }
   };
 
-  const handleGrantCoins = (amount?: number, targetUserId?: string) => {
+  const handleGrantCoins = async (amount?: number, targetUserId?: string) => {
     const val = amount !== undefined ? amount : parseInt(coinGrantAmount, 10);
     if (isNaN(val) || val <= 0) return;
 
     sound.playHomeGoal();
     if (targetUserId) {
-      adminService.grantTargetUserCoins(targetUserId, val);
+      await adminService.grantTargetUserCoins(targetUserId, val);
     } else {
       adminService.grantUserCoins(val);
     }
-    setPlayers(adminService.getPlayers());
+    refreshAllPlayers();
     setStats(adminService.getStats());
     showNotification(`Successfully credited +${val.toLocaleString()} Coins!`);
   };
@@ -371,7 +401,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
     showNotification(`Updated profile for "${editDisplayName}" successfully!`);
   };
 
-  const handleExecuteGift = (e: React.FormEvent) => {
+  const handleExecuteGift = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!giftTargetUser) return;
 
@@ -380,37 +410,37 @@ export const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
 
     sound.playHomeGoal();
     if (isDeductMode) {
-      adminService.deductTargetUserCoins(giftTargetUser.id, val, giftNote);
+      await adminService.deductTargetUserCoins(giftTargetUser.id, val, giftNote);
       showNotification(`Deducted -${val.toLocaleString()} Coins from ${giftTargetUser.username}.`);
     } else {
-      adminService.grantTargetUserCoins(giftTargetUser.id, val, giftNote);
+      await adminService.grantTargetUserCoins(giftTargetUser.id, val, giftNote);
       showNotification(`Gifted +${val.toLocaleString()} Coins to ${giftTargetUser.username}!`);
     }
 
     setGiftTargetUser(null);
-    setPlayers(adminService.getPlayers());
+    refreshAllPlayers();
     setStats(adminService.getStats());
   };
 
   // Payment Approvals execution
-  const handleApproveDeposit = (depId: string) => {
+  const handleApproveDeposit = async (depId: string) => {
     sound.playHomeGoal();
-    const success = paymentService.approveDeposit(depId, 'Approved by Imperial Admin Command');
+    const success = await paymentService.approveDeposit(depId, 'Approved by Imperial Admin Command');
     if (success) {
-      setDepositRequests([...paymentService.getAllRequests()]);
+      await refreshAllPayments();
+      refreshAllPlayers();
       setStats(adminService.getStats());
-      setPlayers(adminService.getPlayers());
       showNotification('Deposit Approved! Coins credited to user wallet in real time.');
     }
   };
 
-  const handleRejectDeposit = (e: React.FormEvent) => {
+  const handleRejectDeposit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!rejectTargetId) return;
 
     sound.playClick();
-    paymentService.rejectDeposit(rejectTargetId, rejectReason);
-    setDepositRequests([...paymentService.getAllRequests()]);
+    await paymentService.rejectDeposit(rejectTargetId, rejectReason);
+    await refreshAllPayments();
     setRejectTargetId(null);
     showNotification('Deposit Request Rejected and user notified.');
   };
@@ -881,15 +911,27 @@ export const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
                 ))}
               </div>
 
-              <div className="relative w-full sm:w-72">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search TRX ID, User, or Method..."
-                  value={paymentSearchQuery}
-                  onChange={(e) => setPaymentSearchQuery(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-100 placeholder-slate-500 outline-none focus:border-purple-400"
-                />
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="relative flex-1 sm:w-64">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search TRX ID, User, or Method..."
+                    value={paymentSearchQuery}
+                    onChange={(e) => setPaymentSearchQuery(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-100 placeholder-slate-500 outline-none focus:border-purple-400"
+                  />
+                </div>
+
+                <button
+                  onClick={refreshAllPayments}
+                  disabled={isRefreshingPayments}
+                  className="px-3.5 py-2 rounded-xl bg-purple-950/60 border border-purple-500/40 text-purple-300 hover:bg-purple-900 font-bold text-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50 flex-shrink-0 transition-colors"
+                  title="Sync latest requests from cloud database"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingPayments ? 'animate-spin' : ''}`} />
+                  <span className="hidden sm:inline">{isRefreshingPayments ? 'Syncing...' : 'Sync Cloud Orders'}</span>
+                </button>
               </div>
             </div>
 
@@ -900,6 +942,12 @@ export const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
                 <p className="text-xs text-slate-500">
                   User coin purchase orders via JazzCash, EasyPaisa, Bank, and UPI will appear here in real time.
                 </p>
+                <button
+                  onClick={refreshAllPayments}
+                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs cursor-pointer transition-all mt-2"
+                >
+                  Refresh Database
+                </button>
               </div>
             ) : (
               <div className="space-y-3">
@@ -935,12 +983,23 @@ export const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
                         </span>
                       </div>
 
-                      <div className="text-xs text-slate-300 space-y-0.5">
+                      <div className="text-xs text-slate-300 space-y-1">
                         <div>
                           User: <strong className="text-slate-100">{dep.display_name}</strong> (@{dep.username}) • ID: <span className="font-mono text-slate-400">{dep.user_id}</span>
                         </div>
-                        <div className="font-mono">
-                          Sender: <strong className="text-amber-200">{dep.sender_account_or_name}</strong> • TRX ID: <strong className="text-purple-300 bg-purple-950/80 px-1.5 py-0.5 rounded border border-purple-800/60 select-all">{dep.transaction_reference_id}</strong>
+                        <div className="flex items-center gap-2 flex-wrap font-mono">
+                          <span>Sender: <strong className="text-amber-200">{dep.sender_account_or_name}</strong></span>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            TRX ID: <strong className="text-purple-300 bg-purple-950/80 px-1.5 py-0.5 rounded border border-purple-800/60 select-all">{dep.transaction_reference_id}</strong>
+                            <button
+                              onClick={() => handleCopyText(dep.transaction_reference_id, dep.id)}
+                              className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-amber-300 cursor-pointer"
+                              title="Copy Transaction ID"
+                            >
+                              {copiedTx === dep.id ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                            </button>
+                          </span>
                         </div>
                         <div className="text-[10px] text-slate-500">
                           Submitted: {new Date(dep.created_at).toLocaleString()}

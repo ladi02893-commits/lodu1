@@ -91,6 +91,38 @@ class AuthService {
         this.currentUser = getStoredProfile();
         this.listeners.forEach((l) => l(this.currentUser));
       });
+
+      // Listen for remote profile updates from Supabase Realtime
+      if (isSupabaseConfigured) {
+        try {
+          supabase
+            .channel('global_user_profile_sync')
+            .on(
+              'postgres_changes',
+              { event: 'UPDATE', schema: 'public', table: 'profiles' },
+              (payload) => {
+                if (payload.new && this.currentUser && payload.new.id === this.currentUser.id) {
+                  const updatedData = payload.new as any;
+                  this.currentUser = {
+                    ...this.currentUser,
+                    coins: Number(updatedData.coins),
+                    xp: Number(updatedData.xp || this.currentUser.xp),
+                    level: Number(updatedData.level || this.currentUser.level),
+                    is_admin: Boolean(updatedData.is_admin),
+                    is_banned: Boolean(updatedData.is_banned),
+                    role: updatedData.role || this.currentUser.role,
+                  };
+                  saveStoredProfile(this.currentUser);
+                  this.listeners.forEach((l) => l(this.currentUser));
+                  window.dispatchEvent(new CustomEvent('royal_ludo_sync'));
+                }
+              }
+            )
+            .subscribe();
+        } catch (e) {
+          console.warn('Profile realtime sync warning:', e);
+        }
+      }
     }
   }
 
@@ -626,25 +658,49 @@ class AuthService {
     return list[idx];
   }
 
-  public adminGiftCoins(targetUserId: string, amount: number, note: string = 'Imperial Gift from Sovereign Admin'): boolean {
+  public async adminGiftCoins(targetUserId: string, amount: number, note: string = 'Imperial Gift from Sovereign Admin'): Promise<boolean> {
     const list = this.getRegisteredUsersList();
     const idx = list.findIndex((u) => u.id === targetUserId);
-    if (idx === -1) {
-      // If user is currently guest in session
-      if (this.currentUser && this.currentUser.id === targetUserId) {
-        this.addCoinsAndXp(amount, 0, 'admin_grant', note);
-        return true;
-      }
-      return false;
+    let newCoins = amount;
+
+    if (idx !== -1) {
+      const currentCoins = list[idx].coins || 0;
+      newCoins = Math.max(0, currentCoins + amount);
+      list[idx].coins = newCoins;
+      list[idx].updated_at = new Date().toISOString();
+      this.saveRegisteredUsersList(list);
+    } else if (this.currentUser && this.currentUser.id === targetUserId) {
+      this.addCoinsAndXp(amount, 0, 'admin_grant', note);
+      newCoins = this.currentUser.coins;
     }
 
-    const currentCoins = list[idx].coins || 0;
-    const newCoins = Math.max(0, currentCoins + amount);
-    list[idx].coins = newCoins;
-    list[idx].updated_at = new Date().toISOString();
-    this.saveRegisteredUsersList(list);
+    // 1. Persist directly into Supabase profiles table
+    if (isSupabaseConfigured && !targetUserId.startsWith('guest_')) {
+      try {
+        const dbClient = supabaseAdmin || supabase;
+        const { data: profileData } = await dbClient
+          .from('profiles')
+          .select('coins')
+          .eq('id', targetUserId)
+          .single();
 
-    // Record ledger transaction
+        if (profileData) {
+          const updatedCoins = Math.max(0, (profileData.coins || 0) + amount);
+          newCoins = updatedCoins;
+          await dbClient
+            .from('profiles')
+            .update({
+              coins: updatedCoins,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', targetUserId);
+        }
+      } catch (err) {
+        console.warn('Supabase adminGiftCoins profiles update warning:', err);
+      }
+    }
+
+    // 2. Record ledger transaction
     this.recordTransaction({
       userId: targetUserId,
       type: 'admin_grant',
@@ -654,7 +710,11 @@ class AuthService {
     });
 
     if (this.currentUser && this.currentUser.id === targetUserId) {
-      this.currentUser = this.accountToProfile(list[idx]);
+      if (idx !== -1) {
+        this.currentUser = this.accountToProfile(list[idx]);
+      } else {
+        this.currentUser = { ...this.currentUser, coins: newCoins };
+      }
       saveStoredProfile(this.currentUser);
       this.notify();
     }
@@ -671,27 +731,52 @@ class AuthService {
           },
         })
       );
+      window.dispatchEvent(new CustomEvent('royal_ludo_sync'));
     }
 
     return true;
   }
 
-  public adminDeductCoins(targetUserId: string, amount: number, reason: string = 'Administrative Adjustment'): boolean {
+  public async adminDeductCoins(targetUserId: string, amount: number, reason: string = 'Administrative Adjustment'): Promise<boolean> {
     const list = this.getRegisteredUsersList();
     const idx = list.findIndex((u) => u.id === targetUserId);
-    if (idx === -1) {
-      if (this.currentUser && this.currentUser.id === targetUserId) {
-        this.addCoinsAndXp(-amount, 0, 'admin_deduct', reason);
-        return true;
-      }
-      return false;
+    let newCoins = 0;
+
+    if (idx !== -1) {
+      const currentCoins = list[idx].coins || 0;
+      newCoins = Math.max(0, currentCoins - amount);
+      list[idx].coins = newCoins;
+      list[idx].updated_at = new Date().toISOString();
+      this.saveRegisteredUsersList(list);
+    } else if (this.currentUser && this.currentUser.id === targetUserId) {
+      this.addCoinsAndXp(-amount, 0, 'admin_deduct', reason);
+      newCoins = this.currentUser.coins;
     }
 
-    const currentCoins = list[idx].coins || 0;
-    const newCoins = Math.max(0, currentCoins - amount);
-    list[idx].coins = newCoins;
-    list[idx].updated_at = new Date().toISOString();
-    this.saveRegisteredUsersList(list);
+    if (isSupabaseConfigured && !targetUserId.startsWith('guest_')) {
+      try {
+        const dbClient = supabaseAdmin || supabase;
+        const { data: profileData } = await dbClient
+          .from('profiles')
+          .select('coins')
+          .eq('id', targetUserId)
+          .single();
+
+        if (profileData) {
+          const updatedCoins = Math.max(0, (profileData.coins || 0) - amount);
+          newCoins = updatedCoins;
+          await dbClient
+            .from('profiles')
+            .update({
+              coins: updatedCoins,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', targetUserId);
+        }
+      } catch (err) {
+        console.warn('Supabase adminDeductCoins profiles update warning:', err);
+      }
+    }
 
     this.recordTransaction({
       userId: targetUserId,
@@ -702,9 +787,17 @@ class AuthService {
     });
 
     if (this.currentUser && this.currentUser.id === targetUserId) {
-      this.currentUser = this.accountToProfile(list[idx]);
+      if (idx !== -1) {
+        this.currentUser = this.accountToProfile(list[idx]);
+      } else {
+        this.currentUser = { ...this.currentUser, coins: newCoins };
+      }
       saveStoredProfile(this.currentUser);
       this.notify();
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('royal_ludo_sync'));
     }
 
     return true;
