@@ -28,7 +28,6 @@ export const LudoBoard: React.FC<LudoBoardProps> = ({
   // Track previous token progress to trigger stepping sounds & animations
   const prevProgressMap = useRef<Record<string, number>>({});
   const [movingTokenKey, setMovingTokenKey] = useState<string | null>(null);
-  const [captureBlastCoord, setCaptureBlastCoord] = useState<{ row: number; col: number } | null>(null);
 
   // Track legal moves for current turn
   const legalMoves = dice.value !== null ? getLegalMoves(gameState, currentSeat, dice.value) : [];
@@ -40,7 +39,6 @@ export const LudoBoard: React.FC<LudoBoardProps> = ({
         const key = `${player.seat}-${token.id}`;
         const prev = prevProgressMap.current[key];
         if (prev !== undefined && prev !== token.progress && token.progress > 0) {
-          // Token moved
           setMovingTokenKey(key);
           const steps = Math.abs(token.progress - prev);
           for (let s = 0; s < Math.min(steps, 6); s++) {
@@ -108,7 +106,6 @@ export const LudoBoard: React.FC<LudoBoardProps> = ({
   const flattenedActiveTokens: PositionedToken[] = [];
   activeTokensMap.forEach((tokenGroup) => {
     const count = tokenGroup.length;
-    // Prefer showing the movable token first if any
     const sorted = [...tokenGroup].sort((a, b) => (b.isMovable ? 1 : 0) - (a.isMovable ? 1 : 0));
     sorted.forEach((t, idx) => {
       flattenedActiveTokens.push({
@@ -118,7 +115,7 @@ export const LudoBoard: React.FC<LudoBoardProps> = ({
     });
   });
 
-  // Render 6x6 Corner Base Camp
+  // Render 6x6 3D Corner Base Camp
   const renderCamp = (seat: number, color: PlayerColor) => {
     const config = COLOR_CONFIG[color];
     const player = players.find((p) => p.seat === seat);
@@ -133,26 +130,32 @@ export const LudoBoard: React.FC<LudoBoardProps> = ({
           bg-gradient-to-br ${config.campBg}
           flex flex-col items-center justify-between
           transition-all duration-300 overflow-hidden rounded-2xl
-          ${isTurn ? 'ring-4 ring-amber-400 z-10 shadow-[0_0_20px_rgba(245,158,11,0.6)]' : 'border border-black/30'}
+          border-2 ${config.campBorder}
+          shadow-[inset_0_3px_6px_rgba(255,255,255,0.25),inset_0_-4px_8px_rgba(0,0,0,0.8)]
+          ${
+            isTurn
+              ? 'ring-4 ring-amber-400 ring-offset-2 ring-offset-slate-950 z-10 shadow-[0_0_24px_rgba(245,158,11,0.8)]'
+              : ''
+          }
         `}
       >
-        {/* Camp Header Bar */}
+        {/* Camp Header Bar with Player Name & Finished Counters */}
         <div className="w-full flex items-center justify-between px-1 z-10">
-          <div className="flex items-center gap-1 min-w-0">
-            <Crown className="w-3.5 h-3.5 flex-shrink-0 text-amber-200 drop-shadow" />
-            <span className="text-[10px] sm:text-xs font-black text-white tracking-wider uppercase truncate max-w-[85px] drop-shadow">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Crown className="w-3.5 h-3.5 flex-shrink-0 text-amber-300 drop-shadow" />
+            <span className="text-[10px] sm:text-xs font-black text-amber-100 tracking-wider uppercase truncate max-w-[85px] drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
               {player ? player.username : config.name}
             </span>
           </div>
           {player && (
-            <span className="text-[9px] px-2 py-0.5 rounded-full bg-black/50 text-amber-300 font-black backdrop-blur-sm border border-amber-400/40 shadow">
+            <span className="text-[9px] px-2 py-0.5 rounded-full bg-slate-950/80 text-amber-300 font-black backdrop-blur-sm border border-amber-400/50 shadow">
               {tokens.filter((t) => t.status === 'home').length}/4 👑
             </span>
           )}
         </div>
 
-        {/* 4 Base Pedestals White Plate (2x2 Grid) */}
-        <div className="w-[85%] aspect-square rounded-2xl bg-white/95 p-1.5 sm:p-2 grid grid-cols-2 grid-rows-2 gap-1.5 place-items-center z-10 shadow-lg border-2 border-amber-300/40">
+        {/* 4 Base Pedestals Realistic White/Gold Inset Plate */}
+        <div className="w-[86%] aspect-square rounded-2xl bg-gradient-to-b from-amber-50 via-white to-amber-100 p-1.5 sm:p-2 grid grid-cols-2 grid-rows-2 gap-1.5 place-items-center z-10 shadow-[0_4px_12px_rgba(0,0,0,0.5),inset_0_2px_4px_rgba(255,255,255,0.9)] border-2 border-amber-300/60">
           {[0, 1, 2, 3].map((tId) => {
             const token = tokens[tId];
             const inBase = token && token.status === 'base';
@@ -161,12 +164,18 @@ export const LudoBoard: React.FC<LudoBoardProps> = ({
             return (
               <div
                 key={tId}
-                className="w-7 h-7 sm:w-8.5 sm:h-8.5 rounded-full border-2 flex items-center justify-center relative shadow-inner transition-transform"
+                className="w-7 h-7 sm:w-8.5 sm:h-8.5 rounded-full border-2 flex items-center justify-center relative shadow-[inset_0_2px_3px_rgba(0,0,0,0.4),0_1px_2px_rgba(255,255,255,0.8)] transition-transform"
                 style={{
                   borderColor: config.primary,
-                  backgroundColor: `${config.primary}22`,
+                  backgroundColor: `${config.primary}18`,
                 }}
               >
+                {/* Metallic Pedestal Ring */}
+                <div
+                  className="absolute inset-1 rounded-full border border-dashed opacity-50"
+                  style={{ borderColor: config.primary }}
+                />
+
                 {inBase && (
                   <Token
                     id={tId}
@@ -181,17 +190,17 @@ export const LudoBoard: React.FC<LudoBoardProps> = ({
         </div>
 
         {/* Base Footer Indicator */}
-        <div className="text-[8px] sm:text-[9px] text-amber-200 font-black tracking-wider uppercase z-10 drop-shadow">
-          {isTurn && dice.value === 6 ? 'ROLL 6 TO DEPLOY!' : ''}
+        <div className="text-[8px] sm:text-[9px] text-amber-300 font-royal font-black tracking-wider uppercase z-10 drop-shadow">
+          {isTurn && dice.value === 6 ? '✨ ROLL 6 TO DEPLOY!' : ''}
         </div>
       </div>
     );
   };
 
   return (
-    <div className="relative w-full aspect-square max-w-[540px] mx-auto p-1.5 sm:p-2.5 rounded-3xl bg-slate-950 border-4 border-amber-500/70 shadow-[0_12px_42px_rgba(0,0,0,0.95)]">
+    <div className="relative w-full aspect-square max-w-[540px] mx-auto p-2 sm:p-3 rounded-3xl bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900 border-4 border-amber-500/80 shadow-[0_16px_50px_rgba(0,0,0,0.95),inset_0_2px_6px_rgba(255,255,255,0.15)]">
       {/* 15x15 Grid Arena Frame */}
-      <div className="relative w-full h-full grid grid-cols-15 grid-rows-15 gap-[1px] bg-slate-500 rounded-2xl overflow-hidden shadow-2xl">
+      <div className="relative w-full h-full grid grid-cols-15 grid-rows-15 gap-[1px] bg-amber-950/60 rounded-2xl overflow-hidden shadow-2xl border border-amber-500/30">
         {/* Top Left: Red Camp (rows 0..5, cols 0..5) */}
         <div className="col-span-6 row-span-6 p-1">
           {renderCamp(0, 'red')}
@@ -262,8 +271,8 @@ export const LudoBoard: React.FC<LudoBoardProps> = ({
           <BoardCell row={8} col={5} />
         </div>
 
-        {/* Center Victory Sanctuary (rows 6..8, cols 6..8) */}
-        <div className="col-span-3 row-span-3">
+        {/* Center Victory Pyramid Goal (rows 6..8, cols 6..8) */}
+        <div className="col-span-3 row-span-3 relative z-10 shadow-2xl">
           <BoardCell row={7} col={7} isGoal />
         </div>
 
@@ -337,45 +346,27 @@ export const LudoBoard: React.FC<LudoBoardProps> = ({
           {renderCamp(2, 'yellow')}
         </div>
 
-        {/* Active Tokens Overlay (Percentage coordinates with step hopping physics) */}
-        <div className="absolute inset-0 pointer-events-none">
-          {flattenedActiveTokens.map((t) => {
-            const topPct = (t.row / 15) * 100;
-            const leftPct = (t.col / 15) * 100;
-            const cellSizePct = 100 / 15;
-
-            return (
-              <motion.div
-                key={`${t.seat}-${t.tokenId}`}
-                layout
-                transition={{
-                  type: 'spring',
-                  damping: 18,
-                  stiffness: 280,
-                  mass: 0.8,
-                }}
-                className="absolute pointer-events-auto flex items-center justify-center"
-                style={{
-                  top: `${topPct}%`,
-                  left: `${leftPct}%`,
-                  width: `${cellSizePct}%`,
-                  height: `${cellSizePct}%`,
-                  zIndex: t.isMovable ? 48 : t.isHopping ? 49 : 25,
-                }}
-              >
-                <Token
-                  id={t.tokenId}
-                  color={t.color}
-                  isMovable={t.isMovable}
-                  isHome={t.isHome}
-                  isHopping={t.isHopping}
-                  stackCount={t.stackCount}
-                  onClick={() => onMoveToken(t.tokenId)}
-                />
-              </motion.div>
-            );
-          })}
-        </div>
+        {/* Floating Active Tokens Overlay on 15x15 Grid */}
+        {flattenedActiveTokens.map((token) => (
+          <div
+            key={`${token.seat}-${token.tokenId}`}
+            style={{
+              gridRowStart: token.row + 1,
+              gridColumnStart: token.col + 1,
+            }}
+            className="w-full h-full flex items-center justify-center pointer-events-auto z-20"
+          >
+            <Token
+              id={token.tokenId}
+              color={token.color}
+              isMovable={token.isMovable}
+              isHome={token.isHome}
+              isHopping={token.isHopping}
+              stackCount={token.stackCount}
+              onClick={token.isMovable ? () => onMoveToken(token.tokenId) : undefined}
+            />
+          </div>
+        ))}
       </div>
     </div>
   );

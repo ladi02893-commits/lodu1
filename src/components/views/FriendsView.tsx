@@ -615,66 +615,119 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
           </div>
         )}
 
-        {/* TAB 4: Discover Royals */}
+        {/* TAB 4: Discover Royals (Search-only Profile Display) */}
         {activeTab === 'discover' && (
           <div className="space-y-3">
-            <div className="text-[11px] text-slate-400 px-1 flex items-center justify-between">
-              <span>Monarchs in the Realm ready for battle and allegiance</span>
-              <span className="text-amber-400 font-bold">{discoverResults.length} Available</span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {discoverResults.map((user) => (
-                <div
-                  key={user.id}
-                  className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-amber-500/40 flex items-center justify-between transition-all shadow"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-slate-950 border border-amber-400/40 flex items-center justify-center flex-shrink-0">
-                      <Crown className="w-5 h-5 text-amber-300" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-bold text-xs text-slate-100 truncate">
-                        {user.display_name}
-                      </div>
-                      <div className="text-[10px] text-slate-400 font-mono">
-                        #{user.player_id} &bull; Lv.{user.level}
-                      </div>
-                    </div>
-                  </div>
-
-                  {user.relationship === 'friend' ? (
-                    <span className="text-[10px] text-emerald-400 font-bold px-2 py-1 bg-emerald-950/50 rounded-lg border border-emerald-500/30 flex items-center gap-1">
-                      <Check className="w-3 h-3" />
-                      <span>Mutual</span>
-                    </span>
-                  ) : user.relationship === 'following' ? (
-                    <button
-                      onClick={() => handleUnfollow(user.id, user.display_name)}
-                      className="px-2.5 py-1.5 rounded-xl bg-slate-800 text-slate-300 text-[10px] font-bold hover:bg-rose-950 hover:text-rose-300 border border-slate-700 cursor-pointer"
-                    >
-                      Following
-                    </button>
-                  ) : user.relationship === 'follower' ? (
-                    <button
-                      onClick={() => handleAcceptAndFollowBack(user.id, user.display_name)}
-                      className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 text-[10px] font-black cursor-pointer shadow flex items-center gap-1 hover:brightness-110"
-                    >
-                      <Heart className="w-3 h-3 fill-slate-950" />
-                      <span>Accept 🤝</span>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleFollowUser(user)}
-                      className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 text-slate-950 font-royal font-bold text-[10px] cursor-pointer shadow flex items-center gap-1"
-                    >
-                      <UserPlus className="w-3 h-3" />
-                      <span>Follow</span>
-                    </button>
-                  )}
+            {!searchQuery.trim() ? (
+              <div className="p-8 text-center bg-gradient-to-b from-slate-900/80 to-slate-950 rounded-3xl border border-amber-500/30 space-y-3 shadow-xl">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-950/40 border border-amber-400/40 text-amber-400 flex items-center justify-center mx-auto shadow-inner">
+                  <Search className="w-7 h-7" />
                 </div>
-              ))}
-            </div>
+                <div>
+                  <h4 className="font-royal font-bold text-sm text-amber-200">
+                    Search Monarch by ID or Username
+                  </h4>
+                  <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1 leading-relaxed">
+                    Upar search bar me player ka <strong>Username</strong> (e.g.{' '}
+                    <span className="text-amber-300 font-mono">ammar_admin</span>) ya <strong>Player ID</strong> (e.g.{' '}
+                    <span className="text-amber-300 font-mono">RL-7777</span>) search karein.
+                  </p>
+                </div>
+
+                <div className="pt-2">
+                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-950/80 border border-amber-400/40 text-amber-300 text-xs font-mono font-bold shadow-md">
+                    <span>Aapka Player ID: #{currentUser.player_id}</span>
+                  </span>
+                </div>
+              </div>
+            ) : discoverResults.length === 0 ? (
+              <div className="p-8 text-center bg-slate-900/60 rounded-3xl border border-slate-800 space-y-2 text-slate-400 text-xs">
+                <Crown className="w-8 h-8 text-slate-600 mx-auto" />
+                <p className="font-bold text-slate-200 text-sm">No Monarch Found</p>
+                <p className="text-[11px] text-slate-400">
+                  "{searchQuery}" ke naam ya ID se koi player nahi mila. Spelling ya ID check karein.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                <div className="text-[11px] text-amber-300/90 px-1 font-medium">
+                  Search Result ({discoverResults.length} profile found):
+                </div>
+
+                <div className="grid grid-cols-1 gap-3">
+                  {discoverResults.map((user) => (
+                    <div
+                      key={user.id}
+                      className="p-4 rounded-3xl bg-gradient-to-r from-slate-900 via-slate-900/95 to-amber-950/30 border-2 border-amber-400/50 hover:border-amber-400 flex items-center justify-between transition-all shadow-xl"
+                    >
+                      <div className="flex items-center gap-3.5">
+                        <div className="relative w-12 h-12 rounded-2xl bg-slate-950 border-2 border-amber-400 flex items-center justify-center flex-shrink-0 overflow-hidden shadow">
+                          {user.avatar_url?.startsWith('avatar_') ? (
+                            <img
+                              src={`/avatars/${user.avatar_url}.png`}
+                              alt={user.display_name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <Crown className="w-6 h-6 text-amber-300" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-sm text-slate-100 truncate">
+                              {user.display_name}
+                            </span>
+                            <span className="text-[10px] text-amber-400 font-mono font-bold bg-amber-950 px-1.5 py-0.5 rounded border border-amber-500/40">
+                              #{user.player_id}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5 font-medium">
+                            <span>@{user.username}</span>
+                            <span>&bull;</span>
+                            <span>Lv.{user.level}</span>
+                            <span>&bull;</span>
+                            <span className="text-amber-300">{user.wins} Wins</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {user.relationship === 'friend' ? (
+                        <span className="text-xs text-emerald-400 font-bold px-3 py-1.5 bg-emerald-950/70 rounded-xl border border-emerald-500/40 flex items-center gap-1.5 shadow">
+                          <Check className="w-3.5 h-3.5" />
+                          <span>✨ Mutual</span>
+                        </span>
+                      ) : user.relationship === 'following' ? (
+                        <button
+                          onClick={() => handleUnfollow(user.id, user.display_name)}
+                          className="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold hover:bg-rose-950 hover:text-rose-300 border border-slate-700 cursor-pointer shadow"
+                        >
+                          Following
+                        </button>
+                      ) : user.relationship === 'follower' ? (
+                        <button
+                          onClick={() => handleAcceptAndFollowBack(user.id, user.display_name)}
+                          className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 text-xs font-black cursor-pointer shadow-lg flex items-center gap-1.5 hover:brightness-110 animate-pulse"
+                        >
+                          <Heart className="w-3.5 h-3.5 fill-slate-950" />
+                          <span>Accept & Follow Back 🤝</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleFollowUser(user)}
+                          className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 text-slate-950 font-royal font-bold text-xs cursor-pointer shadow-md flex items-center gap-1.5 transition-transform hover:scale-105"
+                        >
+                          <UserPlus className="w-3.5 h-3.5" />
+                          <span>+ Follow</span>
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
