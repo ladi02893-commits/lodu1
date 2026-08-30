@@ -1,4 +1,6 @@
 import { sound } from '../lib/audio';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 export type MicPermissionState = 'prompt' | 'granted' | 'denied' | 'unsupported';
 
@@ -30,6 +32,7 @@ class VoiceChatService {
   private dataArray: Uint8Array | null = null;
   private animFrameId: number | null = null;
   private broadcastChannel: BroadcastChannel | null = null;
+  private realtimeChannel: RealtimeChannel | null = null;
 
   private isMicMuted: boolean = true;
   private isSpeakerMuted: boolean = false;
@@ -65,6 +68,36 @@ class VoiceChatService {
       } catch (e) {
         console.warn('Voice BroadcastChannel error', e);
       }
+    }
+  }
+
+  private subscribeToSupabaseVoice(roomId: string) {
+    if (!isSupabaseConfigured || !roomId) return;
+    if (this.realtimeChannel) {
+      this.realtimeChannel.unsubscribe();
+      this.realtimeChannel = null;
+    }
+
+    try {
+      const cleanId = roomId.replace(/[^a-zA-Z0-9_-]/g, '_');
+      this.realtimeChannel = supabase.channel(`voice_${cleanId}`, {
+        config: { broadcast: { self: false } },
+      });
+
+      this.realtimeChannel
+        .on('broadcast', { event: 'VOICE_SPEAKING' }, (payload) => {
+          if (payload.payload) {
+            this.handleRemoteSpeaking(payload.payload);
+          }
+        })
+        .on('broadcast', { event: 'VOICE_MUTE_STATE' }, (payload) => {
+          if (payload.payload) {
+            this.handleRemoteMuteState(payload.payload);
+          }
+        })
+        .subscribe();
+    } catch (e) {
+      console.warn('Supabase voice channel error:', e);
     }
   }
 
@@ -128,12 +161,17 @@ class VoiceChatService {
       volumeLevel: 0,
     };
 
+    this.subscribeToSupabaseVoice(roomId);
     this.startBotVoiceSimulation();
     this.notify();
   }
 
   public leaveRoom(): void {
     this.stopAudioCapture();
+    if (this.realtimeChannel) {
+      this.realtimeChannel.unsubscribe();
+      this.realtimeChannel = null;
+    }
     if (this.botVoiceTimer) clearInterval(this.botVoiceTimer);
     this.botVoiceTimer = null;
     this.currentRoomId = null;
@@ -301,32 +339,52 @@ class VoiceChatService {
   }
 
   private broadcastSpeakingState(isSpeaking: boolean, volumeLevel: number) {
+    const payload = {
+      roomId: this.currentRoomId,
+      seat: this.mySeat,
+      userId: this.myUserId,
+      username: this.myUsername,
+      isSpeaking,
+      volumeLevel,
+    };
+
     if (this.broadcastChannel && this.currentRoomId) {
       this.broadcastChannel.postMessage({
         type: 'VOICE_SPEAKING',
-        payload: {
-          roomId: this.currentRoomId,
-          seat: this.mySeat,
-          userId: this.myUserId,
-          username: this.myUsername,
-          isSpeaking,
-          volumeLevel,
-        },
+        payload,
       });
+    }
+
+    if (this.realtimeChannel) {
+      this.realtimeChannel.send({
+        type: 'broadcast',
+        event: 'VOICE_SPEAKING',
+        payload,
+      }).catch(() => {});
     }
   }
 
   private broadcastMuteState(isMuted: boolean) {
+    const payload = {
+      roomId: this.currentRoomId,
+      seat: this.mySeat,
+      userId: this.myUserId,
+      isMuted,
+    };
+
     if (this.broadcastChannel && this.currentRoomId) {
       this.broadcastChannel.postMessage({
         type: 'VOICE_MUTE_STATE',
-        payload: {
-          roomId: this.currentRoomId,
-          seat: this.mySeat,
-          userId: this.myUserId,
-          isMuted,
-        },
+        payload,
       });
+    }
+
+    if (this.realtimeChannel) {
+      this.realtimeChannel.send({
+        type: 'broadcast',
+        event: 'VOICE_MUTE_STATE',
+        payload,
+      }).catch(() => {});
     }
   }
 

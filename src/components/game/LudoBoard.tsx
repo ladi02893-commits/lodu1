@@ -91,34 +91,30 @@ export const LudoBoard: React.FC<LudoBoardProps> = ({
       <div
         id={`camp-${color}`}
         className={`
-          relative w-full h-full rounded-2xl p-2 sm:p-3
+          relative w-full h-full p-2 sm:p-2.5
           bg-gradient-to-br ${config.campBg}
-          border-2 ${config.campBorder} shadow-2xl
           flex flex-col items-center justify-between
           transition-all duration-300 overflow-hidden
-          ${isTurn ? 'ring-2 ring-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.5)]' : ''}
+          ${isTurn ? 'ring-4 ring-amber-400 z-10 shadow-lg' : ''}
         `}
       >
-        {/* Subtle Watermark Corner Emblem */}
-        <div className="absolute -bottom-4 -right-4 opacity-10 pointer-events-none">
-          <Crown className="w-24 h-24" style={{ color: config.primary }} />
-        </div>
-
         {/* Camp Header Bar */}
         <div className="w-full flex items-center justify-between px-1 z-10">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <Crown className="w-3.5 h-3.5 flex-shrink-0" style={{ color: config.primary }} />
-            <span className="text-[10px] sm:text-xs font-black text-amber-200 tracking-wider uppercase truncate max-w-[80px]">
+          <div className="flex items-center gap-1 min-w-0">
+            <Crown className="w-3 h-3 flex-shrink-0 text-white" />
+            <span className="text-[10px] sm:text-xs font-black text-white tracking-wider uppercase truncate max-w-[80px]">
               {player ? player.username : config.name}
             </span>
           </div>
-          <span className="text-[9px] px-2 py-0.5 rounded-full bg-slate-950/80 text-amber-300 font-bold border border-amber-500/30 shadow">
-            {tokens.filter((t) => t.status === 'home').length}/4 Goal
-          </span>
+          {player && (
+            <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-black/40 text-white font-bold backdrop-blur-sm">
+              {tokens.filter((t) => t.status === 'home').length}/4
+            </span>
+          )}
         </div>
 
-        {/* 4 Base Pedestals (2x2 Grid) */}
-        <div className="w-full aspect-square max-w-[120px] rounded-2xl bg-slate-950/90 border border-amber-400/40 p-2 sm:p-2.5 grid grid-cols-2 grid-rows-2 gap-2 place-items-center z-10 shadow-inner">
+        {/* 4 Base Pedestals White Plate (2x2 Grid) */}
+        <div className="w-[85%] aspect-square rounded-2xl bg-white/95 p-1.5 sm:p-2 grid grid-cols-2 grid-rows-2 gap-1.5 place-items-center z-10 shadow-md">
           {[0, 1, 2, 3].map((tId) => {
             const token = tokens[tId];
             const inBase = token && token.status === 'base';
@@ -127,10 +123,12 @@ export const LudoBoard: React.FC<LudoBoardProps> = ({
             return (
               <div
                 key={tId}
-                className="w-7 h-7 sm:w-9.5 sm:h-9.5 rounded-full bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-700/80 flex items-center justify-center relative shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)]"
+                className="w-7 h-7 sm:w-8.5 sm:h-8.5 rounded-full border-2 flex items-center justify-center relative shadow-inner"
+                style={{
+                  borderColor: config.primary,
+                  backgroundColor: `${config.primary}18`,
+                }}
               >
-                {/* Pedestal Ring */}
-                <div className="absolute inset-1 rounded-full border border-dashed border-amber-500/20" />
                 {inBase && (
                   <Token
                     id={tId}
@@ -145,19 +143,19 @@ export const LudoBoard: React.FC<LudoBoardProps> = ({
         </div>
 
         {/* Base Footer Indicator */}
-        <div className="text-[9px] text-amber-300/80 font-bold tracking-widest uppercase z-10">
-          {isTurn && dice.value === 6 ? '👑 ROLL 6 TO DEPLOY' : 'BASE FORTRESS'}
+        <div className="text-[8px] sm:text-[9px] text-white/90 font-black tracking-wider uppercase z-10">
+          {isTurn && dice.value === 6 ? 'ROLL 6 TO DEPLOY!' : ''}
         </div>
       </div>
     );
   };
 
   return (
-    <div className="relative w-full aspect-square max-w-[560px] mx-auto p-2 sm:p-3.5 rounded-3xl bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900 border-2 border-amber-500/50 shadow-[0_12px_36px_rgba(0,0,0,0.9),0_0_20px_rgba(245,158,11,0.15)]">
+    <div className="relative w-full aspect-square max-w-[540px] mx-auto p-1.5 sm:p-2.5 rounded-3xl bg-slate-900 border-4 border-amber-500/60 shadow-[0_12px_36px_rgba(0,0,0,0.9)]">
       {/* 15x15 Grid Arena Frame */}
-      <div className="relative w-full h-full grid grid-cols-15 grid-rows-15 gap-[1px] bg-slate-950 rounded-2xl overflow-hidden border border-amber-400/30 shadow-2xl">
+      <div className="relative w-full h-full grid grid-cols-15 grid-rows-15 gap-[1px] bg-slate-400 rounded-2xl overflow-hidden shadow-2xl">
         {/* Top Left: Red Camp (rows 0..5, cols 0..5) */}
-        <div className="col-span-6 row-span-6 p-1">
+        <div className="col-span-6 row-span-6">
           {renderCamp(0, 'red')}
         </div>
 

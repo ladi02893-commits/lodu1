@@ -226,6 +226,7 @@ export const App: React.FC = () => {
       avatar: p.profile?.avatar_url || 'avatar_1',
       seat: p.seat,
       color: p.color,
+      coins: p.profile?.coins || 10000,
       isBot: p.user_id.startsWith('bot_'),
       isHost: p.is_host,
     }));

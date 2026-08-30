@@ -8,14 +8,19 @@ import {
   Copy,
   Crown,
   Link,
+  Mic,
+  MicOff,
   Play,
   Plus,
+  Radio,
   Share2,
   Shield,
   Sparkles,
   Trophy,
   UserMinus,
   Users,
+  Volume2,
+  VolumeX,
   Zap,
 } from 'lucide-react';
 import { sound } from '../../lib/audio';
@@ -23,6 +28,8 @@ import { COLOR_CONFIG, SEAT_COLORS } from '../../lib/ludo/constants';
 import { PlayerColor } from '../../lib/ludo/types';
 import { authService } from '../../services/authService';
 import { roomService } from '../../services/roomService';
+import { voiceChatService, VoiceState } from '../../services/voiceChatService';
+import { VoiceChatControls } from '../game/VoiceChatControls';
 import { RoomRecord, UserProfile } from '../../types/database';
 import { PaymentModal } from './PaymentModal';
 
@@ -44,6 +51,7 @@ export const RoomLobbyView: React.FC<RoomLobbyViewProps> = ({
   const [currentUser, setCurrentUser] = useState<UserProfile>(() => authService.getCurrentUser());
   const [showBuyCoinsModal, setShowBuyCoinsModal] = useState(false);
   const [customBetInput, setCustomBetInput] = useState<string>(String(initialRoom?.bet_amount || 0));
+  const [voiceState, setVoiceState] = useState<VoiceState>(() => voiceChatService.getState());
 
   // Live Subscription for multi-user real-time room updates
   useEffect(() => {
@@ -58,6 +66,21 @@ export const RoomLobbyView: React.FC<RoomLobbyViewProps> = ({
     });
     return () => unsubRoom();
   }, [room?.code, onStartGame]);
+
+  // Voice Chat Lifecycle in Chamber Lobby
+  useEffect(() => {
+    if (room?.code && currentUser) {
+      const p = (room.players || []).find((x) => x.user_id === currentUser.id);
+      const seat = p?.seat ?? 0;
+      voiceChatService.joinRoom(`room_${room.code.toUpperCase()}`, seat, currentUser.display_name, currentUser.id);
+    }
+    const unsubVoice = voiceChatService.subscribe((vState) => {
+      setVoiceState(vState);
+    });
+    return () => {
+      unsubVoice();
+    };
+  }, [room?.code, currentUser.id, currentUser.display_name]);
 
   useEffect(() => {
     const unsub = authService.subscribe((u) => {
@@ -181,37 +204,41 @@ export const RoomLobbyView: React.FC<RoomLobbyViewProps> = ({
   return (
     <div className="w-full min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center pb-12 overflow-x-hidden">
       {/* Header */}
-      <header className="w-full max-w-4xl px-4 py-4 flex items-center justify-between border-b border-amber-500/20 bg-slate-950/80 sticky top-0 z-20 backdrop-blur-md">
+      <header className="w-full max-w-4xl px-3 sm:px-4 py-3 flex items-center justify-between border-b border-amber-500/20 bg-slate-950/80 sticky top-0 z-20 backdrop-blur-md">
         <button
           onClick={onLeave}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-slate-300 hover:text-amber-300 transition-all cursor-pointer text-xs font-semibold"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Exit Room</span>
+          <span>Exit</span>
         </button>
 
         <div className="text-center">
-          <h2 className="font-royal font-bold text-sm sm:text-base text-amber-300">
-            Private Royal Chamber
+          <h2 className="font-royal font-bold text-xs sm:text-sm text-amber-300">
+            {players.length === 2 ? '2-Player Duel Chamber' : players.length === 3 ? '3-Player Chamber' : '4-Player Royal Match'}
           </h2>
-          <span className="text-[10px] text-slate-400">
-            Players ({players.length}/{room.max_players})
+          <span className="text-[10px] text-amber-400 font-semibold">
+            {players.length} Player{players.length > 1 ? 's' : ''} Ready ({players.length}/{room.max_players})
           </span>
         </div>
 
-        {/* User Coin Purse + Buy Coins */}
-        <button
-          onClick={() => {
-            sound.playClick();
-            setShowBuyCoinsModal(true);
-          }}
-          className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-950 via-amber-900 to-amber-950 border border-amber-500/40 text-amber-300 font-bold text-xs hover:border-amber-400 transition-all cursor-pointer shadow"
-          title="Buy Coins"
-        >
-          <Coins className="w-3.5 h-3.5 text-amber-400" />
-          <span>{currentUser.coins.toLocaleString()}</span>
-          <Plus className="w-3 h-3 text-amber-400" />
-        </button>
+        {/* Header Voice Mic Controls & Coin Balance */}
+        <div className="flex items-center gap-2">
+          <VoiceChatControls />
+
+          <button
+            onClick={() => {
+              sound.playClick();
+              setShowBuyCoinsModal(true);
+            }}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-950 via-amber-900 to-amber-950 border border-amber-500/40 text-amber-300 font-bold text-xs hover:border-amber-400 transition-all cursor-pointer shadow"
+            title="Buy Coins"
+          >
+            <Coins className="w-3.5 h-3.5 text-amber-400" />
+            <span>{currentUser.coins.toLocaleString()}</span>
+            <Plus className="w-3 h-3 text-amber-400" />
+          </button>
+        </div>
       </header>
 
       <main className="w-full max-w-2xl px-4 py-6 space-y-6">

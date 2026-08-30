@@ -22,6 +22,7 @@ export interface PlayerState {
   botDifficulty?: 'easy' | 'medium' | 'hard';
   username: string;
   avatar: string;
+  coins?: number;
   tokensFinished: number;
   captures: number;
 }

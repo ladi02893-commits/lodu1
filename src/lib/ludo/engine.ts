@@ -26,43 +26,82 @@ export interface CreateGameOptions {
  */
 export function createInitialGameState(options: CreateGameOptions = {}): GameState {
   const mode = options.mode || 'local_4';
-  const playersCount = options.playersCount || (mode === 'quick_2' || mode === 'local_2' ? 2 : 4);
+  const customPlayers = options.players;
+  const isCustomList = Array.isArray(customPlayers) && customPlayers.length > 0;
+
+  const playersCount = isCustomList
+    ? customPlayers.length
+    : options.playersCount || (mode === 'quick_2' || mode === 'local_2' ? 2 : mode === 'local_3' ? 3 : 4);
+
   const settings: GameSettings = { ...DEFAULT_GAME_RULES, ...options.settings, players: playersCount };
   const matchId = options.matchId || `match_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
-  // Determine active seats based on player count
-  // 2 players: Seats 0 (Red) and 2 (Yellow) for diagonal classic balance, or 0 and 1
-  const activeSeats = playersCount === 2 ? [0, 2] : playersCount === 3 ? [0, 1, 2] : [0, 1, 2, 3];
+  let players: PlayerState[] = [];
 
-  const players: PlayerState[] = activeSeats.map((seat, index) => {
-    const override = options.players?.[index] || {};
-    const color = SEAT_COLORS[seat];
-    const tokens: TokenState[] = [0, 1, 2, 3].map((id) => ({
-      id,
-      status: 'base',
-      position: -1,
-      progress: 0,
-      color,
-    }));
+  if (isCustomList) {
+    players = customPlayers.map((override, index) => {
+      const seat = override.seat !== undefined ? override.seat : index;
+      const color = override.color || SEAT_COLORS[seat] || 'red';
+      const tokens: TokenState[] = [0, 1, 2, 3].map((id) => ({
+        id,
+        status: 'base',
+        position: -1,
+        progress: 0,
+        color,
+      }));
 
-    return {
-      playerId: override.playerId || `player_${seat}_${Math.random().toString(36).substring(2, 7)}`,
-      seat,
-      color,
-      tokens,
-      connected: override.connected ?? true,
-      isReady: override.isReady ?? true,
-      isHost: override.isHost ?? (index === 0),
-      isBot: override.isBot ?? false,
-      botDifficulty: override.botDifficulty || 'medium',
-      username: override.username || (override.isBot ? `Royal Bot ${seat + 1}` : `Player ${seat + 1}`),
-      avatar: override.avatar || (override.isBot ? 'bot' : `avatar_${(seat % 6) + 1}`),
-      tokensFinished: 0,
-      captures: 0,
-    };
-  });
+      return {
+        playerId: override.playerId || `player_${seat}_${Math.random().toString(36).substring(2, 7)}`,
+        seat,
+        color,
+        tokens,
+        connected: override.connected ?? true,
+        isReady: override.isReady ?? true,
+        isHost: override.isHost ?? (index === 0),
+        isBot: override.isBot ?? false,
+        botDifficulty: override.botDifficulty || 'medium',
+        username: override.username || (override.isBot ? `Royal Bot ${seat + 1}` : `Player ${seat + 1}`),
+        avatar: override.avatar || (override.isBot ? 'bot' : `avatar_${(seat % 6) + 1}`),
+        coins: override.coins ?? (override.isBot ? 5000 : 12450),
+        tokensFinished: 0,
+        captures: 0,
+      };
+    });
+  } else {
+    // Determine active seats based on player count
+    // 2 players: Seats 0 (Red) and 2 (Yellow) for diagonal classic balance, or 0 and 1
+    const activeSeats = playersCount === 2 ? [0, 2] : playersCount === 3 ? [0, 1, 2] : [0, 1, 2, 3];
 
-  const firstSeat = activeSeats[0];
+    players = activeSeats.map((seat, index) => {
+      const color = SEAT_COLORS[seat];
+      const tokens: TokenState[] = [0, 1, 2, 3].map((id) => ({
+        id,
+        status: 'base',
+        position: -1,
+        progress: 0,
+        color,
+      }));
+
+      return {
+        playerId: `player_${seat}_${Math.random().toString(36).substring(2, 7)}`,
+        seat,
+        color,
+        tokens,
+        connected: true,
+        isReady: true,
+        isHost: index === 0,
+        isBot: false,
+        botDifficulty: 'medium',
+        username: `Player ${seat + 1}`,
+        avatar: `avatar_${(seat % 6) + 1}`,
+        coins: 10000,
+        tokensFinished: 0,
+        captures: 0,
+      };
+    });
+  }
+
+  const firstSeat = players[0]?.seat ?? 0;
   const now = Date.now();
 
   const turn: TurnState = {
