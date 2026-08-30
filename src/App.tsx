@@ -112,12 +112,15 @@ export const App: React.FC = () => {
   useEffect(() => {
     const handleNotification = (e: any) => {
       const detail = e.detail;
-      if (detail && detail.targetUserId === user.id) {
-        sound.playHomeGoal();
+      const myId = (user?.id || '').toLowerCase();
+      const targetId = (detail?.targetUserId || '').toLowerCase();
+
+      if (detail && (!targetId || targetId === myId)) {
+        sound.playFollowChime();
         setUser(authService.getCurrentUser());
         setPushNotification({
           title: detail.title || 'Imperial Dispatch',
-          message: detail.message || 'You received a notification from the Emperor',
+          message: detail.message || 'You received a notification from the realm',
           coins: detail.coins,
         });
 
@@ -129,7 +132,7 @@ export const App: React.FC = () => {
 
     window.addEventListener('royal_ludo_notification', handleNotification);
     return () => window.removeEventListener('royal_ludo_notification', handleNotification);
-  }, [user.id]);
+  }, [user?.id]);
 
   // Auto-restore any active match on page refresh
   useEffect(() => {

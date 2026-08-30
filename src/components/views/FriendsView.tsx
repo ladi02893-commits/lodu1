@@ -83,24 +83,32 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
       wins: target.wins,
       xp: target.xp,
     });
+    setFriends([...friendsService.getFriends()]);
+    setDiscoverResults(friendsService.searchAllNobles(searchQuery));
     showToast(res.message, res.success);
   };
 
   const handleAcceptAndFollowBack = (id: string, name: string) => {
     sound.playClick();
     const res = friendsService.followBackPlayer(id);
+    setFriends([...friendsService.getFriends()]);
+    setDiscoverResults(friendsService.searchAllNobles(searchQuery));
     showToast(res.message, res.success);
   };
 
   const handleDeclineRequest = (id: string, name: string) => {
     sound.playClick();
     const res = friendsService.declineRequest(id);
+    setFriends([...friendsService.getFriends()]);
+    setDiscoverResults(friendsService.searchAllNobles(searchQuery));
     showToast(res.message, res.success);
   };
 
   const handleUnfollow = (id: string, name: string) => {
     sound.playClick();
     const res = friendsService.unfollowPlayer(id);
+    setFriends([...friendsService.getFriends()]);
+    setDiscoverResults(friendsService.searchAllNobles(searchQuery));
     showToast(res.message, res.success);
     setOpenActionMenuId(null);
     if (activeChatFriend?.id === id) setActiveChatFriend(null);
@@ -109,6 +117,8 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
   const handleRemoveFollower = (id: string, name: string) => {
     sound.playClick();
     const res = friendsService.removeFollower(id);
+    setFriends([...friendsService.getFriends()]);
+    setDiscoverResults(friendsService.searchAllNobles(searchQuery));
     showToast(res.message, res.success);
     setOpenActionMenuId(null);
   };
