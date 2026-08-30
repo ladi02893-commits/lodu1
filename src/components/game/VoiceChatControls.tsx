@@ -86,15 +86,16 @@ export const VoiceChatControls: React.FC<VoiceChatControlsProps> = ({ className 
         )}
       </button>
 
-      {/* Permission Denied Notice Popover */}
-      {showPermissionAlert && (
-        <div className="absolute right-0 top-11 w-56 rounded-2xl bg-rose-950/95 border-2 border-rose-500/80 p-3 shadow-2xl z-50 text-xs text-rose-200 animate-fade-in space-y-1">
+      {/* Permission / Error Notice Popover */}
+      {(showPermissionAlert || voiceState.errorMessage) && (
+        <div className="absolute right-0 top-11 w-64 rounded-2xl bg-gradient-to-br from-rose-950 to-slate-950 border-2 border-rose-500/80 p-3 shadow-2xl z-50 text-xs text-rose-200 animate-fade-in space-y-1.5 backdrop-blur-md">
           <div className="flex items-center gap-1.5 font-bold text-rose-300">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            <span>Microphone Denied</span>
+            <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400" />
+            <span>Microphone Access</span>
           </div>
           <p className="text-[11px] leading-tight text-slate-300">
-            Please allow microphone permission in your browser address bar to talk with other monarchs.
+            {voiceState.errorMessage ||
+              'Please allow microphone permission in your browser address bar (lock icon) to talk with other monarchs.'}
           </p>
         </div>
       )}

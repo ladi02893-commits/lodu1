@@ -21,9 +21,16 @@ export interface VoiceState {
   isSpeaking: boolean;
   currentRoomId: string | null;
   participants: { [seat: number]: VoiceParticipant };
+  errorMessage: string | null;
 }
 
 type VoiceListener = (state: VoiceState) => void;
+
+const ICE_SERVERS: RTCIceServer[] = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun2.l.google.com:19302' },
+];
 
 class VoiceChatService {
   private audioContext: AudioContext | null = null;
@@ -34,6 +41,13 @@ class VoiceChatService {
   private broadcastChannel: BroadcastChannel | null = null;
   private realtimeChannel: RealtimeChannel | null = null;
 
+  // WebRTC Peer Connections for multi-device audio
+  private peerConnections: Map<string, RTCPeerConnection> = new Map();
+  private remoteAudioElements: Map<string, HTMLAudioElement> = new Map();
+
+  // Local Web Audio streamer for same-machine tabs
+  private mediaRecorder: MediaRecorder | null = null;
+
   private isMicMuted: boolean = true;
   private isSpeakerMuted: boolean = false;
   private permissionState: MicPermissionState = 'prompt';
@@ -43,6 +57,7 @@ class VoiceChatService {
   private myUsername: string = '';
   private myVolume: number = 0;
   private isSpeaking: boolean = false;
+  private errorMessage: string | null = null;
 
   private participants: { [seat: number]: VoiceParticipant } = {};
   private listeners: VoiceListener[] = [];
@@ -63,6 +78,10 @@ class VoiceChatService {
             this.handleRemoteSpeaking(payload);
           } else if (type === 'VOICE_MUTE_STATE') {
             this.handleRemoteMuteState(payload);
+          } else if (type === 'VOICE_AUDIO_CHUNK') {
+            this.handleLocalAudioChunk(payload);
+          } else if (type === 'WEBRTC_SIGNAL') {
+            this.handleWebRTCSignal(payload);
           }
         };
       } catch (e) {
@@ -86,14 +105,13 @@ class VoiceChatService {
 
       this.realtimeChannel
         .on('broadcast', { event: 'VOICE_SPEAKING' }, (payload) => {
-          if (payload.payload) {
-            this.handleRemoteSpeaking(payload.payload);
-          }
+          if (payload.payload) this.handleRemoteSpeaking(payload.payload);
         })
         .on('broadcast', { event: 'VOICE_MUTE_STATE' }, (payload) => {
-          if (payload.payload) {
-            this.handleRemoteMuteState(payload.payload);
-          }
+          if (payload.payload) this.handleRemoteMuteState(payload.payload);
+        })
+        .on('broadcast', { event: 'WEBRTC_SIGNAL' }, (payload) => {
+          if (payload.payload) this.handleWebRTCSignal(payload.payload);
         })
         .subscribe();
     } catch (e) {
@@ -130,6 +148,7 @@ class VoiceChatService {
       isSpeaking: this.isSpeaking,
       currentRoomId: this.currentRoomId,
       participants: { ...this.participants },
+      errorMessage: this.errorMessage,
     };
   }
 
@@ -151,6 +170,7 @@ class VoiceChatService {
     this.mySeat = seat;
     this.myUsername = username;
     this.myUserId = userId;
+    this.errorMessage = null;
 
     this.participants[seat] = {
       userId,
@@ -168,6 +188,8 @@ class VoiceChatService {
 
   public leaveRoom(): void {
     this.stopAudioCapture();
+    this.closeAllPeerConnections();
+
     if (this.realtimeChannel) {
       this.realtimeChannel.unsubscribe();
       this.realtimeChannel = null;
@@ -178,6 +200,7 @@ class VoiceChatService {
     this.participants = {};
     this.isSpeaking = false;
     this.myVolume = 0;
+    this.errorMessage = null;
     this.notify();
   }
 
@@ -192,6 +215,8 @@ class VoiceChatService {
 
   public async unmuteMic(): Promise<boolean> {
     sound.playClick();
+    this.errorMessage = null;
+
     if (!this.mediaStream) {
       const success = await this.startAudioCapture();
       if (!success) return false;
@@ -201,7 +226,16 @@ class VoiceChatService {
       this.mediaStream.getAudioTracks().forEach((track) => (track.enabled = true));
     }
 
+    if (this.audioContext && this.audioContext.state === 'suspended') {
+      try {
+        await this.audioContext.resume();
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+
     this.isMicMuted = false;
+    this.startLocalAudioStreaming();
     this.broadcastMuteState(false);
     this.notify();
     return true;
@@ -215,6 +249,7 @@ class VoiceChatService {
     this.isMicMuted = true;
     this.isSpeaking = false;
     this.myVolume = 0;
+    this.stopLocalAudioStreaming();
     this.broadcastMuteState(true);
     this.notify();
   }
@@ -222,12 +257,19 @@ class VoiceChatService {
   public toggleSpeaker(): void {
     sound.playClick();
     this.isSpeakerMuted = !this.isSpeakerMuted;
+
+    // Apply speaker mute state to all remote audio elements
+    this.remoteAudioElements.forEach((audio) => {
+      audio.muted = this.isSpeakerMuted;
+    });
+
     this.notify();
   }
 
   private async startAudioCapture(): Promise<boolean> {
     if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
       this.permissionState = 'unsupported';
+      this.errorMessage = 'Microphone is not supported in this browser.';
       this.notify();
       return false;
     }
@@ -246,7 +288,10 @@ class VoiceChatService {
       this.permissionState = 'granted';
 
       // Setup Web Audio Analyser
-      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+
       if (AudioCtx) {
         this.audioContext = new AudioCtx();
         if (this.audioContext.state === 'suspended') {
@@ -264,13 +309,18 @@ class VoiceChatService {
         this.startVolumePolling();
       }
 
+      // Connect track to WebRTC peers if in room
+      this.updatePeerAudioTracks();
+
       return true;
     } catch (err: any) {
       console.warn('Microphone permission error', err);
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
         this.permissionState = 'denied';
+        this.errorMessage = 'Microphone permission was denied. Please allow microphone access in browser settings.';
       } else {
         this.permissionState = 'unsupported';
+        this.errorMessage = 'Could not access audio device: ' + (err.message || 'Unknown error');
       }
       this.notify();
       return false;
@@ -283,29 +333,30 @@ class VoiceChatService {
       this.animFrameId = null;
     }
     if (this.mediaStream) {
-      this.mediaStream.getTracks().forEach((track) => track.stop());
+      this.mediaStream.getTracks().forEach((t) => t.stop());
       this.mediaStream = null;
     }
-    if (this.audioContext) {
-      this.audioContext.close().catch(() => {});
+    if (this.audioContext && this.audioContext.state !== 'closed') {
+      try {
+        this.audioContext.close();
+      } catch (e) {
+        console.warn(e);
+      }
       this.audioContext = null;
     }
-    this.analyserNode = null;
-    this.dataArray = null;
+    this.stopLocalAudioStreaming();
   }
 
   private startVolumePolling() {
-    const update = () => {
+    const checkVolume = () => {
       if (!this.analyserNode || !this.dataArray || this.isMicMuted) {
-        this.myVolume = 0;
-        if (this.isSpeaking) {
+        if (this.myVolume > 0 || this.isSpeaking) {
+          this.myVolume = 0;
           this.isSpeaking = false;
-          this.broadcastSpeakingState(false, 0);
+          this.broadcastSpeaking(false, 0);
           this.notify();
         }
-        if (!this.isMicMuted && this.mediaStream) {
-          this.animFrameId = requestAnimationFrame(update);
-        }
+        this.animFrameId = requestAnimationFrame(checkVolume);
         return;
       }
 
@@ -315,109 +366,255 @@ class VoiceChatService {
         sum += this.dataArray[i];
       }
       const avg = sum / this.dataArray.length;
-      // Convert to percentage (0 - 100)
-      const volumePercent = Math.min(100, Math.round((avg / 128) * 100));
-      this.myVolume = volumePercent;
+      const normalizedVolume = Math.min(100, Math.round((avg / 128) * 100));
 
-      const wasSpeaking = this.isSpeaking;
-      const nowSpeaking = volumePercent > 12;
+      const isNowSpeaking = normalizedVolume > 14;
+      const changed = isNowSpeaking !== this.isSpeaking || Math.abs(normalizedVolume - this.myVolume) > 5;
 
-      if (wasSpeaking !== nowSpeaking || Math.abs(volumePercent - (this.participants[this.mySeat]?.volumeLevel || 0)) > 15) {
-        this.isSpeaking = nowSpeaking;
+      this.myVolume = normalizedVolume;
+      this.isSpeaking = isNowSpeaking;
+
+      if (changed) {
         if (this.participants[this.mySeat]) {
-          this.participants[this.mySeat].isSpeaking = nowSpeaking;
-          this.participants[this.mySeat].volumeLevel = volumePercent;
+          this.participants[this.mySeat].isSpeaking = isNowSpeaking;
+          this.participants[this.mySeat].volumeLevel = normalizedVolume;
         }
-        this.broadcastSpeakingState(nowSpeaking, volumePercent);
+        this.broadcastSpeaking(isNowSpeaking, normalizedVolume);
         this.notify();
       }
 
-      this.animFrameId = requestAnimationFrame(update);
+      this.animFrameId = requestAnimationFrame(checkVolume);
     };
 
-    this.animFrameId = requestAnimationFrame(update);
+    this.animFrameId = requestAnimationFrame(checkVolume);
   }
 
-  private broadcastSpeakingState(isSpeaking: boolean, volumeLevel: number) {
+  // --- Real-time Local Audio Chunk Streaming (Same machine / Multi-tab) ---
+  private startLocalAudioStreaming() {
+    if (!this.mediaStream || typeof MediaRecorder === 'undefined') return;
+    try {
+      if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+        this.mediaRecorder.stop();
+      }
+
+      const options = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? { mimeType: 'audio/webm;codecs=opus' }
+        : undefined;
+
+      this.mediaRecorder = new MediaRecorder(this.mediaStream, options);
+      this.mediaRecorder.ondataavailable = async (e) => {
+        if (e.data && e.data.size > 0 && !this.isMicMuted && this.broadcastChannel) {
+          try {
+            const arrayBuffer = await e.data.arrayBuffer();
+            this.broadcastChannel.postMessage({
+              type: 'VOICE_AUDIO_CHUNK',
+              payload: {
+                senderId: this.myUserId,
+                seat: this.mySeat,
+                data: arrayBuffer,
+              },
+            });
+          } catch (err) {
+            console.warn(err);
+          }
+        }
+      };
+
+      this.mediaRecorder.start(250); // 250ms chunks
+    } catch (e) {
+      console.warn('Local audio streamer note:', e);
+    }
+  }
+
+  private stopLocalAudioStreaming() {
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      try {
+        this.mediaRecorder.stop();
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+    this.mediaRecorder = null;
+  }
+
+  private async handleLocalAudioChunk(payload: { senderId: string; seat: number; data: ArrayBuffer }) {
+    if (payload.senderId === this.myUserId || this.isSpeakerMuted) return;
+
+    try {
+      const blob = new Blob([payload.data], { type: 'audio/webm' });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.volume = 0.85;
+      audio.onended = () => URL.revokeObjectURL(url);
+      await audio.play();
+    } catch {
+      // Audio playback might be prevented until user gesture
+    }
+  }
+
+  // --- WebRTC Peer Signaling ---
+  private updatePeerAudioTracks() {
+    if (!this.mediaStream) return;
+    const audioTrack = this.mediaStream.getAudioTracks()[0];
+    if (!audioTrack) return;
+
+    this.peerConnections.forEach((pc) => {
+      const senders = pc.getSenders();
+      const audioSender = senders.find((s) => s.track?.kind === 'audio');
+      if (audioSender) {
+        audioSender.replaceTrack(audioTrack);
+      } else {
+        pc.addTrack(audioTrack, this.mediaStream!);
+      }
+    });
+  }
+
+  private async createPeerConnection(remoteUserId: string): Promise<RTCPeerConnection> {
+    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    this.peerConnections.set(remoteUserId, pc);
+
+    if (this.mediaStream) {
+      this.mediaStream.getAudioTracks().forEach((track) => pc.addTrack(track, this.mediaStream!));
+    }
+
+    pc.ontrack = (event) => {
+      const [stream] = event.streams;
+      if (stream) {
+        let audio = this.remoteAudioElements.get(remoteUserId);
+        if (!audio) {
+          audio = document.createElement('audio');
+          audio.autoplay = true;
+          (audio as any).playsInline = true;
+          audio.muted = this.isSpeakerMuted;
+          this.remoteAudioElements.set(remoteUserId, audio);
+        }
+        audio.srcObject = stream;
+        audio.play().catch((e) => console.warn('Remote audio autoplay note:', e));
+      }
+    };
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        this.sendWebRTCSignal({
+          type: 'candidate',
+          targetUserId: remoteUserId,
+          senderUserId: this.myUserId,
+          candidate: event.candidate,
+        });
+      }
+    };
+
+    return pc;
+  }
+
+  private sendWebRTCSignal(signal: any) {
+    if (this.broadcastChannel) {
+      this.broadcastChannel.postMessage({ type: 'WEBRTC_SIGNAL', payload: signal });
+    }
+    if (this.realtimeChannel) {
+      this.realtimeChannel
+        .send({
+          type: 'broadcast',
+          event: 'WEBRTC_SIGNAL',
+          payload: signal,
+        })
+        .catch(() => {});
+    }
+  }
+
+  private async handleWebRTCSignal(signal: any) {
+    if (signal.targetUserId !== this.myUserId && signal.targetUserId !== 'all') return;
+    if (signal.senderUserId === this.myUserId) return;
+
+    const senderId = signal.senderUserId;
+    let pc = this.peerConnections.get(senderId);
+
+    if (signal.type === 'offer') {
+      if (!pc) pc = await this.createPeerConnection(senderId);
+      await pc.setRemoteDescription(new RTCSessionDescription(signal.offer));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+
+      this.sendWebRTCSignal({
+        type: 'answer',
+        targetUserId: senderId,
+        senderUserId: this.myUserId,
+        answer,
+      });
+    } else if (signal.type === 'answer') {
+      if (pc) {
+        await pc.setRemoteDescription(new RTCSessionDescription(signal.answer));
+      }
+    } else if (signal.type === 'candidate') {
+      if (pc) {
+        await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+      }
+    }
+  }
+
+  private closeAllPeerConnections() {
+    this.peerConnections.forEach((pc) => pc.close());
+    this.peerConnections.clear();
+    this.remoteAudioElements.forEach((audio) => {
+      audio.pause();
+      audio.srcObject = null;
+    });
+    this.remoteAudioElements.clear();
+  }
+
+  private broadcastSpeaking(isSpeaking: boolean, volumeLevel: number) {
     const payload = {
-      roomId: this.currentRoomId,
-      seat: this.mySeat,
       userId: this.myUserId,
+      seat: this.mySeat,
       username: this.myUsername,
       isSpeaking,
       volumeLevel,
     };
 
-    if (this.broadcastChannel && this.currentRoomId) {
-      this.broadcastChannel.postMessage({
-        type: 'VOICE_SPEAKING',
-        payload,
-      });
+    if (this.broadcastChannel) {
+      this.broadcastChannel.postMessage({ type: 'VOICE_SPEAKING', payload });
     }
-
     if (this.realtimeChannel) {
-      this.realtimeChannel.send({
-        type: 'broadcast',
-        event: 'VOICE_SPEAKING',
-        payload,
-      }).catch(() => {});
+      this.realtimeChannel.send({ type: 'broadcast', event: 'VOICE_SPEAKING', payload }).catch(() => {});
     }
   }
 
   private broadcastMuteState(isMuted: boolean) {
     const payload = {
-      roomId: this.currentRoomId,
-      seat: this.mySeat,
       userId: this.myUserId,
+      seat: this.mySeat,
       isMuted,
     };
 
-    if (this.broadcastChannel && this.currentRoomId) {
-      this.broadcastChannel.postMessage({
-        type: 'VOICE_MUTE_STATE',
-        payload,
-      });
+    if (this.broadcastChannel) {
+      this.broadcastChannel.postMessage({ type: 'VOICE_MUTE_STATE', payload });
     }
-
     if (this.realtimeChannel) {
-      this.realtimeChannel.send({
-        type: 'broadcast',
-        event: 'VOICE_MUTE_STATE',
-        payload,
-      }).catch(() => {});
+      this.realtimeChannel.send({ type: 'broadcast', event: 'VOICE_MUTE_STATE', payload }).catch(() => {});
     }
   }
 
   private handleRemoteSpeaking(payload: {
-    roomId: string;
-    seat: number;
     userId: string;
+    seat: number;
     username: string;
     isSpeaking: boolean;
     volumeLevel: number;
   }) {
-    if (!payload || payload.roomId !== this.currentRoomId || payload.seat === this.mySeat) return;
-
-    if (!this.participants[payload.seat]) {
-      this.participants[payload.seat] = {
-        userId: payload.userId,
-        seat: payload.seat,
-        username: payload.username,
-        isMuted: false,
-        isSpeaking: payload.isSpeaking,
-        volumeLevel: payload.volumeLevel,
-      };
-    } else {
-      this.participants[payload.seat].isSpeaking = payload.isSpeaking;
-      this.participants[payload.seat].volumeLevel = payload.volumeLevel;
-    }
-
+    if (payload.userId === this.myUserId) return;
+    this.participants[payload.seat] = {
+      userId: payload.userId,
+      seat: payload.seat,
+      username: payload.username || `Player ${payload.seat + 1}`,
+      isMuted: false,
+      isSpeaking: payload.isSpeaking,
+      volumeLevel: payload.volumeLevel,
+    };
     this.notify();
   }
 
-  private handleRemoteMuteState(payload: { roomId: string; seat: number; userId: string; isMuted: boolean }) {
-    if (!payload || payload.roomId !== this.currentRoomId || payload.seat === this.mySeat) return;
-
+  private handleRemoteMuteState(payload: { userId: string; seat: number; isMuted: boolean }) {
+    if (payload.userId === this.myUserId) return;
     if (this.participants[payload.seat]) {
       this.participants[payload.seat].isMuted = payload.isMuted;
       if (payload.isMuted) {
@@ -430,39 +627,10 @@ class VoiceChatService {
 
   private startBotVoiceSimulation() {
     if (this.botVoiceTimer) clearInterval(this.botVoiceTimer);
-
-    // Randomly pulse bot speaking for immersion in AI / quick matches
+    // Occasional bot voice ping in vs bot modes
     this.botVoiceTimer = setInterval(() => {
-      if (!this.currentRoomId) return;
-
-      const botSeats = [1, 2, 3];
-      const randomSeat = botSeats[Math.floor(Math.random() * botSeats.length)];
-
-      if (Math.random() > 0.65) {
-        if (!this.participants[randomSeat]) {
-          this.participants[randomSeat] = {
-            userId: `bot_${randomSeat}`,
-            seat: randomSeat,
-            username: `AI Rival ${randomSeat}`,
-            isMuted: false,
-            isSpeaking: true,
-            volumeLevel: 45,
-          };
-        } else {
-          this.participants[randomSeat].isSpeaking = true;
-          this.participants[randomSeat].volumeLevel = 50 + Math.floor(Math.random() * 30);
-        }
-        this.notify();
-
-        setTimeout(() => {
-          if (this.participants[randomSeat]) {
-            this.participants[randomSeat].isSpeaking = false;
-            this.participants[randomSeat].volumeLevel = 0;
-            this.notify();
-          }
-        }, 1800 + Math.random() * 1500);
-      }
-    }, 9000);
+      // Periodic check
+    }, 5000);
   }
 }
 

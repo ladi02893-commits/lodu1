@@ -21,8 +21,11 @@ class GameService {
   private listeners: GameListener[] = [];
   private botTimer: NodeJS.Timeout | null = null;
   private turnTimer: NodeJS.Timeout | null = null;
+  private autoMoveTimer: NodeJS.Timeout | null = null;
+  private noMoveTurnTimer: NodeJS.Timeout | null = null;
   private broadcastChannel: BroadcastChannel | null = null;
   private realtimeChannel: RealtimeChannel | null = null;
+  private isSpectator: boolean = false;
 
   constructor() {
     this.initBroadcast();
@@ -33,13 +36,14 @@ class GameService {
       try {
         this.broadcastChannel = new BroadcastChannel('royal_ludo_game_channel');
         this.broadcastChannel.onmessage = (event) => {
-          const { type, matchId, action, state } = event.data || {};
+          const { type, matchId, action, fullState } = event.data || {};
           if (matchId && this.activeState && this.activeState.matchId === matchId) {
             if (type === 'GAME_ACTION' && action) {
-              this.applyIncomingAction(action);
-            } else if (type === 'SYNC_STATE' && state) {
-              this.activeState = state;
-              this.notify();
+              this.applyIncomingAction(action, fullState);
+            } else if (type === 'SYNC_STATE' && fullState) {
+              this.activeState = fullState;
+              this.saveStateToStorage();
+              this.notifyListenersOnly();
             }
           }
         };
@@ -57,14 +61,15 @@ class GameService {
     }
 
     try {
-      this.realtimeChannel = supabase.channel(`match_${matchId}`, {
+      const cleanId = matchId.replace(/[^a-zA-Z0-9_-]/g, '_');
+      this.realtimeChannel = supabase.channel(`match_${cleanId}`, {
         config: { broadcast: { self: false } },
       });
 
       this.realtimeChannel
         .on('broadcast', { event: 'GAME_ACTION' }, (payload) => {
           if (payload.payload?.action && this.activeState?.matchId === matchId) {
-            this.applyIncomingAction(payload.payload.action);
+            this.applyIncomingAction(payload.payload.action, payload.payload.fullState);
           }
         })
         .subscribe();
@@ -73,24 +78,68 @@ class GameService {
     }
   }
 
-  private broadcastAction(action: GameAction) {
+  private broadcastAction(action: GameAction, fullState?: GameState) {
     if (!this.activeState) return;
     const matchId = this.activeState.matchId;
+    const stateToSend = fullState || this.activeState;
 
     if (this.broadcastChannel) {
-      this.broadcastChannel.postMessage({ type: 'GAME_ACTION', matchId, action });
+      this.broadcastChannel.postMessage({
+        type: 'GAME_ACTION',
+        matchId,
+        action,
+        fullState: stateToSend,
+      });
     }
 
     if (this.realtimeChannel) {
-      this.realtimeChannel.send({
-        type: 'broadcast',
-        event: 'GAME_ACTION',
-        payload: { action },
-      }).catch(() => {});
+      this.realtimeChannel
+        .send({
+          type: 'broadcast',
+          event: 'GAME_ACTION',
+          payload: { action, fullState: stateToSend },
+        })
+        .catch(() => {});
     }
   }
 
-  private applyIncomingAction(action: GameAction) {
+  /**
+   * Helper to determine if current client is the room / game Host
+   */
+  public isHostClient(): boolean {
+    if (!this.activeState) return false;
+    const currentUser = authService.getCurrentUser();
+    const hostPlayer = this.activeState.players.find((p) => p.isHost) || this.activeState.players[0];
+    return hostPlayer?.playerId === currentUser.id;
+  }
+
+  /**
+   * Helper to determine if current client controls the current active seat
+   */
+  public isMyTurn(): boolean {
+    if (!this.activeState) return false;
+    const currentUser = authService.getCurrentUser();
+    const currentSeat = this.activeState.turn.currentSeat;
+    const currentPlayer = this.activeState.players.find((p) => p.seat === currentSeat);
+
+    if (!currentPlayer) return false;
+
+    // In local / pass-and-play matches, current client controls all seats
+    if (this.activeState.mode.startsWith('local_')) return true;
+
+    // If it's a Bot, only the Host client controls it
+    if (currentPlayer.isBot) {
+      return this.isHostClient();
+    }
+
+    // Otherwise must match user ID
+    return currentPlayer.playerId === currentUser.id;
+  }
+
+  /**
+   * Applies incoming network action from another player
+   */
+  private applyIncomingAction(action: GameAction, fullState?: GameState) {
     if (!this.activeState || this.activeState.status !== 'in_progress') return;
 
     if (action.type === 'EMOJI' && action.message) {
@@ -99,6 +148,43 @@ class GameService {
       return;
     }
 
+    // If an authoritative fullState snapshot was provided by the action owner, reconcile directly!
+    if (fullState && fullState.version >= this.activeState.version) {
+      if (action.type === 'ROLL_DICE') {
+        sound.playDiceRoll();
+        if (action.diceValue) {
+          setTimeout(() => sound.playDiceResult(action.diceValue!), 150);
+        }
+      } else if (action.type === 'MOVE_TOKEN') {
+        const lastAction = fullState.lastAction;
+        if (lastAction?.capturedSeat !== undefined) {
+          sound.playCapture();
+        } else if (lastAction?.toPosition === 57) {
+          sound.playHomeGoal();
+        } else {
+          sound.playTokenMove();
+        }
+      }
+
+      this.activeState = fullState;
+
+      if (fullState.status === 'finished') {
+        this.handleMatchFinished(fullState);
+      } else {
+        this.startTurnCountdown();
+      }
+
+      this.saveStateToStorage();
+      this.notifyListenersOnly();
+
+      // Only check bot turns if this client is the Host
+      if (this.isHostClient()) {
+        this.checkBotTurn();
+      }
+      return;
+    }
+
+    // Fallback manual deterministic step if snapshot wasn't included
     if (action.type === 'ROLL_DICE') {
       sound.playDiceRoll();
       const forcedValue = (action as any).diceValue;
@@ -150,11 +236,20 @@ class GameService {
     };
   }
 
+  private notifyListenersOnly() {
+    if (!this.activeState) return;
+    this.listeners.forEach((l) => l(this.activeState!));
+  }
+
   private notify() {
     if (!this.activeState) return;
     this.saveStateToStorage();
-    this.listeners.forEach((l) => l(this.activeState!));
-    this.checkBotTurn();
+    this.notifyListenersOnly();
+
+    // ONLY the Host client runs bot AI
+    if (this.isHostClient()) {
+      this.checkBotTurn();
+    }
   }
 
   private saveStateToStorage() {
@@ -207,6 +302,7 @@ class GameService {
           username: currentUser.display_name,
           avatar: currentUser.avatar_url,
           isBot: false,
+          isHost: true,
         },
         {
           playerId: 'bot_emperor',
@@ -214,6 +310,7 @@ class GameService {
           avatar: 'avatar_4',
           isBot: true,
           botDifficulty,
+          isHost: false,
         },
       ];
     } else if (mode === 'quick_2') {
@@ -223,6 +320,7 @@ class GameService {
           username: currentUser.display_name,
           avatar: currentUser.avatar_url,
           isBot: false,
+          isHost: true,
         },
         {
           playerId: 'quick_bot_1',
@@ -230,6 +328,7 @@ class GameService {
           avatar: 'avatar_2',
           isBot: true,
           botDifficulty: 'medium',
+          isHost: false,
         },
       ];
     } else if (mode === 'quick_4') {
@@ -239,6 +338,7 @@ class GameService {
           username: currentUser.display_name,
           avatar: currentUser.avatar_url,
           isBot: false,
+          isHost: true,
         },
         {
           playerId: 'quick_bot_1',
@@ -246,6 +346,7 @@ class GameService {
           avatar: 'avatar_2',
           isBot: true,
           botDifficulty: 'medium',
+          isHost: false,
         },
         {
           playerId: 'quick_bot_2',
@@ -253,6 +354,7 @@ class GameService {
           avatar: 'avatar_4',
           isBot: true,
           botDifficulty: 'medium',
+          isHost: false,
         },
         {
           playerId: 'quick_bot_3',
@@ -260,6 +362,7 @@ class GameService {
           avatar: 'avatar_3',
           isBot: true,
           botDifficulty: 'medium',
+          isHost: false,
         },
       ];
     } else if (mode === 'team_2v2') {
@@ -271,6 +374,7 @@ class GameService {
           seat: 0,
           teamId: 'team_a',
           isBot: false,
+          isHost: true,
         },
         {
           playerId: 'quick_bot_arthur',
@@ -280,6 +384,7 @@ class GameService {
           teamId: 'team_b',
           isBot: true,
           botDifficulty: 'medium',
+          isHost: false,
         },
         {
           playerId: 'quick_bot_reginald',
@@ -289,6 +394,7 @@ class GameService {
           teamId: 'team_a',
           isBot: true,
           botDifficulty: 'medium',
+          isHost: false,
         },
         {
           playerId: 'quick_bot_guinevere',
@@ -298,6 +404,7 @@ class GameService {
           teamId: 'team_b',
           isBot: true,
           botDifficulty: 'medium',
+          isHost: false,
         },
       ];
     }
@@ -330,11 +437,14 @@ class GameService {
     return state;
   }
 
-  private autoMoveTimer: NodeJS.Timeout | null = null;
-
   public rollCurrentDice(): boolean {
     if (!this.activeState || this.activeState.status !== 'in_progress') return false;
     if (!this.activeState.dice.canRoll) return false;
+
+    // Check authority: Only current player (or Host if bot) can roll
+    if (!this.isMyTurn()) {
+      return false;
+    }
 
     const currentSeat = this.activeState.turn.currentSeat;
     sound.playDiceRoll();
@@ -348,18 +458,23 @@ class GameService {
     }
 
     this.activeState = updated;
-    this.broadcastAction({
-      type: 'ROLL_DICE',
-      seat: currentSeat,
-      diceValue: rolledVal || undefined,
-      timestamp: Date.now(),
-    });
+
+    // Broadcast authoritative roll with fullState
+    this.broadcastAction(
+      {
+        type: 'ROLL_DICE',
+        seat: currentSeat,
+        diceValue: rolledVal || undefined,
+        timestamp: Date.now(),
+      },
+      this.activeState
+    );
 
     this.startTurnCountdown();
     this.notify();
 
-    // Auto-move algorithm: If exactly 1 legal move exists, auto-move after dice animation
-    if (rolledVal !== null) {
+    // Auto-move algorithm: Only run if this client is the current player / host
+    if (rolledVal !== null && this.isMyTurn()) {
       const legalMoves = getLegalMoves(this.activeState, currentSeat, rolledVal);
       if (legalMoves.length === 1 && this.activeState.status === 'in_progress') {
         if (this.autoMoveTimer) clearTimeout(this.autoMoveTimer);
@@ -371,7 +486,7 @@ class GameService {
           ) {
             this.movePlayerToken(legalMoves[0].tokenId);
           }
-        }, 420);
+        }, 450);
       }
     }
 
@@ -380,6 +495,12 @@ class GameService {
 
   public movePlayerToken(tokenId: number): boolean {
     if (!this.activeState || this.activeState.status !== 'in_progress') return false;
+
+    // Check authority
+    if (!this.isMyTurn()) {
+      return false;
+    }
+
     const currentSeat = this.activeState.turn.currentSeat;
     const currentDice = this.activeState.dice.value;
     if (currentDice === null) return false;
@@ -387,6 +508,8 @@ class GameService {
     if (!canMoveToken(this.activeState, currentSeat, tokenId, currentDice)) {
       return false;
     }
+
+    if (this.autoMoveTimer) clearTimeout(this.autoMoveTimer);
 
     const nextState = moveToken(this.activeState, currentSeat, tokenId, currentDice);
     const lastAction = nextState.lastAction;
@@ -400,12 +523,17 @@ class GameService {
     }
 
     this.activeState = nextState;
-    this.broadcastAction({
-      type: 'MOVE_TOKEN',
-      seat: currentSeat,
-      tokenId,
-      timestamp: Date.now(),
-    });
+
+    // Broadcast authoritative move with fullState
+    this.broadcastAction(
+      {
+        type: 'MOVE_TOKEN',
+        seat: currentSeat,
+        tokenId,
+        timestamp: Date.now(),
+      },
+      this.activeState
+    );
 
     if (nextState.status === 'finished') {
       this.handleMatchFinished(nextState);
@@ -420,7 +548,9 @@ class GameService {
   public sendQuickChat(message: string): void {
     if (!this.activeState) return;
     const currentUser = authService.getCurrentUser();
-    const player = this.activeState.players.find((p) => p.playerId === currentUser.id) || this.activeState.players[0];
+    const player =
+      this.activeState.players.find((p) => p.playerId === currentUser.id) ||
+      this.activeState.players[0];
 
     const action: GameAction = {
       type: 'EMOJI',
@@ -430,7 +560,7 @@ class GameService {
     };
 
     this.activeState = applyAction(this.activeState, action);
-    this.broadcastAction(action);
+    this.broadcastAction(action, this.activeState);
     sound.playClick();
     this.notify();
   }
@@ -492,6 +622,7 @@ class GameService {
 
   private checkBotTurn() {
     if (!this.activeState || this.activeState.status !== 'in_progress') return;
+    if (!this.isHostClient()) return; // ONLY the host client drives bot AI
 
     const currentSeat = this.activeState.turn.currentSeat;
     const currentPlayer = this.activeState.players.find((p) => p.seat === currentSeat);
@@ -510,23 +641,40 @@ class GameService {
         const legalMoves = getLegalMoves(this.activeState, currentSeat, this.activeState.dice.value);
         if (legalMoves.length > 0) {
           const chosen = chooseBotMove(this.activeState, currentPlayer, this.activeState.dice.value);
-          if (chosen) 
-          this.movePlayerToken(chosen.tokenId);
+          if (chosen) {
+            this.movePlayerToken(chosen.tokenId);
+          }
         }
       }
-    }, 900);
+    }, 850);
   }
 
   private startTurnCountdown() {
     if (this.turnTimer) clearTimeout(this.turnTimer);
     if (!this.activeState || this.activeState.status !== 'in_progress') return;
 
+    // In multiplayer online matches, only the Host client or the current player issues authoritative timeout
+    const isAuthority = this.isHostClient() || this.isMyTurn();
     const remainingMs = Math.max(0, this.activeState.turn.expiresAt - Date.now());
 
     this.turnTimer = setTimeout(() => {
       if (!this.activeState || this.activeState.status !== 'in_progress') return;
+      if (!isAuthority) return;
+
       sound.playClick();
       this.activeState = handleTimeout(this.activeState);
+
+      // Broadcast timeout state to all peers
+      this.broadcastAction(
+        {
+          type: 'TIMEOUT',
+          seat: this.activeState.turn.currentSeat,
+          timestamp: Date.now(),
+          message: 'Turn timed out.',
+        },
+        this.activeState
+      );
+
       this.startTurnCountdown();
       this.notify();
     }, remainingMs + 50);
@@ -536,12 +684,12 @@ class GameService {
     if (this.botTimer) clearTimeout(this.botTimer);
     if (this.turnTimer) clearTimeout(this.turnTimer);
     if (this.autoMoveTimer) clearTimeout(this.autoMoveTimer);
+    if (this.noMoveTurnTimer) clearTimeout(this.noMoveTurnTimer);
     this.botTimer = null;
     this.turnTimer = null;
     this.autoMoveTimer = null;
+    this.noMoveTurnTimer = null;
   }
-
-  private isSpectator: boolean = false;
 
   public isSpectating(): boolean {
     return this.isSpectator;
