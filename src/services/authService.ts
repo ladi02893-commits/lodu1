@@ -880,7 +880,7 @@ class AuthService {
     // 2. Record ledger transaction
     this.recordTransaction({
       userId: targetUserId,
-      type: 'admin_deduction',
+      type: 'admin_deduct',
       amount: -cleanAmount,
       balanceAfter: newCoins,
       description: reason,

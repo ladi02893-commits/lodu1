@@ -318,7 +318,7 @@ export const GameArenaView: React.FC<GameArenaViewProps> = ({ onExit }) => {
             className={`w-9 h-9 rounded-xl overflow-hidden border-2 flex items-center justify-center font-black text-xs text-white shadow ${
               isSpeaking ? 'ring-2 ring-emerald-400 animate-pulse' : ''
             }`}
-            style={{ borderColor: config.primary, backgroundColor: config.boardCell }}
+            style={{ borderColor: config.primary, backgroundColor: config.bg }}
           >
             {player.avatar?.startsWith('avatar_') ? (
               <img

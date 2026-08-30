@@ -1,6 +1,7 @@
 import { authService } from './authService';
 import { UserProfile } from '../types/database';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { sound } from '../lib/audio';
 
 export interface FriendEntry {
   id: string;

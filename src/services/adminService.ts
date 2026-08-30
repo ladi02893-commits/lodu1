@@ -147,10 +147,29 @@ class AdminService {
     localStorage.setItem(GAMEPLAY_CONFIG_KEY, JSON.stringify(this.gameplayConfig));
   }
 
-  public getStats(): AdminStats {
-    const registeredUsers = authService.getRegisteredUsers();
+  public getPlayers(): AdminPlayerRecord[] {
+    const registered = authService.getRegisteredUsers();
+    const curr = authService.getCurrentUser();
+
+    return registered.map((u) => ({
+      id: u.id,
+      username: u.id === curr.id ? `${u.display_name} (Current Session)` : u.display_name,
+      email: u.email,
+      role: u.role || (u.is_admin ? 'admin' : 'user'),
+      level: Math.max(1, Math.floor(Math.round(u.level || 1))),
+      coins: Math.max(0, Math.floor(Math.round(u.coins || 0))),
+      crowns: Math.max(0, Math.floor(Math.round((u.wins || 0) * 10))),
+      isBanned: Boolean(u.is_banned),
+      isVip: Boolean(u.is_vip || u.is_admin),
+      lastActive: u.id === curr.id ? 'Active Now' : u.last_active || 'Registered Member',
+    }));
+  }
+
+  public getStats(customPlayersList?: AdminPlayerRecord[]): AdminStats {
+    const players = customPlayersList || this.getPlayers();
     const currentUser = authService.getCurrentUser();
-    const totalCoins = registeredUsers.reduce((sum, u) => sum + (u.coins || 0), 0);
+    const totalCoins = players.reduce((sum, u) => sum + (u.coins || 0), 0);
+    const registeredUsers = authService.getRegisteredUsers();
     const totalGames = registeredUsers.reduce((sum, u) => sum + (u.games_played || 0), 0);
     const allDeposits = paymentService.getAllRequests();
     const pendingCount = paymentService.getPendingCount();
@@ -158,9 +177,11 @@ class AdminService {
       .filter((d) => d.status === 'approved')
       .reduce((sum, d) => sum + (d.currency === 'PKR' ? d.fiat_amount : d.fiat_amount * 280), 0);
 
+    const activeCount = players.filter((u) => !u.isBanned).length;
+
     return {
-      totalUsers: registeredUsers.length,
-      onlineUsers: registeredUsers.filter((u) => !u.is_banned).length,
+      totalUsers: players.length,
+      onlineUsers: Math.max(1, activeCount),
       gamesToday: Math.max(1, Math.floor(totalGames * 0.4) + 1),
       activeGames: 1,
       completedGames: totalGames,
@@ -231,69 +252,7 @@ class AdminService {
     }
   }
 
-  // Real Players Management from Registered Users
-  public getPlayers(): AdminPlayerRecord[] {
-    const registered = authService.getRegisteredUsers();
-    const curr = authService.getCurrentUser();
-
-    const records: AdminPlayerRecord[] = registered.map((u) => ({
-      id: u.id,
-      username: u.id === curr.id ? `${u.display_name} (Current Session)` : u.display_name,
-      email: u.email,
-      role: u.role || (u.is_admin ? 'admin' : 'user'),
-      level: u.level || 1,
-      coins: u.coins || 0,
-      crowns: (u.wins || 0) * 10,
-      isBanned: !!u.is_banned,
-      isVip: !!u.is_vip,
-      lastActive: u.id === curr.id ? 'Active Now' : u.last_active || 'Registered Member',
-    }));
-
-    if (isSupabaseConfigured) {
-      supabase.from('profiles').select('*').then(({ data }) => {
-        if (data && data.length > 0) {
-          data.forEach((p: any) => {
-            const exists = registered.some((u) => u.id === p.id);
-            if (!exists) {
-              authService.adminUpdateUser(p.id, {
-                id: p.id,
-                email: p.username ? `${p.username}@royal.realm` : 'noble@royal.realm',
-                passwordHash: 'vault123',
-                display_name: p.display_name || 'Noble Sovereign',
-                username: p.username || 'noble',
-                player_id: p.player_id || 'RL-1000',
-                is_admin: Boolean(p.is_admin),
-                is_banned: Boolean(p.is_banned),
-                is_vip: Boolean(p.is_admin),
-                role: p.is_admin ? 'admin' : 'user',
-                level: p.level || 1,
-                xp: p.xp || 0,
-                coins: p.coins || 0,
-                wins: p.wins || 0,
-                losses: p.losses || 0,
-                games_played: p.games_played || 0,
-                total_captures: p.total_captures || 0,
-                best_win_streak: p.best_win_streak || 0,
-                current_win_streak: p.current_win_streak || 0,
-                avatar_url: p.avatar_url || 'avatar_1',
-                avatar_frame: p.avatar_frame || 'frame_none',
-                dice_skin: p.dice_skin || 'dice_gold',
-                board_theme: p.board_theme || 'theme_royal',
-                token_skin: p.token_skin || 'token_royal',
-                created_at: p.created_at || new Date().toISOString(),
-                updated_at: p.updated_at || new Date().toISOString(),
-                last_active: p.is_online ? 'Active Now' : 'Synced from Database',
-              });
-            }
-          });
-        }
-      });
-    }
-
-    return records;
-  }
-
-    public deletePlayer(id: string): boolean {
+  public deletePlayer(id: string): boolean {
     return authService.adminDeleteUser(id);
   }
 

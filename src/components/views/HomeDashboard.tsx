@@ -7,6 +7,7 @@ import {
   Crown,
   Flame,
   Gift,
+  MessageSquare,
   Play,
   Plus,
   Settings,
