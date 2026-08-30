@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Crown, Shield, Sparkles, Star, Swords } from 'lucide-react';
+import { Crown, Sparkles, Star } from 'lucide-react';
 import { COLOR_CONFIG } from '../../lib/ludo/constants';
 import { getTokenCoordinates } from '../../lib/ludo/board';
 import { canMoveToken, getLegalMoves } from '../../lib/ludo/engine';
@@ -141,7 +141,7 @@ export const LudoBoard: React.FC<LudoBoardProps> = ({
       >
         {/* Camp Header Bar with Player Name & Finished Counters */}
         <div className="w-full flex items-center justify-between px-1 z-10">
-          <div className="flex items-center gap-1.5 min-w-0">
+          <div className="flex items-center gap-1 min-w-0">
             <Crown className="w-3.5 h-3.5 flex-shrink-0 text-amber-300 drop-shadow" />
             <span className="text-[10px] sm:text-xs font-black text-amber-100 tracking-wider uppercase truncate max-w-[85px] drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
               {player ? player.username : config.name}
@@ -199,16 +199,39 @@ export const LudoBoard: React.FC<LudoBoardProps> = ({
 
   return (
     <div className="relative w-full aspect-square max-w-[540px] mx-auto p-2 sm:p-3 rounded-3xl bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900 border-4 border-amber-500/80 shadow-[0_16px_50px_rgba(0,0,0,0.95),inset_0_2px_6px_rgba(255,255,255,0.15)]">
-      {/* 15x15 Grid Arena Frame */}
-      <div className="relative w-full h-full grid grid-cols-15 grid-rows-15 gap-[1px] bg-amber-950/60 rounded-2xl overflow-hidden shadow-2xl border border-amber-500/30">
-        {/* Top Left: Red Camp (rows 0..5, cols 0..5) */}
-        <div className="col-span-6 row-span-6 p-1">
+      {/* 15x15 Exact Grid Container with Explicit CSS Template Rules */}
+      <div
+        className="relative w-full h-full bg-amber-950/60 rounded-2xl overflow-hidden shadow-2xl border border-amber-500/30"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(15, minmax(0, 1fr))',
+          gridTemplateRows: 'repeat(15, minmax(0, 1fr))',
+          gap: '1px',
+        }}
+      >
+        {/* 1. Top-Left: Red Camp (Seat 0, cols 1..6, rows 1..6) */}
+        <div
+          style={{
+            gridColumn: '1 / 7',
+            gridRow: '1 / 7',
+            padding: '4px',
+          }}
+        >
           {renderCamp(0, 'red')}
         </div>
 
-        {/* Top Center Track (rows 0..5, cols 6..8) */}
-        <div className="col-span-3 row-span-6 grid grid-cols-3 grid-rows-6 gap-[1px]">
-          {/* Row 0 */}
+        {/* 2. Top-Center Arm: Green Track & Home Path (cols 7..9, rows 1..6) */}
+        <div
+          style={{
+            gridColumn: '7 / 10',
+            gridRow: '1 / 7',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            gridTemplateRows: 'repeat(6, minmax(0, 1fr))',
+            gap: '1px',
+          }}
+        >
+          {/* Row 0 (board row 0, cols 6,7,8) */}
           <BoardCell row={0} col={6} />
           <BoardCell row={0} col={7} />
           <BoardCell row={0} col={8} />
@@ -239,13 +262,28 @@ export const LudoBoard: React.FC<LudoBoardProps> = ({
           <BoardCell row={5} col={8} />
         </div>
 
-        {/* Top Right: Green Camp (rows 0..5, cols 9..14) */}
-        <div className="col-span-6 row-span-6 p-1">
+        {/* 3. Top-Right: Green Camp (Seat 1, cols 10..15, rows 1..6) */}
+        <div
+          style={{
+            gridColumn: '10 / 16',
+            gridRow: '1 / 7',
+            padding: '4px',
+          }}
+        >
           {renderCamp(1, 'green')}
         </div>
 
-        {/* Middle Left Track (rows 6..8, cols 0..5) */}
-        <div className="col-span-6 row-span-3 grid grid-cols-6 grid-rows-3 gap-[1px]">
+        {/* 4. Middle-Left Arm: Red Track & Home Path (cols 1..6, rows 7..9) */}
+        <div
+          style={{
+            gridColumn: '1 / 7',
+            gridRow: '7 / 10',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
+            gridTemplateRows: 'repeat(3, minmax(0, 1fr))',
+            gap: '1px',
+          }}
+        >
           {/* Row 6 */}
           <BoardCell row={6} col={0} />
           <BoardCell row={6} col={1} startColor="red" />
@@ -271,13 +309,29 @@ export const LudoBoard: React.FC<LudoBoardProps> = ({
           <BoardCell row={8} col={5} />
         </div>
 
-        {/* Center Victory Pyramid Goal (rows 6..8, cols 6..8) */}
-        <div className="col-span-3 row-span-3 relative z-10 shadow-2xl">
+        {/* 5. Center Victory Pyramid Goal (cols 7..9, rows 7..9) */}
+        <div
+          style={{
+            gridColumn: '7 / 10',
+            gridRow: '7 / 10',
+            position: 'relative',
+            zIndex: 10,
+          }}
+        >
           <BoardCell row={7} col={7} isGoal />
         </div>
 
-        {/* Middle Right Track (rows 6..8, cols 9..14) */}
-        <div className="col-span-6 row-span-3 grid grid-cols-6 grid-rows-3 gap-[1px]">
+        {/* 6. Middle-Right Arm: Yellow Track & Home Path (cols 10..15, rows 7..9) */}
+        <div
+          style={{
+            gridColumn: '10 / 16',
+            gridRow: '7 / 10',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
+            gridTemplateRows: 'repeat(3, minmax(0, 1fr))',
+            gap: '1px',
+          }}
+        >
           {/* Row 6 */}
           <BoardCell row={6} col={9} />
           <BoardCell row={6} col={10} />
@@ -303,13 +357,28 @@ export const LudoBoard: React.FC<LudoBoardProps> = ({
           <BoardCell row={8} col={14} />
         </div>
 
-        {/* Bottom Left: Blue Camp (rows 9..14, cols 0..5) */}
-        <div className="col-span-6 row-span-6 p-1">
+        {/* 7. Bottom-Left: Blue Camp (Seat 3, cols 1..6, rows 10..15) */}
+        <div
+          style={{
+            gridColumn: '1 / 7',
+            gridRow: '10 / 16',
+            padding: '4px',
+          }}
+        >
           {renderCamp(3, 'blue')}
         </div>
 
-        {/* Bottom Center Track (rows 9..14, cols 6..8) */}
-        <div className="col-span-3 row-span-6 grid grid-cols-3 grid-rows-6 gap-[1px]">
+        {/* 8. Bottom-Center Arm: Blue Track & Home Path (cols 7..9, rows 10..15) */}
+        <div
+          style={{
+            gridColumn: '7 / 10',
+            gridRow: '10 / 16',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            gridTemplateRows: 'repeat(6, minmax(0, 1fr))',
+            gap: '1px',
+          }}
+        >
           {/* Row 9 */}
           <BoardCell row={9} col={6} />
           <BoardCell row={9} col={7} homeColor="blue" />
@@ -341,18 +410,24 @@ export const LudoBoard: React.FC<LudoBoardProps> = ({
           <BoardCell row={14} col={8} />
         </div>
 
-        {/* Bottom Right: Yellow Camp (rows 9..14, cols 9..14) */}
-        <div className="col-span-6 row-span-6 p-1">
+        {/* 9. Bottom-Right: Yellow Camp (Seat 2, cols 10..15, rows 10..15) */}
+        <div
+          style={{
+            gridColumn: '10 / 16',
+            gridRow: '10 / 16',
+            padding: '4px',
+          }}
+        >
           {renderCamp(2, 'yellow')}
         </div>
 
-        {/* Floating Active Tokens Overlay on 15x15 Grid */}
+        {/* Floating Active Tokens Overlay exactly aligned to 15x15 grid */}
         {flattenedActiveTokens.map((token) => (
           <div
             key={`${token.seat}-${token.tokenId}`}
             style={{
-              gridRowStart: token.row + 1,
-              gridColumnStart: token.col + 1,
+              gridRow: `${token.row + 1} / ${token.row + 2}`,
+              gridColumn: `${token.col + 1} / ${token.col + 2}`,
             }}
             className="w-full h-full flex items-center justify-center pointer-events-auto z-20"
           >
