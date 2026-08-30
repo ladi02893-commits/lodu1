@@ -59,6 +59,7 @@ interface HomeDashboardProps {
   onOpenLuckyWheel?: () => void;
   onOpenSpectator?: () => void;
   onOpenPayment?: () => void;
+  onOpenMessenger?: (tab?: 'global' | 'dms' | 'friends') => void;
 }
 
 export const HomeDashboard: React.FC<HomeDashboardProps> = ({
@@ -69,6 +70,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   onOpenLuckyWheel,
   onOpenSpectator,
   onOpenPayment,
+  onOpenMessenger,
 }) => {
   const [showBotModal, setShowBotModal] = useState(false);
   const [showLocalModal, setShowLocalModal] = useState(false);
@@ -184,6 +186,21 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
             )}
           </button>
 
+          {/* Imperial Realm Messenger Shortcut */}
+          <button
+            id="home-messenger-btn"
+            type="button"
+            onClick={() => {
+              sound.playClick();
+              if (onOpenMessenger) onOpenMessenger('global');
+            }}
+            className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-amber-500/40 bg-gradient-to-r from-amber-950/80 to-slate-900 text-amber-300 hover:border-amber-400 text-xs sm:text-sm font-bold transition-all cursor-pointer shadow-inner"
+            title="Imperial Realm Messenger & Global Chat"
+          >
+            <MessageSquare className="w-4 h-4 text-amber-400" />
+            <span className="hidden sm:inline">Realm Chat</span>
+          </button>
+
           {/* Coins Wallet */}
           <button
             id="home-wallet-btn"
@@ -200,7 +217,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
             title="Imperial Treasury Wallet"
           >
             <Coins className="w-4 h-4 text-amber-400" />
-            <span>{user.coins.toLocaleString()}</span>
+            <span>{Math.max(0, Math.floor(Math.round(user.coins || 0))).toLocaleString()}</span>
             <Plus className="w-3.5 h-3.5 text-amber-400 ml-0.5" />
           </button>
 
@@ -742,6 +759,22 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
           playerCount={stakeModalConfig.playerCount}
         />
       )}
+      {/* Floating Lobby Messenger Action Button */}
+      <button
+        id="home-floating-chat-btn"
+        type="button"
+        onClick={() => {
+          sound.playClick();
+          if (onOpenMessenger) onOpenMessenger('global');
+        }}
+        className="fixed bottom-6 right-6 z-40 p-4 rounded-full bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-500 text-slate-950 shadow-[0_8px_25px_rgba(245,158,11,0.5)] hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer flex items-center justify-center border-2 border-amber-300 group"
+        title="Open Realm Chat & DMs"
+      >
+        <MessageSquare className="w-6 h-6 fill-slate-950" />
+        <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-300 font-royal font-black text-xs pl-0 group-hover:pl-2">
+          Realm Chat
+        </span>
+      </button>
     </div>
   );
 };

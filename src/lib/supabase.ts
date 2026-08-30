@@ -96,7 +96,16 @@ export function getStoredProfile(): UserProfile {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.PROFILE);
     if (raw) {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if (parsed) {
+        parsed.coins = Math.max(0, Math.floor(Math.round(Number(parsed.coins) || 0)));
+        parsed.xp = Math.max(0, Math.floor(Math.round(Number(parsed.xp) || 0)));
+        parsed.level = Math.max(1, Math.floor(Math.round(Number(parsed.level) || 1)));
+        parsed.wins = Math.max(0, Math.floor(Math.round(Number(parsed.wins) || 0)));
+        parsed.losses = Math.max(0, Math.floor(Math.round(Number(parsed.losses) || 0)));
+        parsed.games_played = Math.max(0, Math.floor(Math.round(Number(parsed.games_played) || 0)));
+        return parsed;
+      }
     }
   } catch (err) {
     console.warn('Failed to parse stored profile:', err);
@@ -108,7 +117,10 @@ export function getStoredProfile(): UserProfile {
 }
 
 export function saveStoredProfile(profile: UserProfile): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || !profile) return;
+  profile.coins = Math.max(0, Math.floor(Math.round(Number(profile.coins) || 0)));
+  profile.xp = Math.max(0, Math.floor(Math.round(Number(profile.xp) || 0)));
+  profile.level = Math.max(1, Math.floor(Math.round(Number(profile.level) || 1)));
   try {
     localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profile));
   } catch (err) {

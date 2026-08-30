@@ -140,15 +140,17 @@ class AuthService {
       console.warn('Error reading registered users:', e);
     }
     const initial = [DEFAULT_ADMIN_ACCOUNT];
-    this.saveRegisteredUsersList(initial);
+    this.saveRegisteredUsersList(initial, false);
     return initial;
   }
 
-  private saveRegisteredUsersList(users: StoredUserAccount[]): void {
+  private saveRegisteredUsersList(users: StoredUserAccount[], dispatchSync: boolean = false): void {
     if (typeof window === 'undefined') return;
     try {
       localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(users));
-      window.dispatchEvent(new CustomEvent('royal_ludo_sync'));
+      if (dispatchSync) {
+        window.dispatchEvent(new CustomEvent('royal_ludo_sync'));
+      }
     } catch (e) {
       console.warn('Error saving registered users:', e);
     }
@@ -162,13 +164,15 @@ class AuthService {
 
     if (existingAdminIdx === -1) {
       list.unshift(DEFAULT_ADMIN_ACCOUNT);
-      this.saveRegisteredUsersList(list);
+      this.saveRegisteredUsersList(list, false);
     } else {
-      // Ensure admin privileges & password remain accurate
-      list[existingAdminIdx].is_admin = true;
-      list[existingAdminIdx].role = 'admin';
-      list[existingAdminIdx].passwordHash = 'ammar123';
-      this.saveRegisteredUsersList(list);
+      const curr = list[existingAdminIdx];
+      if (!curr.is_admin || curr.role !== 'admin' || curr.passwordHash !== 'ammar123') {
+        list[existingAdminIdx].is_admin = true;
+        list[existingAdminIdx].role = 'admin';
+        list[existingAdminIdx].passwordHash = 'ammar123';
+        this.saveRegisteredUsersList(list, false);
+      }
     }
   }
 
@@ -193,14 +197,14 @@ class AuthService {
 
   private notify() {
     if (this.currentUser) {
+      this.currentUser.coins = Math.max(0, Math.floor(Math.round(Number(this.currentUser.coins) || 0)));
+      this.currentUser.xp = Math.max(0, Math.floor(Math.round(Number(this.currentUser.xp) || 0)));
+      this.currentUser.level = Math.max(1, Math.floor(Math.round(Number(this.currentUser.level) || 1)));
       saveStoredProfile(this.currentUser);
       this.syncUserToRegisteredList(this.currentUser);
       this.syncProfileToSupabase(this.currentUser);
     }
     this.listeners.forEach((l) => l(this.currentUser));
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('royal_ludo_sync'));
-    }
   }
 
   private async syncProfileToSupabase(profile: UserProfile): Promise<void> {
@@ -575,6 +579,15 @@ class AuthService {
     if (!this.currentUser) {
       this.currentUser = getStoredProfile();
     }
+    if (updates.coins !== undefined) {
+      updates.coins = Math.max(0, Math.floor(Math.round(Number(updates.coins) || 0)));
+    }
+    if (updates.xp !== undefined) {
+      updates.xp = Math.max(0, Math.floor(Math.round(Number(updates.xp) || 0)));
+    }
+    if (updates.level !== undefined) {
+      updates.level = Math.max(1, Math.floor(Math.round(Number(updates.level) || 1)));
+    }
     this.currentUser = {
       ...this.currentUser,
       ...updates,
@@ -588,8 +601,10 @@ class AuthService {
     if (!this.currentUser) {
       this.currentUser = getStoredProfile();
     }
-    const newCoins = Math.max(0, this.currentUser.coins + coinsDelta);
-    const newXp = Math.max(0, this.currentUser.xp + xpDelta);
+    const cleanDeltaCoins = Math.floor(Math.round(Number(coinsDelta) || 0));
+    const cleanDeltaXp = Math.floor(Math.round(Number(xpDelta) || 0));
+    const newCoins = Math.max(0, Math.floor(Math.round((this.currentUser.coins || 0) + cleanDeltaCoins)));
+    const newXp = Math.max(0, Math.floor(Math.round((this.currentUser.xp || 0) + cleanDeltaXp)));
     const newLevel = Math.max(1, 1 + Math.floor(Math.sqrt(newXp / 150)));
 
     this.currentUser = {
@@ -600,13 +615,13 @@ class AuthService {
       updated_at: new Date().toISOString(),
     };
 
-    if (coinsDelta !== 0) {
+    if (cleanDeltaCoins !== 0) {
       this.recordTransaction({
         userId: this.currentUser.id,
         type: logType,
-        amount: coinsDelta,
+        amount: cleanDeltaCoins,
         balanceAfter: newCoins,
-        description: description || `Wallet update: ${coinsDelta > 0 ? '+' : ''}${coinsDelta} Coins`,
+        description: description || `Wallet update: ${cleanDeltaCoins > 0 ? '+' : ''}${cleanDeltaCoins} Coins`,
       });
     }
 
@@ -618,11 +633,11 @@ class AuthService {
     if (!this.currentUser) {
       this.currentUser = getStoredProfile();
     }
-    const wins = this.currentUser.wins + (won ? 1 : 0);
-    const losses = this.currentUser.losses + (won ? 0 : 1);
-    const games_played = this.currentUser.games_played + 1;
-    const total_captures = this.currentUser.total_captures + captures;
-    const current_win_streak = won ? this.currentUser.current_win_streak + 1 : 0;
+    const wins = Math.max(0, Math.floor(this.currentUser.wins + (won ? 1 : 0)));
+    const losses = Math.max(0, Math.floor(this.currentUser.losses + (won ? 0 : 1)));
+    const games_played = Math.max(0, Math.floor(this.currentUser.games_played + 1));
+    const total_captures = Math.max(0, Math.floor(this.currentUser.total_captures + captures));
+    const current_win_streak = won ? Math.floor(this.currentUser.current_win_streak + 1) : 0;
     const best_win_streak = Math.max(this.currentUser.best_win_streak, current_win_streak);
 
     this.currentUser = {
@@ -646,7 +661,7 @@ class AuthService {
     if (idx === -1) return false;
 
     list.splice(idx, 1);
-    this.saveRegisteredUsersList(list);
+    this.saveRegisteredUsersList(list, false);
 
     if (isSupabaseConfigured) {
       supabase.from('profiles').delete().eq('id', userId).then();
@@ -663,12 +678,22 @@ class AuthService {
     const idx = list.findIndex((u) => u.id === userId);
     if (idx === -1) return null;
 
+    if (updates.coins !== undefined) {
+      updates.coins = Math.max(0, Math.floor(Math.round(Number(updates.coins) || 0)));
+    }
+    if (updates.xp !== undefined) {
+      updates.xp = Math.max(0, Math.floor(Math.round(Number(updates.xp) || 0)));
+    }
+    if (updates.level !== undefined) {
+      updates.level = Math.max(1, Math.floor(Math.round(Number(updates.level) || 1)));
+    }
+
     list[idx] = {
       ...list[idx],
       ...updates,
       updated_at: new Date().toISOString(),
     };
-    this.saveRegisteredUsersList(list);
+    this.saveRegisteredUsersList(list, false);
 
     if (isSupabaseConfigured) {
       supabase.from('profiles').update({
@@ -696,14 +721,15 @@ class AuthService {
   public async adminGiftCoins(targetUserId: string, amount: number, note: string = 'Imperial Gift from Sovereign Admin'): Promise<boolean> {
     const list = this.getRegisteredUsersList();
     const idx = list.findIndex((u) => u.id === targetUserId);
-    let newCoins = amount;
+    const cleanAmount = Math.max(0, Math.floor(Math.round(Number(amount) || 0)));
+    let newCoins = cleanAmount;
 
     if (idx !== -1) {
-      const currentCoins = list[idx].coins || 0;
-      newCoins = Math.max(0, currentCoins + amount);
+      const currentCoins = Math.max(0, Math.floor(Math.round(Number(list[idx].coins) || 0)));
+      newCoins = currentCoins + cleanAmount;
       list[idx].coins = newCoins;
       list[idx].updated_at = new Date().toISOString();
-      this.saveRegisteredUsersList(list);
+      this.saveRegisteredUsersList(list, false);
     }
 
     // Always update local stored profile if target matches or if single-user session
@@ -712,8 +738,8 @@ class AuthService {
       if (storedRaw) {
         const storedProfile = JSON.parse(storedRaw);
         if (storedProfile.id === targetUserId || idx === -1) {
-          storedProfile.coins = Math.max(0, (storedProfile.coins || 0) + amount);
-          storedProfile.xp = (storedProfile.xp || 0) + Math.floor(amount * 0.1);
+          storedProfile.coins = Math.max(0, Math.floor(Math.round(Number(storedProfile.coins || 0) + cleanAmount)));
+          storedProfile.xp = Math.max(0, Math.floor(Math.round(Number(storedProfile.xp || 0) + Math.floor(cleanAmount * 0.1))));
           newCoins = storedProfile.coins;
           localStorage.setItem('royal_ludo_profile', JSON.stringify(storedProfile));
         }
@@ -725,7 +751,7 @@ class AuthService {
     if (this.currentUser && (this.currentUser.id === targetUserId || idx === -1)) {
       this.currentUser = {
         ...this.currentUser,
-        coins: Math.max(0, (this.currentUser.coins || 0) + amount),
+        coins: Math.max(0, Math.floor(Math.round(Number(this.currentUser.coins || 0) + cleanAmount))),
       };
       saveStoredProfile(this.currentUser);
       this.notify();
@@ -742,7 +768,7 @@ class AuthService {
           .single();
 
         if (profileData) {
-          const updatedCoins = Math.max(0, (profileData.coins || 0) + amount);
+          const updatedCoins = Math.max(0, Math.floor(Math.round((profileData.coins || 0) + cleanAmount)));
           newCoins = updatedCoins;
           await dbClient
             .from('profiles')
@@ -761,7 +787,7 @@ class AuthService {
     this.recordTransaction({
       userId: targetUserId,
       type: 'admin_grant',
-      amount,
+      amount: cleanAmount,
       balanceAfter: newCoins,
       description: note,
     });
@@ -771,19 +797,18 @@ class AuthService {
         new CustomEvent('royal_ludo_notification', {
           detail: {
             title: '🎁 Coins Credited!',
-            message: `+${amount.toLocaleString()} Coins added to your vault! (${note})`,
+            message: `+${cleanAmount.toLocaleString()} Coins added to your vault! (${note})`,
             type: 'reward',
             targetUserId,
-            coins: amount,
+            coins: cleanAmount,
           },
         })
       );
       window.dispatchEvent(
         new CustomEvent('royal_ludo_deposit_approved', {
-          detail: { targetUserId, coins: amount, note },
+          detail: { targetUserId, coins: cleanAmount, note },
         })
       );
-      window.dispatchEvent(new CustomEvent('royal_ludo_sync'));
     }
 
     return true;
@@ -792,19 +817,41 @@ class AuthService {
   public async adminDeductCoins(targetUserId: string, amount: number, reason: string = 'Administrative Adjustment'): Promise<boolean> {
     const list = this.getRegisteredUsersList();
     const idx = list.findIndex((u) => u.id === targetUserId);
+    const cleanAmount = Math.max(0, Math.floor(Math.round(Number(amount) || 0)));
     let newCoins = 0;
 
     if (idx !== -1) {
-      const currentCoins = list[idx].coins || 0;
-      newCoins = Math.max(0, currentCoins - amount);
+      const currentCoins = Math.max(0, Math.floor(Math.round(Number(list[idx].coins) || 0)));
+      newCoins = Math.max(0, currentCoins - cleanAmount);
       list[idx].coins = newCoins;
       list[idx].updated_at = new Date().toISOString();
-      this.saveRegisteredUsersList(list);
-    } else if (this.currentUser && this.currentUser.id === targetUserId) {
-      this.addCoinsAndXp(-amount, 0, 'admin_deduct', reason);
-      newCoins = this.currentUser.coins;
+      this.saveRegisteredUsersList(list, false);
     }
 
+    try {
+      const storedRaw = localStorage.getItem('royal_ludo_profile');
+      if (storedRaw) {
+        const storedProfile = JSON.parse(storedRaw);
+        if (storedProfile.id === targetUserId || idx === -1) {
+          storedProfile.coins = Math.max(0, Math.floor(Math.round(Number(storedProfile.coins || 0) - cleanAmount)));
+          newCoins = storedProfile.coins;
+          localStorage.setItem('royal_ludo_profile', JSON.stringify(storedProfile));
+        }
+      }
+    } catch (e) {
+      console.warn('Error deducting stored profile coins:', e);
+    }
+
+    if (this.currentUser && (this.currentUser.id === targetUserId || idx === -1)) {
+      this.currentUser = {
+        ...this.currentUser,
+        coins: Math.max(0, Math.floor(Math.round(Number(this.currentUser.coins || 0) - cleanAmount))),
+      };
+      saveStoredProfile(this.currentUser);
+      this.notify();
+    }
+
+    // 1. Persist directly into Supabase profiles table
     if (isSupabaseConfigured && !targetUserId.startsWith('guest_')) {
       try {
         const dbClient = supabaseAdmin || supabase;
@@ -815,7 +862,7 @@ class AuthService {
           .single();
 
         if (profileData) {
-          const updatedCoins = Math.max(0, (profileData.coins || 0) - amount);
+          const updatedCoins = Math.max(0, Math.floor(Math.round((profileData.coins || 0) - cleanAmount)));
           newCoins = updatedCoins;
           await dbClient
             .from('profiles')
@@ -830,27 +877,14 @@ class AuthService {
       }
     }
 
+    // 2. Record ledger transaction
     this.recordTransaction({
       userId: targetUserId,
-      type: 'admin_deduct',
-      amount: -amount,
+      type: 'admin_deduction',
+      amount: -cleanAmount,
       balanceAfter: newCoins,
       description: reason,
     });
-
-    if (this.currentUser && this.currentUser.id === targetUserId) {
-      if (idx !== -1) {
-        this.currentUser = this.accountToProfile(list[idx]);
-      } else {
-        this.currentUser = { ...this.currentUser, coins: newCoins };
-      }
-      saveStoredProfile(this.currentUser);
-      this.notify();
-    }
-
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('royal_ludo_sync'));
-    }
 
     return true;
   }

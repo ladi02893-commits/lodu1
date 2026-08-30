@@ -425,13 +425,14 @@ class PaymentService {
     }
 
     if (pkg) {
-      totalCoins = pkg.coins + pkg.bonusCoins;
-      bonusCoins = pkg.bonusCoins;
-      fiatAmount = currency === 'USD' ? pkg.priceUSD : pkg.pricePKR;
+      totalCoins = Math.max(0, Math.floor(Math.round(pkg.coins + pkg.bonusCoins)));
+      bonusCoins = Math.max(0, Math.floor(Math.round(pkg.bonusCoins)));
+      fiatAmount = Math.max(0, Math.floor(Math.round(currency === 'USD' ? pkg.priceUSD : pkg.pricePKR)));
     } else if (params.customCoins && params.customCoins > 0) {
-      totalCoins = params.customCoins;
-      bonusCoins = Math.floor(params.customCoins * 0.1);
-      fiatAmount = params.customPricePKR || Math.round((params.customCoins / 5000) * 150);
+      const cleanCustom = Math.max(100, Math.floor(Math.round(Number(params.customCoins))));
+      totalCoins = cleanCustom;
+      bonusCoins = Math.floor(cleanCustom * 0.1);
+      fiatAmount = Math.max(10, Math.floor(Math.round(params.customPricePKR || (cleanCustom / 5000) * 150)));
     } else {
       return { success: false, message: 'Invalid coin package selected.' };
     }

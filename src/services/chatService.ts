@@ -363,6 +363,70 @@ class ChatService {
     this.saveToStorage();
     this.notify(conversationId);
   }
+
+  public getGlobalConversationId(): string {
+    return 'global_realm_chat';
+  }
+
+  public getRecentDmConversations(currentUserId: string): Array<{
+    conversationId: string;
+    partnerId: string;
+    lastMessage?: ChatMessage;
+    unreadCount: number;
+  }> {
+    const list: Array<{
+      conversationId: string;
+      partnerId: string;
+      lastMessage?: ChatMessage;
+      unreadCount: number;
+    }> = [];
+
+    const now = Date.now();
+
+    Object.keys(this.messages).forEach((convId) => {
+      if (convId.startsWith('dm_')) {
+        const parts = convId.replace('dm_', '').split('_');
+        if (parts.includes(currentUserId)) {
+          const partnerId = parts[0] === currentUserId ? parts[1] : parts[0];
+          const msgs = (this.messages[convId] || [])
+            .filter((m) => !m.expiresAt || m.expiresAt > now)
+            .filter((m) => !(m.deletedFor && m.deletedFor.includes(currentUserId)));
+
+          if (msgs.length > 0) {
+            const lastMessage = msgs[msgs.length - 1];
+            list.push({
+              conversationId: convId,
+              partnerId,
+              lastMessage,
+              unreadCount: 0,
+            });
+          }
+        }
+      }
+    });
+
+    return list.sort((a, b) => (b.lastMessage?.createdAt || 0) - (a.lastMessage?.createdAt || 0));
+  }
+
+  public getTotalUnreadCount(currentUserId: string): number {
+    let count = 0;
+    const now = Date.now();
+    Object.keys(this.messages).forEach((convId) => {
+      if (convId.startsWith('dm_')) {
+        const parts = convId.replace('dm_', '').split('_');
+        if (parts.includes(currentUserId)) {
+          const msgs = (this.messages[convId] || [])
+            .filter((m) => !m.expiresAt || m.expiresAt > now)
+            .filter((m) => !(m.deletedFor && m.deletedFor.includes(currentUserId)))
+            .filter((m) => m.senderId !== currentUserId);
+          // Simple count
+          count += msgs.length > 0 ? 1 : 0;
+        }
+      }
+    });
+    return count;
+  }
 }
 
 export const chatService = new ChatService();
+

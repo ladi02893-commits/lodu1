@@ -19,6 +19,7 @@ import { DailyLoginModal } from './components/views/DailyLoginModal';
 import { LuckyWheelModal } from './components/views/LuckyWheelModal';
 import { LiveMatchesModal, LiveMatchEntry } from './components/views/LiveMatchesModal';
 import { PaymentModal } from './components/views/PaymentModal';
+import { LobbyMessengerModal } from './components/chat/LobbyMessengerModal';
 import { DailyRewardToast } from './components/common/DailyRewardToast';
 import { sound } from './lib/audio';
 import { GameMode } from './lib/ludo/types';
@@ -61,6 +62,9 @@ export const App: React.FC = () => {
   const [showLuckyWheelModal, setShowLuckyWheelModal] = useState(false);
   const [showLiveSpectatorModal, setShowLiveSpectatorModal] = useState(false);
   const [showGlobalPaymentModal, setShowGlobalPaymentModal] = useState(false);
+  const [showLobbyMessenger, setShowLobbyMessenger] = useState(false);
+  const [lobbyMessengerTab, setLobbyMessengerTab] = useState<'global' | 'dms' | 'friends'>('global');
+  const [lobbyMessengerFriendId, setLobbyMessengerFriendId] = useState<string | undefined>();
   const [dailyToast, setDailyToast] = useState<{ reward: DailyLoginDay; streak: number } | null>(null);
   const [pushNotification, setPushNotification] = useState<{
     title: string;
@@ -135,20 +139,6 @@ export const App: React.FC = () => {
     }
   }, []);
 
-  // Check & Auto-Claim Daily Login Reward
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const claimResult = rewardService.checkAndAutoClaimDailyLogin();
-      if (claimResult && claimResult.success && claimResult.reward) {
-        sound.playHomeGoal();
-        setDailyToast({
-          reward: claimResult.reward,
-          streak: claimResult.streak || 1,
-        });
-      }
-    }, 750);
-    return () => clearTimeout(timer);
-  }, []);
 
   // Listen to Auth changes
   useEffect(() => {
@@ -319,6 +309,11 @@ export const App: React.FC = () => {
           onOpenLuckyWheel={() => setShowLuckyWheelModal(true)}
           onOpenSpectator={() => setShowLiveSpectatorModal(true)}
           onOpenPayment={() => setShowGlobalPaymentModal(true)}
+          onOpenMessenger={(tab, friendId) => {
+            setLobbyMessengerTab(tab || 'global');
+            setLobbyMessengerFriendId(friendId);
+            setShowLobbyMessenger(true);
+          }}
         />
       )}
 
@@ -498,6 +493,22 @@ export const App: React.FC = () => {
         onClose={() => setShowGlobalPaymentModal(false)}
         onSuccess={() => {
           setUser(authService.getCurrentUser());
+        }}
+      />
+
+      {/* Imperial Realm Messenger & Lobby Global Chat Modal */}
+      <LobbyMessengerModal
+        isOpen={showLobbyMessenger}
+        onClose={() => setShowLobbyMessenger(false)}
+        defaultTab={lobbyMessengerTab}
+        initialFriendId={lobbyMessengerFriendId}
+        onChallengeFriend={(friend) => {
+          setShowLobbyMessenger(false);
+          handleSelectMode('quick_2');
+        }}
+        onInviteToRoom={(friend) => {
+          setShowLobbyMessenger(false);
+          handleSelectMode('room_create');
         }}
       />
     </div>
