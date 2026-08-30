@@ -60,32 +60,112 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onBack, onOpenAuth, 
       </header>
 
       <main className="w-full max-w-2xl px-4 py-6 space-y-6">
-        {/* Audio & Feedback Settings */}
-        <div className="p-5 rounded-3xl bg-slate-900/90 border border-slate-800 space-y-4">
-          <h3 className="font-royal font-bold text-sm text-slate-200 uppercase tracking-wider">
-            Acoustics & Tactile
-          </h3>
-
-          <div className="flex items-center justify-between py-2 border-b border-slate-800">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-amber-950/60 border border-amber-500/40 flex items-center justify-center text-amber-400">
-                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-              </div>
-              <div>
-                <div className="font-bold text-xs sm:text-sm text-slate-100">Audio Sound Effects</div>
-                <div className="text-[11px] text-slate-400">Procedural dice rolls, captures, and victory fanfares</div>
-              </div>
-            </div>
-
+        {/* Audio & Feedback Multi-Channel Controls */}
+        <div className="p-5 rounded-3xl bg-slate-900/90 border border-slate-800 space-y-5">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h3 className="font-royal font-bold text-sm text-slate-200 uppercase tracking-wider">
+              Acoustic Symphony & Audio
+            </h3>
             <button
               onClick={toggleSound}
-              className={`px-4 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${!isMuted ? 'bg-amber-500 text-slate-950 shadow' : 'bg-slate-800 text-slate-400'}`}
+              className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
+                !isMuted ? 'bg-amber-500 text-slate-950 shadow' : 'bg-slate-800 text-slate-400'
+              }`}
             >
-              {!isMuted ? 'ENABLED' : 'MUTED'}
+              {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+              <span>{isMuted ? 'UNMUTE ALL' : 'MUTE ALL'}</span>
             </button>
           </div>
 
-          <div className="flex items-center justify-between py-2 border-b border-slate-800">
+          {/* Master Volume Slider */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <span className="font-bold text-slate-200">Master Realm Volume</span>
+              <span className="font-mono text-amber-400 font-bold">{sound.masterVolume}%</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={sound.masterVolume}
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                sound.setMasterVolume(val);
+                setUser({ ...user });
+              }}
+              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
+            />
+          </div>
+
+          {/* SFX & Fanfare Volume Slider */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <span className="font-bold text-slate-200">Dice & Capture Sound Effects (SFX)</span>
+              <span className="font-mono text-amber-400 font-bold">{sound.sfxVolume}%</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={sound.sfxVolume}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  sound.setSfxVolume(val);
+                  setUser({ ...user });
+                }}
+                className="flex-1 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
+              />
+              <button
+                onClick={() => sound.playDiceResult(6)}
+                className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-[10px] cursor-pointer"
+              >
+                Test SFX
+              </button>
+            </div>
+          </div>
+
+          {/* Music Volume Slider */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <span className="font-bold text-slate-200">Royal Ambient Music</span>
+              <span className="font-mono text-amber-400 font-bold">{sound.musicVolume}%</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={sound.musicVolume}
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                sound.setMusicVolume(val);
+                setUser({ ...user });
+              }}
+              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
+            />
+          </div>
+
+          {/* Voice Chat Volume Slider */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <span className="font-bold text-slate-200">Voice Chat Output Volume</span>
+              <span className="font-mono text-amber-400 font-bold">{sound.voiceVolume}%</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={sound.voiceVolume}
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                sound.setVoiceVolume(val);
+                setUser({ ...user });
+              }}
+              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+            />
+          </div>
+
+          <div className="flex items-center justify-between pt-3 border-t border-slate-800">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-purple-950/60 border border-purple-500/40 flex items-center justify-center text-purple-400">
                 <Crown className="w-4 h-4" />
@@ -98,7 +178,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onBack, onOpenAuth, 
 
             <button
               onClick={() => setAutoPass(!autoPass)}
-              className={`px-4 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${autoPass ? 'bg-purple-600 text-white shadow' : 'bg-slate-800 text-slate-400'}`}
+              className={`px-4 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+                autoPass ? 'bg-purple-600 text-white shadow' : 'bg-slate-800 text-slate-400'
+              }`}
             >
               {autoPass ? 'ON' : 'OFF'}
             </button>

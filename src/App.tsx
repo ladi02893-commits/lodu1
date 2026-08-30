@@ -13,8 +13,11 @@ import { AchievementsView } from './components/views/AchievementsView';
 import { ShopView } from './components/views/ShopView';
 import { SettingsView } from './components/views/SettingsView';
 import { AdminView } from './components/views/AdminView';
+import { ClanView } from './components/views/ClanView';
 import { RoomLobbyView } from './components/views/RoomLobbyView';
 import { DailyLoginModal } from './components/views/DailyLoginModal';
+import { LuckyWheelModal } from './components/views/LuckyWheelModal';
+import { LiveMatchesModal, LiveMatchEntry } from './components/views/LiveMatchesModal';
 import { PaymentModal } from './components/views/PaymentModal';
 import { DailyRewardToast } from './components/common/DailyRewardToast';
 import { sound } from './lib/audio';
@@ -40,7 +43,8 @@ export type AppView =
   | 'achievements'
   | 'shop'
   | 'settings'
-  | 'admin';
+  | 'admin'
+  | 'clan';
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>(() => {
@@ -54,6 +58,8 @@ export const App: React.FC = () => {
   const [isMatchmaking, setIsMatchmaking] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showDailyModal, setShowDailyModal] = useState(false);
+  const [showLuckyWheelModal, setShowLuckyWheelModal] = useState(false);
+  const [showLiveSpectatorModal, setShowLiveSpectatorModal] = useState(false);
   const [showGlobalPaymentModal, setShowGlobalPaymentModal] = useState(false);
   const [dailyToast, setDailyToast] = useState<{ reward: DailyLoginDay; streak: number } | null>(null);
   const [pushNotification, setPushNotification] = useState<{
@@ -157,6 +163,7 @@ export const App: React.FC = () => {
     mode:
       | 'quick_2'
       | 'quick_4'
+      | 'team_2v2'
       | 'vs_computer'
       | 'local_2'
       | 'local_3'
@@ -166,7 +173,7 @@ export const App: React.FC = () => {
     botDifficulty?: 'easy' | 'medium' | 'hard',
     betAmount: number = 0
   ) => {
-    if (mode === 'quick_2' || mode === 'quick_4') {
+    if (mode === 'quick_2' || mode === 'quick_4' || mode === 'team_2v2') {
       setIsMatchmaking(true);
       matchmakingService.startSearch(mode, betAmount);
       const unsub = gameService.subscribe((state) => {
@@ -191,6 +198,12 @@ export const App: React.FC = () => {
       setJoinCodeInput('');
       setShowJoinModal(true);
     }
+  };
+
+  const handleWatchLiveMatch = (match: LiveMatchEntry) => {
+    setShowLiveSpectatorModal(false);
+    gameService.startSpectatingMatch(match.matchId);
+    setCurrentView('game');
   };
 
   const handleJoinRoomSubmit = async (e: React.FormEvent) => {
@@ -249,44 +262,35 @@ export const App: React.FC = () => {
 
       {/* Real-time Admin Dispatch Push Notification Toast */}
       {pushNotification && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 w-11/12 max-w-md bg-gradient-to-r from-amber-950 via-slate-900 to-amber-950 border-2 border-amber-400 p-4 rounded-3xl shadow-2xl animate-fade-in flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-slate-950 flex-shrink-0 shadow">
-              <Sparkles className="w-5 h-5 text-slate-950 animate-spin" />
-            </div>
-            <div>
-              <h4 className="font-royal font-bold text-xs sm:text-sm text-amber-300">
+        <div className="fixed top-5 right-5 z-50 max-w-sm p-4 rounded-2xl bg-gradient-to-r from-purple-950 via-slate-900 to-amber-950 border border-amber-400 shadow-2xl animate-bounce">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2 text-amber-400">
+              <Sparkles className="w-5 h-5 text-amber-300" />
+              <h4 className="font-royal font-bold text-sm text-amber-200">
                 {pushNotification.title}
               </h4>
-              <p className="text-xs text-slate-200">
-                {pushNotification.message}
-              </p>
-              {pushNotification.coins && (
-                <div className="flex items-center gap-1 text-xs font-black font-mono text-emerald-400 mt-0.5">
-                  <Coins className="w-3.5 h-3.5 text-amber-400" />
-                  <span>+{pushNotification.coins.toLocaleString()} Coins</span>
-                </div>
-              )}
             </div>
+            <button
+              onClick={() => setPushNotification(null)}
+              className="text-slate-400 hover:text-white cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
-
-          <button
-            onClick={() => setPushNotification(null)}
-            className="p-1.5 rounded-full text-slate-400 hover:text-slate-200 cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <p className="text-xs text-slate-300 mt-1">{pushNotification.message}</p>
+          {pushNotification.coins && (
+            <div className="mt-2 flex items-center gap-1.5 text-xs font-bold text-amber-300">
+              <Coins className="w-4 h-4 text-amber-400" />
+              <span>+{pushNotification.coins.toLocaleString()} Coins added to treasury!</span>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Active View Router */}
+      {/* Main Views Routing */}
       {currentView === 'auth' && (
         <AuthView
-          onAuthenticated={() => {
-            setUser(authService.getCurrentUser());
-            setCurrentView('home');
-          }}
-          onContinueGuest={() => {
+          onSuccess={() => {
             setUser(authService.getCurrentUser());
             setCurrentView('home');
           }}
@@ -300,7 +304,7 @@ export const App: React.FC = () => {
             if (mode === 'room') {
               handleSelectMode('room_create');
             } else {
-              handleSelectMode(mode);
+              handleSelectMode(mode as any);
             }
           }}
         />
@@ -312,12 +316,21 @@ export const App: React.FC = () => {
           onSelectMode={handleSelectMode}
           onNavigate={(view) => setCurrentView(view)}
           onOpenDailyLogin={() => setShowDailyModal(true)}
+          onOpenLuckyWheel={() => setShowLuckyWheelModal(true)}
+          onOpenSpectator={() => setShowLiveSpectatorModal(true)}
           onOpenPayment={() => setShowGlobalPaymentModal(true)}
         />
       )}
 
       {currentView === 'game' && (
         <GameArenaView onExit={() => setCurrentView('home')} />
+      )}
+
+      {currentView === 'clan' && (
+        <ClanView
+          onBack={() => setCurrentView('home')}
+          onOpenPayment={() => setShowGlobalPaymentModal(true)}
+        />
       )}
 
       {currentView === 'room_lobby' && activeRoom && (
@@ -397,6 +410,22 @@ export const App: React.FC = () => {
         onRewardClaimed={(r, s) => {
           setDailyToast({ reward: r, streak: s });
         }}
+      />
+
+      {/* Lucky Fortune Spin Wheel Modal */}
+      <LuckyWheelModal
+        isOpen={showLuckyWheelModal}
+        onClose={() => setShowLuckyWheelModal(false)}
+        onRewardWon={() => {
+          setUser(authService.getCurrentUser());
+        }}
+      />
+
+      {/* Live Matches Spectator Modal */}
+      <LiveMatchesModal
+        isOpen={showLiveSpectatorModal}
+        onClose={() => setShowLiveSpectatorModal(false)}
+        onSelectWatchMatch={handleWatchLiveMatch}
       />
 
       {/* Join Room Modal */}

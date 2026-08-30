@@ -262,6 +262,44 @@ class GameService {
           botDifficulty: 'medium',
         },
       ];
+    } else if (mode === 'team_2v2') {
+      players = [
+        {
+          playerId: currentUser.id,
+          username: `${currentUser.display_name} (Team A)`,
+          avatar: currentUser.avatar_url,
+          seat: 0,
+          teamId: 'team_a',
+          isBot: false,
+        },
+        {
+          playerId: 'quick_bot_arthur',
+          username: 'Knight Arthur (Team B)',
+          avatar: 'avatar_3',
+          seat: 1,
+          teamId: 'team_b',
+          isBot: true,
+          botDifficulty: 'medium',
+        },
+        {
+          playerId: 'quick_bot_reginald',
+          username: 'Lord Reginald (Team A)',
+          avatar: 'avatar_2',
+          seat: 2,
+          teamId: 'team_a',
+          isBot: true,
+          botDifficulty: 'medium',
+        },
+        {
+          playerId: 'quick_bot_guinevere',
+          username: 'Lady Guinevere (Team B)',
+          avatar: 'avatar_4',
+          seat: 3,
+          teamId: 'team_b',
+          isBot: true,
+          botDifficulty: 'medium',
+        },
+      ];
     }
 
     const actualBet = Math.max(0, betAmount);
@@ -402,14 +440,18 @@ class GameService {
     sound.playHomeGoal();
 
     const user = authService.getCurrentUser();
-    const userSeat = state.players.find((p) => p.playerId === user.id)?.seat ?? 0;
+    const userPlayer = state.players.find((p) => p.playerId === user.id);
+    const userSeat = userPlayer?.seat ?? 0;
     const rankIndex = state.rankings.indexOf(userSeat);
-    const won = rankIndex === 0;
+
+    const is2v2 = state.mode === 'team_2v2';
+    const isTeamWinner = is2v2 && userPlayer?.teamId && state.winningTeam === userPlayer.teamId;
+    const won = is2v2 ? isTeamWinner : rankIndex === 0;
 
     let coinsReward = 50;
     let xpReward = 40;
 
-    if (rankIndex === 0) {
+    if (won) {
       coinsReward = 500;
       xpReward = 200;
     } else if (rankIndex === 1) {
@@ -420,30 +462,32 @@ class GameService {
       xpReward = 60;
     }
 
-    const userPlayer = state.players.find((p) => p.seat === userSeat);
     const captures = userPlayer?.captures || 0;
-
     coinsReward += captures * 30;
     xpReward += captures * 15;
 
     const bet = state.betAmount || 0;
     const pot = state.totalPot || 0;
 
-    if (bet > 0 && pot > 0) {
-      if (rankIndex === 0) {
-        coinsReward += pot;
-        authService.recordTransaction({
-          userId: user.id,
-          type: 'room_bet_win',
-          amount: pot,
-          balanceAfter: user.coins + coinsReward,
-          description: `👑 Won ${pot.toLocaleString()} Coins Prize Pot in Private Chamber!`,
-        });
-      }
+    if (bet > 0 && pot > 0 && won) {
+      const payout = is2v2 ? Math.floor(pot / 2) : pot;
+      coinsReward += payout;
+      authService.recordTransaction({
+        userId: user.id,
+        type: 'room_bet_win',
+        amount: payout,
+        balanceAfter: user.coins + coinsReward,
+        description: `👑 Won ${payout.toLocaleString()} Coins Prize Pot in ${is2v2 ? '2v2 Team Match' : 'Match'}!`,
+      });
     }
 
     authService.recordMatchStats(won, captures);
-    authService.addCoinsAndXp(coinsReward, xpReward, won ? 'win_reward' : 'daily_bonus', `Match conclusion: Rank #${rankIndex + 1}`);
+    authService.addCoinsAndXp(
+      coinsReward,
+      xpReward,
+      won ? 'win_reward' : 'daily_bonus',
+      `Match conclusion: ${is2v2 ? (won ? 'Team Victory' : 'Team Defeat') : `Rank #${rankIndex + 1}`}`
+    );
   }
 
   private checkBotTurn() {
@@ -497,8 +541,31 @@ class GameService {
     this.autoMoveTimer = null;
   }
 
+  private isSpectator: boolean = false;
+
+  public isSpectating(): boolean {
+    return this.isSpectator;
+  }
+
+  public startSpectatingMatch(matchId: string, customState?: GameState): GameState {
+    this.clearTimers();
+    this.isSpectator = true;
+    if (customState) {
+      this.activeState = customState;
+    } else {
+      this.activeState = createInitialGameState({
+        matchId,
+        mode: 'quick_4',
+      });
+    }
+    this.subscribeToSupabaseMatch(matchId);
+    this.notify();
+    return this.activeState;
+  }
+
   public leaveMatch() {
     this.clearTimers();
+    this.isSpectator = false;
     if (this.realtimeChannel) {
       this.realtimeChannel.unsubscribe();
       this.realtimeChannel = null;

@@ -162,9 +162,10 @@ export const GameArenaView: React.FC<GameArenaViewProps> = ({ onExit }) => {
   const currentPlayer = players.find((p) => p.seat === currentSeat);
 
   // Current user seat
+  const isSpectating = gameService.isSpectating();
   const userPlayer = players.find((p) => p.playerId === currentUser.id);
   const userSeat = userPlayer?.seat ?? (mode.startsWith('local') ? currentSeat : players[0]?.seat ?? 0);
-  const isMyTurn = mode.startsWith('local') || currentSeat === userSeat;
+  const isMyTurn = !isSpectating && (mode.startsWith('local') || currentSeat === userSeat);
   const timeLeft = Math.max(0, Math.ceil((turn.expiresAt - Date.now()) / 1000));
   const betAmount = gameState.betAmount || settings?.betAmount || 0;
   const totalPrizePool = gameState.totalPot || (betAmount * Math.max(2, players.length));
@@ -176,10 +177,12 @@ export const GameArenaView: React.FC<GameArenaViewProps> = ({ onExit }) => {
   const player4 = players[3];
 
   const handleRoll = () => {
+    if (isSpectating) return;
     gameService.rollCurrentDice();
   };
 
   const handleMoveToken = (tokenId: number) => {
+    if (isSpectating) return;
     gameService.movePlayerToken(tokenId);
   };
 
@@ -188,6 +191,7 @@ export const GameArenaView: React.FC<GameArenaViewProps> = ({ onExit }) => {
   };
 
   const handleRematch = () => {
+    if (isSpectating) return;
     gameService.startMatch(mode);
   };
 
@@ -218,25 +222,34 @@ export const GameArenaView: React.FC<GameArenaViewProps> = ({ onExit }) => {
     return (
       <div
         className={`flex items-center gap-2 p-1.5 rounded-2xl transition-all ${
-          isTurn ? 'bg-amber-950/70 border-2 border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.4)] scale-105' : 'bg-slate-900/80 border border-slate-800'
+          isTurn
+            ? 'bg-amber-500/15 border-2 border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
+            : 'bg-slate-900/80 border border-slate-800'
         } ${isRightSide ? 'flex-row-reverse text-right' : ''}`}
       >
-        {/* Avatar Frame with Turn Glow & Speaking Ripple */}
-        <div className="relative w-10 h-10 flex-shrink-0 flex items-center justify-center">
-          {isSpeaking && (
-            <span className="absolute inset-0 rounded-full border-2 border-emerald-400 animate-ping opacity-75 pointer-events-none" />
-          )}
-          {isTurn && (
-            <span className="absolute -inset-1 rounded-full border-2 border-amber-400 animate-pulse pointer-events-none" />
-          )}
+        {/* Avatar & Speaking Glow */}
+        <div className="relative">
           <div
-            className="w-9 h-9 rounded-full flex items-center justify-center border-2 border-amber-300/80 shadow-md overflow-hidden bg-slate-950"
-            style={{ backgroundColor: `${config.primary}33` }}
+            className={`w-9 h-9 rounded-xl overflow-hidden border-2 flex items-center justify-center font-black text-xs text-white shadow ${
+              isSpeaking ? 'ring-2 ring-emerald-400 animate-pulse' : ''
+            }`}
+            style={{ borderColor: config.primary, backgroundColor: config.boardCell }}
           >
-            <Crown className="w-5 h-5 text-amber-200" />
+            {player.avatar?.startsWith('avatar_') ? (
+              <img
+                src={`/avatars/${player.avatar}.png`}
+                alt={player.username}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = 'none';
+                }}
+              />
+            ) : null}
+            <span className="font-bold uppercase">{player.username.charAt(0)}</span>
           </div>
-          {/* Color Pin Marker */}
-          <span
+
+          {/* Color Indicator Pip */}
+          <div
             className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border border-white flex items-center justify-center shadow"
             style={{ backgroundColor: config.primary }}
           />
@@ -280,16 +293,31 @@ export const GameArenaView: React.FC<GameArenaViewProps> = ({ onExit }) => {
           <span>Exit</span>
         </button>
 
-        {/* Center: Prize Pot & Match Title */}
+        {/* Center: Prize Pot & Match Title / Spectator Badge */}
         <div className="text-center">
           <div className="flex items-center justify-center gap-1">
-            <Trophy className="w-3.5 h-3.5 text-amber-400" />
-            <span className="font-royal font-bold text-xs text-amber-300 uppercase tracking-wider">
-              {mode === 'room_private' ? 'Private Chamber' : isTwoPlayerMode ? '2P Duel' : 'Royal Match'}
-            </span>
+            {isSpectating ? (
+              <span className="px-2.5 py-0.5 rounded-full bg-rose-950/80 border border-rose-500/60 text-rose-300 text-[10px] font-black uppercase flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+                Live Spectator Stream
+              </span>
+            ) : (
+              <>
+                <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                <span className="font-royal font-bold text-xs text-amber-300 uppercase tracking-wider">
+                  {mode === 'team_2v2'
+                    ? '2v2 Team Battle'
+                    : mode === 'room_private'
+                    ? 'Private Chamber'
+                    : isTwoPlayerMode
+                    ? '2P Duel'
+                    : 'Royal Match'}
+                </span>
+              </>
+            )}
           </div>
           {totalPrizePool > 0 && (
-            <div className="flex items-center justify-center gap-1 text-[10px] font-black text-amber-400 bg-amber-950/80 px-2 py-0.2 rounded-full border border-amber-500/30">
+            <div className="flex items-center justify-center gap-1 text-[10px] font-black text-amber-400 bg-amber-950/80 px-2 py-0.2 rounded-full border border-amber-500/30 mt-0.5">
               <Coins className="w-2.5 h-2.5 text-amber-400" />
               <span>Prize: {totalPrizePool.toLocaleString()}</span>
             </div>

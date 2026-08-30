@@ -24,17 +24,40 @@ import {
 import { sound } from '../../lib/audio';
 import { UserProfile } from '../../types/database';
 import { rewardService, DailyLoginStatus } from '../../services/rewardService';
+import { luckyWheelService } from '../../services/luckyWheelService';
 import { StakeSelectorModal } from './StakeSelectorModal';
 
 interface HomeDashboardProps {
   user: UserProfile;
   onSelectMode: (
-    mode: 'quick_2' | 'quick_4' | 'vs_computer' | 'local_2' | 'local_3' | 'local_4' | 'room_create' | 'room_join',
+    mode:
+      | 'quick_2'
+      | 'quick_4'
+      | 'team_2v2'
+      | 'vs_computer'
+      | 'local_2'
+      | 'local_3'
+      | 'local_4'
+      | 'room_create'
+      | 'room_join',
     botDifficulty?: 'easy' | 'medium' | 'hard',
     betAmount?: number
   ) => void;
-  onNavigate: (view: 'profile' | 'friends' | 'leaderboard' | 'missions' | 'achievements' | 'shop' | 'settings' | 'admin') => void;
+  onNavigate: (
+    view:
+      | 'profile'
+      | 'friends'
+      | 'leaderboard'
+      | 'missions'
+      | 'achievements'
+      | 'shop'
+      | 'settings'
+      | 'admin'
+      | 'clan'
+  ) => void;
   onOpenDailyLogin?: () => void;
+  onOpenLuckyWheel?: () => void;
+  onOpenSpectator?: () => void;
   onOpenPayment?: () => void;
 }
 
@@ -43,15 +66,18 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   onSelectMode,
   onNavigate,
   onOpenDailyLogin,
+  onOpenLuckyWheel,
+  onOpenSpectator,
   onOpenPayment,
 }) => {
   const [showBotModal, setShowBotModal] = useState(false);
   const [showLocalModal, setShowLocalModal] = useState(false);
   const [botDifficulty, setBotDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const [dailyStatus, setDailyStatus] = useState<DailyLoginStatus>(() => rewardService.getDailyLoginStatus());
+  const [wheelStatus, setWheelStatus] = useState(() => luckyWheelService.getStatus());
   const [stakeModalConfig, setStakeModalConfig] = useState<{
     isOpen: boolean;
-    mode: 'quick_2' | 'quick_4' | 'vs_computer';
+    mode: 'quick_2' | 'quick_4' | 'team_2v2' | 'vs_computer';
     modeTitle: string;
     playerCount: number;
     botDifficulty?: 'easy' | 'medium' | 'hard';
@@ -110,6 +136,27 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
 
         {/* Currency & Quick Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Lucky Fortune Wheel Trigger */}
+          <button
+            id="home-lucky-wheel-btn"
+            type="button"
+            onClick={() => {
+              sound.playClick();
+              if (onOpenLuckyWheel) onOpenLuckyWheel();
+            }}
+            className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs sm:text-sm font-bold transition-all cursor-pointer shadow-inner ${
+              wheelStatus.canFreeSpin
+                ? 'bg-gradient-to-r from-yellow-500 via-amber-400 to-yellow-500 text-slate-950 border-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.5)] animate-pulse'
+                : 'bg-slate-900 border-amber-500/30 text-amber-300 hover:bg-slate-800'
+            }`}
+            title="Lucky Fortune Spin Wheel"
+          >
+            <Sparkles className={`w-4 h-4 ${wheelStatus.canFreeSpin ? 'text-slate-950' : 'text-amber-400'}`} />
+            <span className="hidden sm:inline">
+              {wheelStatus.canFreeSpin ? 'Free Spin!' : 'Fortune Wheel'}
+            </span>
+          </button>
+
           {/* Daily Login Tribute Shortcut */}
           <button
             id="home-daily-login-btn"
@@ -207,7 +254,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
 
       {/* Main Hub Content */}
       <main className="w-full max-w-5xl px-4 py-6 space-y-6 z-10">
-        {/* Banner: Daily Crown & Tribute Challenge */}
+        {/* Banner: Daily Crown & Tribute Challenge + Live Spectate */}
         <div className="w-full p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-amber-950/70 via-slate-900 to-amber-950/60 border border-amber-500/40 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
           <div className="flex items-center gap-3.5 text-left">
             <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center flex-shrink-0">
@@ -229,7 +276,20 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+            <button
+              id="home-live-spectate-btn"
+              type="button"
+              onClick={() => {
+                sound.playClick();
+                if (onOpenSpectator) onOpenSpectator();
+              }}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-rose-950/80 hover:bg-rose-900/90 border border-rose-500/50 text-rose-300 font-bold text-xs uppercase tracking-wider transition-all shadow cursor-pointer whitespace-nowrap flex items-center justify-center gap-1.5"
+            >
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+              Watch Live
+            </button>
+
             <button
               id="home-daily-calendar-btn"
               type="button"
@@ -258,7 +318,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
         </div>
 
         {/* Primary Play Modes Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Quick Match 4P */}
           <button
             id="mode-quick-4p"
@@ -289,6 +349,40 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
               </h4>
               <p className="text-xs text-slate-400 mt-0.5">
                 4-Monarch arena with customizable bet stakes.
+              </p>
+            </div>
+          </button>
+
+          {/* Team 2v2 Co-op Battle */}
+          <button
+            id="mode-team-2v2"
+            type="button"
+            onClick={() => {
+              sound.playClick();
+              setStakeModalConfig({
+                isOpen: true,
+                mode: 'team_2v2',
+                modeTitle: '2v2 Team Co-op Battle',
+                playerCount: 4,
+              });
+            }}
+            className="group relative p-5 rounded-3xl bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-cyan-500/40 hover:border-cyan-400 hover:shadow-xl hover:shadow-cyan-500/20 transition-all duration-300 flex flex-col items-start justify-between min-h-[160px] text-left cursor-pointer"
+          >
+            <div className="w-full flex items-center justify-between">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center shadow-md">
+                <Shield className="w-6 h-6 text-slate-950" />
+              </div>
+              <span className="px-2 py-0.5 rounded-full bg-cyan-950/80 text-[10px] font-bold text-cyan-300 border border-cyan-500/30">
+                2v2 TEAM
+              </span>
+            </div>
+
+            <div>
+              <h4 className="font-royal font-bold text-base text-slate-100 group-hover:text-cyan-300 transition-colors">
+                2v2 Team Battle
+              </h4>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Ally pass-through safe blocks & shared victory pot.
               </p>
             </div>
           </button>
@@ -411,7 +505,18 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
         </div>
 
         {/* Navigation Shortcuts Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2">
+        <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 pt-2">
+          <button
+            onClick={() => {
+              sound.playClick();
+              onNavigate('clan');
+            }}
+            className="p-3.5 rounded-2xl bg-amber-950/40 border border-amber-500/40 hover:border-amber-400 hover:bg-amber-900/50 transition-all flex flex-col items-center gap-1.5 cursor-pointer shadow-md"
+          >
+            <Crown className="w-5 h-5 text-amber-400" />
+            <span className="text-xs font-bold text-amber-300">Guilds & Clans</span>
+          </button>
+
           <button
             onClick={() => {
               sound.playClick();

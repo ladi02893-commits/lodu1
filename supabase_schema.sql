@@ -149,7 +149,52 @@ CREATE TABLE IF NOT EXISTS public.deposit_requests (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 11. ENABLE ROW LEVEL SECURITY (RLS)
+-- 11. CLANS & GUILDS TABLE
+CREATE TABLE IF NOT EXISTS public.clans (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(100) UNIQUE NOT NULL,
+  tag VARCHAR(10) UNIQUE NOT NULL,
+  description TEXT,
+  badge_icon VARCHAR(50) DEFAULT 'shield_crown',
+  banner_color VARCHAR(30) DEFAULT '#d97706',
+  leader_id VARCHAR(100) NOT NULL,
+  leader_name VARCHAR(100) NOT NULL,
+  min_level INT DEFAULT 1,
+  trophies INT DEFAULT 0,
+  weekly_chest_score INT DEFAULT 0,
+  member_count INT DEFAULT 1,
+  max_members INT DEFAULT 50,
+  is_open BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 12. CLAN MEMBERS TABLE
+CREATE TABLE IF NOT EXISTS public.clan_members (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  clan_id UUID REFERENCES public.clans(id) ON DELETE CASCADE,
+  user_id VARCHAR(100) NOT NULL,
+  username VARCHAR(100) NOT NULL,
+  avatar_url VARCHAR(100) DEFAULT 'avatar_1',
+  role VARCHAR(30) DEFAULT 'member', -- leader, co_leader, elder, member
+  trophies_contributed INT DEFAULT 0,
+  joined_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (clan_id, user_id)
+);
+
+-- 13. CLAN CHAT MESSAGES TABLE
+CREATE TABLE IF NOT EXISTS public.clan_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  clan_id UUID REFERENCES public.clans(id) ON DELETE CASCADE,
+  sender_id VARCHAR(100) NOT NULL,
+  sender_name VARCHAR(100) NOT NULL,
+  sender_avatar VARCHAR(100) DEFAULT 'avatar_1',
+  sender_role VARCHAR(30) DEFAULT 'member',
+  message TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 14. ENABLE ROW LEVEL SECURITY (RLS)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.room_players ENABLE ROW LEVEL SECURITY;
@@ -160,8 +205,11 @@ ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.friends ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.friend_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.deposit_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.clans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.clan_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.clan_messages ENABLE ROW LEVEL SECURITY;
 
--- 12. PUBLIC POLICIES (Allow read and write for real-time game functionality)
+-- 15. PUBLIC POLICIES
 CREATE POLICY IF NOT EXISTS "Public Read Profiles" ON public.profiles FOR SELECT USING (true);
 CREATE POLICY IF NOT EXISTS "Public Insert Profiles" ON public.profiles FOR INSERT WITH CHECK (true);
 CREATE POLICY IF NOT EXISTS "Public Update Profiles" ON public.profiles FOR UPDATE USING (true);
@@ -203,3 +251,17 @@ CREATE POLICY IF NOT EXISTS "Public Read Deposit Requests" ON public.deposit_req
 CREATE POLICY IF NOT EXISTS "Public Insert Deposit Requests" ON public.deposit_requests FOR INSERT WITH CHECK (true);
 CREATE POLICY IF NOT EXISTS "Public Update Deposit Requests" ON public.deposit_requests FOR UPDATE USING (true);
 CREATE POLICY IF NOT EXISTS "Public Delete Deposit Requests" ON public.deposit_requests FOR DELETE USING (true);
+
+CREATE POLICY IF NOT EXISTS "Public Read Clans" ON public.clans FOR SELECT USING (true);
+CREATE POLICY IF NOT EXISTS "Public Insert Clans" ON public.clans FOR INSERT WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "Public Update Clans" ON public.clans FOR UPDATE USING (true);
+CREATE POLICY IF NOT EXISTS "Public Delete Clans" ON public.clans FOR DELETE USING (true);
+
+CREATE POLICY IF NOT EXISTS "Public Read Clan Members" ON public.clan_members FOR SELECT USING (true);
+CREATE POLICY IF NOT EXISTS "Public Insert Clan Members" ON public.clan_members FOR INSERT WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "Public Update Clan Members" ON public.clan_members FOR UPDATE USING (true);
+CREATE POLICY IF NOT EXISTS "Public Delete Clan Members" ON public.clan_members FOR DELETE USING (true);
+
+CREATE POLICY IF NOT EXISTS "Public Read Clan Messages" ON public.clan_messages FOR SELECT USING (true);
+CREATE POLICY IF NOT EXISTS "Public Insert Clan Messages" ON public.clan_messages FOR INSERT WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "Public Delete Clan Messages" ON public.clan_messages FOR DELETE USING (true);

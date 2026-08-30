@@ -17,6 +17,7 @@ export interface PlayerState {
   tokens: TokenState[];
   connected: boolean;
   isReady: boolean;
+  teamId?: 'team_a' | 'team_b'; // For 2v2: Seat 0 & 2 = team_a, Seat 1 & 3 = team_b
   isHost?: boolean;
   isBot?: boolean;
   botDifficulty?: 'easy' | 'medium' | 'hard';
@@ -47,6 +48,7 @@ export interface TurnState {
 export type GameMode =
   | 'quick_2'
   | 'quick_4'
+  | 'team_2v2'
   | 'room_private'
   | 'local_2'
   | 'local_3'
@@ -90,6 +92,7 @@ export interface GameState {
   turn: TurnState;
   dice: DiceState;
   winnerSeat: number | null;
+  winningTeam?: 'team_a' | 'team_b' | null;
   rankings: number[]; // seats in order of finish: [1st, 2nd, 3rd, 4th]
   moveNumber: number;
   lastAction: GameAction | null;

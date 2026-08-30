@@ -50,11 +50,17 @@ export function createInitialGameState(options: CreateGameOptions = {}): GameSta
         color,
       }));
 
+      const teamId: 'team_a' | 'team_b' | undefined =
+        mode === 'team_2v2'
+          ? (seat === 0 || seat === 2 ? 'team_a' : 'team_b')
+          : undefined;
+
       return {
         playerId: override.playerId || `player_${seat}_${Math.random().toString(36).substring(2, 7)}`,
         seat,
         color,
         tokens,
+        teamId: override.teamId || teamId,
         connected: override.connected ?? true,
         isReady: override.isReady ?? true,
         isHost: override.isHost ?? (index === 0),
@@ -70,7 +76,14 @@ export function createInitialGameState(options: CreateGameOptions = {}): GameSta
   } else {
     // Determine active seats based on player count
     // 2 players: Seats 0 (Red) and 2 (Yellow) for diagonal classic balance, or 0 and 1
-    const activeSeats = playersCount === 2 ? [0, 2] : playersCount === 3 ? [0, 1, 2] : [0, 1, 2, 3];
+    const activeSeats =
+      mode === 'team_2v2'
+        ? [0, 1, 2, 3]
+        : playersCount === 2
+        ? [0, 2]
+        : playersCount === 3
+        ? [0, 1, 2]
+        : [0, 1, 2, 3];
 
     players = activeSeats.map((seat, index) => {
       const color = SEAT_COLORS[seat];
@@ -82,11 +95,17 @@ export function createInitialGameState(options: CreateGameOptions = {}): GameSta
         color,
       }));
 
+      const teamId: 'team_a' | 'team_b' | undefined =
+        mode === 'team_2v2'
+          ? (seat === 0 || seat === 2 ? 'team_a' : 'team_b')
+          : undefined;
+
       return {
         playerId: `player_${seat}_${Math.random().toString(36).substring(2, 7)}`,
         seat,
         color,
         tokens,
+        teamId,
         connected: true,
         isReady: true,
         isHost: index === 0,
@@ -242,10 +261,20 @@ function findCapturesOnCell(
     return [];
   }
 
+  const movingPlayer = gameState.players.find((p) => p.seat === movedPlayerSeat);
   const captures: { seat: number; tokenId: number }[] = [];
 
   for (const otherPlayer of gameState.players) {
     if (otherPlayer.seat === movedPlayerSeat) continue;
+
+    // In 2v2 Team mode, teammates (Team A or Team B) do NOT capture each other
+    if (
+      gameState.mode === 'team_2v2' &&
+      movingPlayer?.teamId &&
+      otherPlayer.teamId === movingPlayer.teamId
+    ) {
+      continue;
+    }
 
     for (const token of otherPlayer.tokens) {
       if (token.status === 'active' && token.progress >= 1 && token.progress <= 51) {
@@ -500,9 +529,29 @@ export function moveToken(gameState: GameState, seat: number, tokenId: number, d
   const isWinner = isPlayerWinner(movingPlayer);
   let updatedRankings = [...gameState.rankings];
   let winnerSeat = gameState.winnerSeat;
+  let winningTeam = gameState.winningTeam || null;
   let gameStatus: GameState['status'] = gameState.status;
 
-  if (isWinner && !updatedRankings.includes(seat)) {
+  if (gameState.mode === 'team_2v2') {
+    const teamATokens = updatedPlayers
+      .filter((p) => p.teamId === 'team_a')
+      .reduce((sum, p) => sum + p.tokensFinished, 0);
+    const teamBTokens = updatedPlayers
+      .filter((p) => p.teamId === 'team_b')
+      .reduce((sum, p) => sum + p.tokensFinished, 0);
+
+    if (teamATokens >= 8) {
+      winningTeam = 'team_a';
+      gameStatus = 'finished';
+      winnerSeat = 0;
+      updatedRankings = [0, 2, 1, 3];
+    } else if (teamBTokens >= 8) {
+      winningTeam = 'team_b';
+      gameStatus = 'finished';
+      winnerSeat = 1;
+      updatedRankings = [1, 3, 0, 2];
+    }
+  } else if (isWinner && !updatedRankings.includes(seat)) {
     updatedRankings.push(seat);
     if (winnerSeat === null) {
       winnerSeat = seat; // 1st Place Winner!
@@ -527,8 +576,8 @@ export function moveToken(gameState: GameState, seat: number, tokenId: number, d
   if (gameStatus === 'finished') {
     // Game ended
     nextSeat = seat;
-  } else if (isWinner) {
-    // If the player just finished, switch to next active player regardless of extra turn
+  } else if (isWinner && gameState.mode !== 'team_2v2') {
+    // If the player just finished in individual mode, switch to next active player
     nextSeat = getNextActiveSeat({ ...gameState, rankings: updatedRankings }, seat);
     extraTurn = false;
   } else if (!extraTurn) {
@@ -550,6 +599,9 @@ export function moveToken(gameState: GameState, seat: number, tokenId: number, d
     ...gameState,
     version: gameState.version + 1,
     status: gameStatus,
+    winningTeam,
+    winnerSeat,
+    rankings: updatedRankings,
     players: updatedPlayers,
     turn: updatedTurn,
     dice: {
@@ -558,8 +610,6 @@ export function moveToken(gameState: GameState, seat: number, tokenId: number, d
       canRoll: true,
       rollsThisTurn: 0,
     },
-    winnerSeat,
-    rankings: updatedRankings,
     moveNumber: gameState.moveNumber + 1,
     lastAction: {
       type: 'MOVE_TOKEN',
