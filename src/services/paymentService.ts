@@ -714,8 +714,8 @@ class PaymentService {
       }
     }
     const currentUser = authService.getCurrentUser();
-    if (targetUserId && currentUser.id === targetUserId && coins) {
-      authService.addCoinsAndXp(coins, 0, 'shop_purchase', 'Deposit Approved & Credited');
+    if (targetUserId && (currentUser.id === targetUserId || targetUserId.startsWith('guest_')) && coins) {
+      authService.addCoinsAndXp(coins, Math.floor(coins * 0.1), 'shop_purchase', 'Deposit Approved & Credited');
     }
   }
 

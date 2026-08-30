@@ -96,7 +96,22 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     const unsub = paymentService.subscribe((requests) => {
       setUserDeposits(requests.filter((r) => r.user_id === currentUser.id));
     });
-    return () => unsub();
+
+    const handleApproval = (e: any) => {
+      sound.playPaymentApproved();
+      refreshHistory();
+      const coins = e.detail?.coins || 0;
+      setFormSuccess(`🎉 Payment Approved! +${coins.toLocaleString()} Coins credited to your wallet!`);
+    };
+
+    window.addEventListener('royal_ludo_deposit_approved', handleApproval);
+    window.addEventListener('royal_ludo_sync', refreshHistory);
+
+    return () => {
+      unsub();
+      window.removeEventListener('royal_ludo_deposit_approved', handleApproval);
+      window.removeEventListener('royal_ludo_sync', refreshHistory);
+    };
   }, [currentUser.id]);
 
   if (!isOpen) return null;

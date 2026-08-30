@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, Crown, Mic, MicOff, MessageSquare, Shield, Swords, WifiOff } from 'lucide-react';
+import { Bot, Crown, Mic, MicOff, MessageSquare, Shield, Swords, UserPlus, UserCheck, WifiOff } from 'lucide-react';
 import { COLOR_CONFIG } from '../../lib/ludo/constants';
 import { PlayerState } from '../../lib/ludo/types';
 
@@ -13,7 +13,8 @@ interface PlayerPanelProps {
   activeReaction?: string | null;
   isSpeaking?: boolean;
   isMicMuted?: boolean;
-  activeChatBubble?: { text: string; imageUrl?: string } | null;
+  activeChatBubble?: { text: string; imageUrl?: string; expiresAt?: number } | null;
+  onSelectPlayer?: (player: PlayerState) => void;
 }
 
 export const PlayerPanel: React.FC<PlayerPanelProps> = ({
@@ -26,6 +27,7 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
   isSpeaking = false,
   isMicMuted = true,
   activeChatBubble,
+  onSelectPlayer,
 }) => {
   const config = COLOR_CONFIG[player.color];
   const progressRatio = Math.max(0, Math.min(1, timeLeftSeconds / totalTurnDuration));
@@ -40,15 +42,16 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
   return (
     <div
       id={`player-panel-${player.seat}`}
+      onClick={() => onSelectPlayer?.(player)}
       className={`
-        relative p-2 sm:p-3 rounded-2xl border transition-all duration-300
-        bg-slate-900/90 backdrop-blur-md flex items-center gap-2.5 sm:gap-3
+        relative p-2 sm:p-2.5 rounded-2xl border transition-all duration-300
+        bg-slate-900/90 backdrop-blur-md flex items-center gap-2 sm:gap-3 cursor-pointer
         ${
           isSpeaking
             ? 'border-emerald-400 ring-2 ring-emerald-400/60 shadow-lg shadow-emerald-500/20 scale-[1.02]'
             : isCurrentTurn
             ? 'border-amber-400 ring-2 ring-amber-400/50 shadow-lg shadow-amber-500/20 scale-[1.02]'
-            : 'border-slate-800/80 opacity-90'
+            : 'border-slate-800/80 hover:border-amber-500/40 opacity-95'
         }
       `}
       style={{
@@ -56,58 +59,71 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
         borderLeftWidth: '5px',
       }}
     >
-      {/* Active In-Game Chat Speech Bubble */}
+      {/* 10-Second Active In-Game Chat Speech Bubble */}
       <AnimatePresence>
         {activeChatBubble && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.7, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: -42 }}
-            exit={{ opacity: 0, scale: 0.8, y: -50 }}
-            transition={{ duration: 0.25 }}
-            className="absolute -top-1 left-2 sm:left-4 z-50 pointer-events-none max-w-[200px]"
+            initial={{ opacity: 0, scale: 0.6, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: -46 }}
+            exit={{ opacity: 0, scale: 0.7, y: -55 }}
+            transition={{ type: 'spring', damping: 14, stiffness: 260 }}
+            className="absolute -top-1 left-2 sm:left-4 z-50 pointer-events-none max-w-[220px]"
           >
-            <div className="bg-slate-950/95 border border-amber-400 rounded-2xl px-3 py-1.5 shadow-2xl flex items-center gap-1.5">
-              <MessageSquare className="w-3 h-3 text-amber-400 flex-shrink-0" />
-              {activeChatBubble.imageUrl && (
-                <img
-                  src={activeChatBubble.imageUrl}
-                  alt="Chat attachment"
-                  className="w-5 h-5 rounded object-cover flex-shrink-0 border border-slate-700"
+            <div className="bg-slate-950/95 border-2 border-amber-400 rounded-2xl p-2 shadow-[0_8px_24px_rgba(0,0,0,0.9)] flex flex-col gap-1 backdrop-blur-md">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <MessageSquare className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                {activeChatBubble.imageUrl && (
+                  <img
+                    src={activeChatBubble.imageUrl}
+                    alt="Chat attachment"
+                    className="w-7 h-7 rounded object-cover flex-shrink-0 border border-amber-500/40 shadow"
+                  />
+                )}
+                <span className="text-[11px] font-bold text-slate-100 truncate leading-snug">
+                  {activeChatBubble.text || 'Shared photo'}
+                </span>
+              </div>
+
+              {/* 10s Countdown Progress Bar */}
+              <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: '100%' }}
+                  animate={{ width: '0%' }}
+                  transition={{ duration: 10, ease: 'linear' }}
+                  className="h-full bg-gradient-to-r from-amber-400 to-yellow-300"
                 />
-              )}
-              <span className="text-[11px] font-semibold text-slate-100 truncate">
-                {activeChatBubble.text || 'Shared an image'}
-              </span>
+              </div>
             </div>
-            <div className="w-2.5 h-2.5 bg-slate-950 border-r border-b border-amber-400 rotate-45 ml-4 -mt-1" />
+            {/* Speech Bubble Arrow Tail */}
+            <div className="w-3 h-3 bg-slate-950 border-r-2 border-b-2 border-amber-400 rotate-45 ml-5 -mt-1.5 shadow" />
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Transient Floating Emoji Reaction over Player Portrait */}
+      {/* 3D Floating & Bouncing Emoji Reaction Popups */}
       <AnimatePresence>
         {activeReaction && (
           <motion.div
             key={activeReaction + '-' + Date.now()}
-            initial={{ opacity: 0, scale: 0.3, y: 15, x: 0 }}
+            initial={{ opacity: 0, scale: 0.2, y: 20 }}
             animate={{
-              opacity: [0, 1, 1, 0.9, 0],
-              scale: [0.5, 1.4, 1.2, 1.3, 1],
-              y: [-5, -35, -45, -55, -65],
-              x: [0, -4, 4, -2, 0],
+              opacity: [0, 1, 1, 0.95, 0],
+              scale: [0.4, 1.45, 1.2, 1.35, 0.8],
+              y: [0, -38, -50, -62, -75],
+              rotate: [0, -8, 8, -4, 0],
             }}
             transition={{
-              duration: 2.8,
-              times: [0, 0.15, 0.4, 0.8, 1],
+              duration: 3.2,
+              times: [0, 0.15, 0.45, 0.8, 1],
               ease: 'easeOut',
             }}
-            className="absolute -top-3 left-4 sm:left-5 z-40 pointer-events-none filter drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]"
+            className="absolute -top-3 left-4 sm:left-5 z-40 pointer-events-none filter drop-shadow-[0_6px_16px_rgba(0,0,0,0.9)]"
           >
             <div className="relative flex flex-col items-center">
-              <div className="bg-slate-950/90 border-2 border-amber-400 rounded-full px-2.5 py-1 text-2xl sm:text-3xl shadow-xl flex items-center justify-center">
+              <div className="bg-slate-950/95 border-2 border-amber-400 rounded-full px-3 py-1 text-2xl sm:text-3xl shadow-2xl flex items-center justify-center">
                 {activeReaction}
               </div>
-              <div className="w-2 h-2 bg-slate-950 border-r-2 border-b-2 border-amber-400 rotate-45 -mt-1" />
+              <div className="w-2.5 h-2.5 bg-slate-950 border-r-2 border-b-2 border-amber-400 rotate-45 -mt-1" />
             </div>
           </motion.div>
         )}

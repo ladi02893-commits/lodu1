@@ -126,6 +126,101 @@ class FriendsService {
     );
   }
 
+  public getFriendshipStatus(
+    idOrUsernameOrPlayerId: string
+  ): 'none' | 'pending_sent' | 'pending_received' | 'friend' | 'blocked' {
+    const target = idOrUsernameOrPlayerId.toLowerCase();
+    const currentUser = authService.getCurrentUser();
+    if (
+      target === currentUser.id.toLowerCase() ||
+      target === currentUser.username.toLowerCase() ||
+      target === (currentUser.player_id || '').toLowerCase()
+    ) {
+      return 'none';
+    }
+
+    const found = this.friends.find(
+      (f) =>
+        f.id.toLowerCase() === target ||
+        f.username.toLowerCase() === target ||
+        (f.player_id && f.player_id.toLowerCase() === target)
+    );
+
+    return found ? found.status : 'none';
+  }
+
+  public followPlayer(player: {
+    id: string;
+    username: string;
+    display_name?: string;
+    avatar_url?: string;
+    player_id?: string;
+    level?: number;
+    wins?: number;
+  }): { success: boolean; message: string; status: 'friend' | 'pending_sent' } {
+    const currentUser = authService.getCurrentUser();
+    if (player.id === currentUser.id || player.username.toLowerCase() === currentUser.username.toLowerCase()) {
+      return { success: false, message: 'You cannot follow yourself.', status: 'pending_sent' };
+    }
+
+    const existingIdx = this.friends.findIndex(
+      (f) =>
+        f.id === player.id ||
+        f.username.toLowerCase() === player.username.toLowerCase() ||
+        (player.player_id && f.player_id === player.player_id)
+    );
+
+    if (existingIdx !== -1) {
+      const currentStatus = this.friends[existingIdx].status;
+      if (currentStatus === 'pending_received') {
+        // Automatically accept & follow back!
+        this.friends[existingIdx].status = 'friend';
+        this.save();
+        sound.playFollowChime();
+        return { success: true, message: `Followed back ${player.display_name || player.username}! You are now companions.`, status: 'friend' };
+      }
+      if (currentStatus === 'friend') {
+        return { success: true, message: `Already following ${player.display_name || player.username}.`, status: 'friend' };
+      }
+      return { success: true, message: `Follow request already sent to ${player.display_name || player.username}.`, status: 'pending_sent' };
+    }
+
+    const randDigits = Math.floor(1000 + Math.random() * 9000);
+    const newEntry: FriendEntry = {
+      id: player.id || `friend_${Date.now()}`,
+      username: player.username,
+      display_name: player.display_name || player.username,
+      avatar_url: player.avatar_url || 'avatar_1',
+      player_id: player.player_id || `RL-${randDigits}`,
+      level: player.level || 1,
+      xp: (player.level || 1) * 250,
+      wins: player.wins || 0,
+      is_online: true,
+      status: 'pending_sent',
+    };
+
+    this.friends.push(newEntry);
+    this.save();
+    sound.playFollowChime();
+
+    return {
+      success: true,
+      message: `Followed ${player.display_name || player.username}!`,
+      status: 'pending_sent',
+    };
+  }
+
+  public followBackPlayer(playerId: string): boolean {
+    const idx = this.friends.findIndex((f) => f.id === playerId || f.username === playerId);
+    if (idx !== -1) {
+      this.friends[idx].status = 'friend';
+      this.save();
+      sound.playFollowChime();
+      return true;
+    }
+    return false;
+  }
+
   public sendFriendRequest(query: string): { success: boolean; message: string } {
     const trimmed = query.trim();
     if (!trimmed) return { success: false, message: 'Please enter a username or Player ID' };

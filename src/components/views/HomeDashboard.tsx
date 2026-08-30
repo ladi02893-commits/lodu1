@@ -317,6 +317,87 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
           </div>
         </div>
 
+        {/* Private Royal Rooms Section - Displayed Prominently on Top */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="font-royal font-black text-sm sm:text-base text-amber-300 flex items-center gap-2">
+              <Crown className="w-4 h-4 text-amber-400" />
+              <span>Private Royal Chambers</span>
+            </h3>
+            <span className="text-[11px] text-slate-400">Play with friends & custom bet stakes</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            {/* Create Private Room Card */}
+            <div className="group relative p-5 rounded-3xl bg-gradient-to-br from-amber-950/70 via-slate-900 to-slate-950 border-2 border-amber-500/50 hover:border-amber-400 hover:shadow-xl hover:shadow-amber-500/20 transition-all duration-300 flex items-center justify-between shadow-lg">
+              <div className="space-y-1.5 min-w-0 pr-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center text-slate-950 shadow flex-shrink-0">
+                    <Crown className="w-5 h-5 fill-slate-950" />
+                  </div>
+                  <div>
+                    <h4 className="font-royal font-black text-base text-slate-100 group-hover:text-amber-300 transition-colors">
+                      Create Private Room
+                    </h4>
+                    <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">
+                      Host Match • 6-Letter Code
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Choose custom bet stakes & invite friends via room code.
+                </p>
+              </div>
+
+              <button
+                id="home-create-room-btn"
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  onSelectMode('room_create');
+                }}
+                className="px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:brightness-110 text-slate-950 font-royal font-black text-xs transition-all shadow-lg hover:scale-105 active:scale-95 cursor-pointer flex-shrink-0"
+              >
+                Create Room
+              </button>
+            </div>
+
+            {/* Join Private Room Card */}
+            <div className="group relative p-5 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border-2 border-slate-700 hover:border-amber-400/80 hover:shadow-xl hover:shadow-amber-500/15 transition-all duration-300 flex items-center justify-between shadow-lg">
+              <div className="space-y-1.5 min-w-0 pr-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow flex-shrink-0">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-royal font-black text-base text-slate-100 group-hover:text-amber-300 transition-colors">
+                      Join Private Room
+                    </h4>
+                    <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider">
+                      Enter Friend's Code
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Join a friend's private chamber with their shared code.
+                </p>
+              </div>
+
+              <button
+                id="home-join-room-btn"
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  onSelectMode('room_join');
+                }}
+                className="px-5 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-amber-500/50 text-amber-300 hover:text-white font-royal font-black text-xs transition-all shadow-lg hover:scale-105 active:scale-95 cursor-pointer flex-shrink-0"
+              >
+                Join Room
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Primary Play Modes Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Quick Match 4P */}
@@ -463,45 +544,6 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
               </p>
             </div>
           </button>
-        </div>
-
-        {/* Private Rooms Sub-Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="p-5 rounded-3xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
-            <div className="space-y-1">
-              <h4 className="font-royal font-bold text-sm text-slate-100">Create Private Room</h4>
-              <p className="text-xs text-slate-400">Generate a 6-letter room code for friends</p>
-            </div>
-            <button
-              id="home-create-room-btn"
-              type="button"
-              onClick={() => {
-                sound.playClick();
-                onSelectMode('room_create');
-              }}
-              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-all shadow cursor-pointer"
-            >
-              Create
-            </button>
-          </div>
-
-          <div className="p-5 rounded-3xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
-            <div className="space-y-1">
-              <h4 className="font-royal font-bold text-sm text-slate-100">Join Private Room</h4>
-              <p className="text-xs text-slate-400">Enter a code received from your friend</p>
-            </div>
-            <button
-              id="home-join-room-btn"
-              type="button"
-              onClick={() => {
-                sound.playClick();
-                onSelectMode('room_join');
-              }}
-              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 font-bold text-xs transition-all shadow cursor-pointer"
-            >
-              Join Code
-            </button>
-          </div>
         </div>
 
         {/* Navigation Shortcuts Row */}

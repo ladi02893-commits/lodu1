@@ -163,79 +163,133 @@ class SoundEngine {
   }
 
   public playDiceRoll() {
-    const gainVal = this.getEffectiveSfxGain(0.25);
+    const gainVal = this.getEffectiveSfxGain(0.32);
     if (gainVal <= 0) return;
     this.initContext();
     if (!this.ctx) return;
 
-    // Simulate rattling dice clicks
-    for (let i = 0; i < 6; i++) {
-      const time = this.ctx.currentTime + i * 0.06;
+    // Realistic wood/felt rolling clatter sequence with micro bounces
+    const tumbleCount = 9;
+    for (let i = 0; i < tumbleCount; i++) {
+      const time = this.ctx.currentTime + i * 0.055 + Math.random() * 0.02;
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
 
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(300 + Math.random() * 400, time);
-      gain.gain.setValueAtTime(gainVal, time);
-      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
+      osc.type = i % 2 === 0 ? 'triangle' : 'square';
+      osc.frequency.setValueAtTime(180 + Math.random() * 320, time);
+      osc.frequency.exponentialRampToValueAtTime(80 + Math.random() * 60, time + 0.045);
+
+      gain.gain.setValueAtTime(gainVal * (1 - (i / tumbleCount) * 0.4), time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.045);
 
       osc.connect(gain);
       gain.connect(this.ctx.destination);
 
       osc.start(time);
-      osc.stop(time + 0.04);
+      osc.stop(time + 0.045);
     }
   }
 
   public playDiceResult(value: number) {
+    const gainVal = this.getEffectiveSfxGain(0.35);
+    if (gainVal <= 0) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+
+    // Solid landing impact thud
+    const thudOsc = this.ctx.createOscillator();
+    const thudGain = this.ctx.createGain();
+    thudOsc.type = 'triangle';
+    thudOsc.frequency.setValueAtTime(180, now);
+    thudOsc.frequency.exponentialRampToValueAtTime(40, now + 0.08);
+    thudGain.gain.setValueAtTime(gainVal * 0.8, now);
+    thudGain.gain.linearRampToValueAtTime(0.001, now + 0.08);
+    thudOsc.connect(thudGain);
+    thudGain.connect(this.ctx.destination);
+    thudOsc.start(now);
+    thudOsc.stop(now + 0.08);
+
+    // Chime note according to rolled face value
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    const freq = value === 6 ? 987.77 : 440 + value * 65; // B5 for 6, A4+ for others
+    osc.type = value === 6 ? 'triangle' : 'sine';
+    osc.frequency.setValueAtTime(freq, now + 0.02);
+    if (value === 6) {
+      osc.frequency.exponentialRampToValueAtTime(1480, now + 0.22);
+    }
+
+    gain.gain.setValueAtTime(gainVal, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + (value === 6 ? 0.45 : 0.25));
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now + 0.02);
+    osc.stop(now + (value === 6 ? 0.45 : 0.25));
+  }
+
+  public playTokenStepHop(stepIndex: number = 0) {
+    const gainVal = this.getEffectiveSfxGain(0.24);
+    if (gainVal <= 0) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    const baseFreq = 480 + (stepIndex % 6) * 35;
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(baseFreq, now);
+    osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.35, now + 0.06);
+
+    gain.gain.setValueAtTime(gainVal, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.06);
+  }
+
+  public playTokenMove() {
+    this.playTokenStepHop(0);
+  }
+
+  public playFollowChime() {
     const gainVal = this.getEffectiveSfxGain(0.3);
     if (gainVal <= 0) return;
     this.initContext();
     if (!this.ctx) return;
 
     const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
+    const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+    notes.forEach((freq, idx) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      const startTime = now + idx * 0.07;
 
-    const freq = value === 6 ? 880 : 440 + value * 60;
-    osc.type = value === 6 ? 'triangle' : 'sine';
-    osc.frequency.setValueAtTime(freq, now);
-    if (value === 6) {
-      osc.frequency.exponentialRampToValueAtTime(1320, now + 0.15);
-    }
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, startTime);
 
-    gain.gain.setValueAtTime(gainVal, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + (value === 6 ? 0.35 : 0.2));
+      gain.gain.setValueAtTime(gainVal, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.35);
 
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
+      osc.connect(gain);
+      gain.connect(this.ctx!.destination);
 
-    osc.start(now);
-    osc.stop(now + (value === 6 ? 0.35 : 0.2));
+      osc.start(startTime);
+      osc.stop(startTime + 0.35);
+    });
   }
 
-  public playTokenMove() {
-    const gainVal = this.getEffectiveSfxGain(0.25);
-    if (gainVal <= 0) return;
-    this.initContext();
-    if (!this.ctx) return;
-
-    const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(520, now);
-    osc.frequency.exponentialRampToValueAtTime(780, now + 0.08);
-
-    gain.gain.setValueAtTime(gainVal, now);
-    gain.gain.linearRampToValueAtTime(0.001, now + 0.08);
-
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-
-    osc.start(now);
-    osc.stop(now + 0.08);
+  public playPaymentApproved() {
+    this.playJackpotFanfare();
   }
 
   public playCapture() {

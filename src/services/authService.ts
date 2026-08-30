@@ -704,9 +704,31 @@ class AuthService {
       list[idx].coins = newCoins;
       list[idx].updated_at = new Date().toISOString();
       this.saveRegisteredUsersList(list);
-    } else if (this.currentUser && this.currentUser.id === targetUserId) {
-      this.addCoinsAndXp(amount, 0, 'admin_grant', note);
-      newCoins = this.currentUser.coins;
+    }
+
+    // Always update local stored profile if target matches or if single-user session
+    try {
+      const storedRaw = localStorage.getItem('royal_ludo_profile');
+      if (storedRaw) {
+        const storedProfile = JSON.parse(storedRaw);
+        if (storedProfile.id === targetUserId || idx === -1) {
+          storedProfile.coins = Math.max(0, (storedProfile.coins || 0) + amount);
+          storedProfile.xp = (storedProfile.xp || 0) + Math.floor(amount * 0.1);
+          newCoins = storedProfile.coins;
+          localStorage.setItem('royal_ludo_profile', JSON.stringify(storedProfile));
+        }
+      }
+    } catch (e) {
+      console.warn('Error updating stored profile:', e);
+    }
+
+    if (this.currentUser && (this.currentUser.id === targetUserId || idx === -1)) {
+      this.currentUser = {
+        ...this.currentUser,
+        coins: Math.max(0, (this.currentUser.coins || 0) + amount),
+      };
+      saveStoredProfile(this.currentUser);
+      this.notify();
     }
 
     // 1. Persist directly into Supabase profiles table
@@ -744,26 +766,21 @@ class AuthService {
       description: note,
     });
 
-    if (this.currentUser && this.currentUser.id === targetUserId) {
-      if (idx !== -1) {
-        this.currentUser = this.accountToProfile(list[idx]);
-      } else {
-        this.currentUser = { ...this.currentUser, coins: newCoins };
-      }
-      saveStoredProfile(this.currentUser);
-      this.notify();
-    }
-
     if (typeof window !== 'undefined') {
       window.dispatchEvent(
         new CustomEvent('royal_ludo_notification', {
           detail: {
-            title: '🎁 Imperial Gift Received!',
-            message: `Admin granted you +${amount.toLocaleString()} Coins! Reason: ${note}`,
+            title: '🎁 Coins Credited!',
+            message: `+${amount.toLocaleString()} Coins added to your vault! (${note})`,
             type: 'reward',
             targetUserId,
             coins: amount,
           },
+        })
+      );
+      window.dispatchEvent(
+        new CustomEvent('royal_ludo_deposit_approved', {
+          detail: { targetUserId, coins: amount, note },
         })
       );
       window.dispatchEvent(new CustomEvent('royal_ludo_sync'));

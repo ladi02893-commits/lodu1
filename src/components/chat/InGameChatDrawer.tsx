@@ -1,17 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Clock,
+  Heart,
   Image as ImageIcon,
   MessageSquare,
   MoreVertical,
   Send,
   Smile,
   Trash2,
+  UserCheck,
+  UserPlus,
+  Users,
   X,
 } from 'lucide-react';
 import { sound } from '../../lib/audio';
 import { authService } from '../../services/authService';
 import { ChatMessage, ChatTimerOption, chatService } from '../../services/chatService';
+import { friendsService, FriendEntry } from '../../services/friendsService';
 import { ImageViewerModal } from './ImageViewerModal';
 
 interface InGameChatDrawerProps {
@@ -19,6 +24,7 @@ interface InGameChatDrawerProps {
   onClose: () => void;
   matchId: string;
   onSendEmojiReaction?: (emoji: string) => void;
+  playersInMatch?: Array<{ id: string; username: string; display_name?: string; avatar_url?: string }>;
 }
 
 const PRESET_PHRASES = [
@@ -41,6 +47,7 @@ export const InGameChatDrawer: React.FC<InGameChatDrawerProps> = ({
   onClose,
   matchId,
   onSendEmojiReaction,
+  playersInMatch = [],
 }) => {
   const currentUser = authService.getCurrentUser();
   const conversationId = chatService.getMatchConversationId(matchId);
@@ -49,7 +56,7 @@ export const InGameChatDrawer: React.FC<InGameChatDrawerProps> = ({
     chatService.getMessages(conversationId, currentUser.id)
   );
   const [inputText, setInputText] = useState('');
-  const [activeTab, setActiveTab] = useState<'chat' | 'phrases'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'phrases' | 'players'>('chat');
   const [activeTimer, setActiveTimer] = useState<ChatTimerOption>(() =>
     chatService.getConversationTimer(conversationId)
   );
@@ -57,6 +64,8 @@ export const InGameChatDrawer: React.FC<InGameChatDrawerProps> = ({
   const [pendingImage, setPendingImage] = useState<string | null>(null);
   const [viewingImage, setViewingImage] = useState<{ url: string; caption?: string; sender?: string } | null>(null);
   const [activeDeleteMenuMsgId, setActiveDeleteMenuMsgId] = useState<string | null>(null);
+  const [friendsList, setFriendsList] = useState<FriendEntry[]>(() => friendsService.getFriends());
+  const [followFeedback, setFollowFeedback] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -67,6 +76,13 @@ export const InGameChatDrawer: React.FC<InGameChatDrawerProps> = ({
     });
     return () => unsub();
   }, [conversationId]);
+
+  useEffect(() => {
+    const unsubFriends = friendsService.subscribe((flist) => {
+      setFriendsList(flist);
+    });
+    return () => unsubFriends();
+  }, []);
 
   useEffect(() => {
     setActiveTimer(chatService.getConversationTimer(conversationId));
@@ -146,6 +162,23 @@ export const InGameChatDrawer: React.FC<InGameChatDrawerProps> = ({
     setActiveDeleteMenuMsgId(null);
   };
 
+  const handleFollowUser = (senderId: string, senderName: string) => {
+    sound.playClick();
+    const status = friendsService.getFriendshipStatus(senderId);
+    if (status === 'pending_received') {
+      friendsService.followBackPlayer(senderId);
+      setFollowFeedback(`🤝 Followed back ${senderName}!`);
+    } else {
+      const res = friendsService.followPlayer({
+        id: senderId,
+        username: senderName,
+        display_name: senderName,
+      });
+      setFollowFeedback(res.message);
+    }
+    setTimeout(() => setFollowFeedback(null), 3000);
+  };
+
   const formatTimerLabel = (opt: ChatTimerOption) => {
     if (opt === 0) return 'Off';
     if (opt === 10) return '10s';
@@ -161,6 +194,19 @@ export const InGameChatDrawer: React.FC<InGameChatDrawerProps> = ({
     if (diff < 60) return `${diff}s`;
     return `${Math.floor(diff / 60)}m`;
   };
+
+  // Find unique opponents from messages and match players
+  const opponentMap = new Map<string, string>();
+  playersInMatch.forEach((p) => {
+    if (p.id !== currentUser.id) {
+      opponentMap.set(p.id, p.display_name || p.username);
+    }
+  });
+  messages.forEach((m) => {
+    if (m.senderId !== currentUser.id) {
+      opponentMap.set(m.senderId, m.senderName);
+    }
+  });
 
   return (
     <>
@@ -226,7 +272,7 @@ export const InGameChatDrawer: React.FC<InGameChatDrawerProps> = ({
         </header>
 
         {/* Tab Selector */}
-        <div className="px-4 py-2 bg-slate-900/60 border-b border-slate-800 flex items-center gap-2">
+        <div className="px-3 py-2 bg-slate-900/60 border-b border-slate-800 flex items-center gap-1.5">
           <button
             type="button"
             onClick={() => setActiveTab('chat')}
@@ -247,9 +293,28 @@ export const InGameChatDrawer: React.FC<InGameChatDrawerProps> = ({
                 : 'text-slate-400 hover:text-slate-200 bg-slate-900'
             }`}
           >
-            Quick Phrases & Emojis
+            Quick Phrases
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('players')}
+            className={`flex-1 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1 ${
+              activeTab === 'players'
+                ? 'bg-amber-500 text-slate-950 shadow'
+                : 'text-slate-400 hover:text-slate-200 bg-slate-900'
+            }`}
+          >
+            <Users className="w-3 h-3" />
+            <span>Players</span>
           </button>
         </div>
+
+        {/* Follow Feedback Toast */}
+        {followFeedback && (
+          <div className="px-3 py-1.5 bg-emerald-950 border-b border-emerald-500/40 text-emerald-300 text-xs font-bold text-center animate-fade-in">
+            {followFeedback}
+          </div>
+        )}
 
         {/* Content Area */}
         {activeTab === 'chat' ? (
@@ -263,18 +328,49 @@ export const InGameChatDrawer: React.FC<InGameChatDrawerProps> = ({
               messages.map((msg) => {
                 const isMine = msg.senderId === currentUser.id;
                 const timeRemaining = getTimeRemaining(msg.expiresAt);
+                const friendshipStatus = !isMine ? friendsService.getFriendshipStatus(msg.senderId) : 'none';
 
                 return (
                   <div
                     key={msg.id}
                     className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} group relative`}
                   >
-                    <div className="flex items-end gap-1.5 max-w-[85%]">
-                      <div className="relative group">
-                        {/* Sender name if not mine */}
+                    <div className="flex items-end gap-1.5 max-w-[88%]">
+                      <div className="relative group w-full">
+                        {/* Sender name & Follow button if not mine */}
                         {!isMine && (
-                          <div className="text-[10px] text-amber-400/90 font-bold mb-0.5 ml-1">
-                            {msg.senderName}
+                          <div className="flex items-center justify-between gap-2 mb-1 px-1">
+                            <span className="text-[10px] text-amber-400/90 font-bold truncate">
+                              {msg.senderName}
+                            </span>
+                            {friendshipStatus === 'friend' ? (
+                              <span className="text-[9px] text-emerald-400 font-bold flex items-center gap-0.5">
+                                <UserCheck className="w-2.5 h-2.5" />
+                                <span>Following</span>
+                              </span>
+                            ) : friendshipStatus === 'pending_received' ? (
+                              <button
+                                type="button"
+                                onClick={() => handleFollowUser(msg.senderId, msg.senderName)}
+                                className="px-1.5 py-0.2 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[9px] cursor-pointer flex items-center gap-0.5 shadow"
+                              >
+                                <Heart className="w-2.5 h-2.5" />
+                                <span>Follow Back</span>
+                              </button>
+                            ) : friendshipStatus === 'pending_sent' ? (
+                              <span className="text-[9px] text-amber-300 font-semibold">
+                                Request Sent
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleFollowUser(msg.senderId, msg.senderName)}
+                                className="px-1.5 py-0.2 rounded bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 text-[9px] font-bold cursor-pointer flex items-center gap-0.5 transition-colors"
+                              >
+                                <UserPlus className="w-2.5 h-2.5 text-amber-400" />
+                                <span>Follow</span>
+                              </button>
+                            )}
                           </div>
                         )}
 
@@ -284,7 +380,7 @@ export const InGameChatDrawer: React.FC<InGameChatDrawerProps> = ({
                               ? 'bg-slate-900/80 border border-slate-800 text-slate-500 italic'
                               : isMine
                               ? 'bg-gradient-to-tr from-amber-600 to-amber-500 text-slate-950 font-medium rounded-br-none'
-                              : 'bg-slate-850 bg-slate-900 text-slate-100 border border-slate-800 rounded-bl-none'
+                              : 'bg-slate-900 text-slate-100 border border-slate-800 rounded-bl-none'
                           }`}
                         >
                           {/* Image */}
@@ -307,7 +403,7 @@ export const InGameChatDrawer: React.FC<InGameChatDrawerProps> = ({
 
                           {/* Text */}
                           {msg.text && (
-                            <p className="whitespace-pre-wrap break-words leading-relaxed">
+                            <p className="whitespace-pre-wrap break-words leading-relaxed font-sans">
                               {msg.text}
                             </p>
                           )}
@@ -319,7 +415,7 @@ export const InGameChatDrawer: React.FC<InGameChatDrawerProps> = ({
                             }`}
                           >
                             {timeRemaining && !msg.isDeleted && (
-                              <span className="flex items-center gap-0.5 text-amber-900 bg-amber-300/60 px-1 rounded font-mono">
+                              <span className="flex items-center gap-0.5 text-amber-900 bg-amber-300/60 px-1 rounded font-mono font-bold">
                                 <Clock className="w-2 h-2" />
                                 {timeRemaining}
                               </span>
@@ -387,6 +483,77 @@ export const InGameChatDrawer: React.FC<InGameChatDrawerProps> = ({
             )}
             <div ref={messagesEndRef} />
           </div>
+        ) : activeTab === 'players' ? (
+          /* Opponents & Match Roster Tab */
+          <div className="flex-1 p-3 overflow-y-auto space-y-3">
+            <h4 className="text-[10px] font-bold text-amber-400 uppercase tracking-wider px-1">
+              Match Opponents & Follow
+            </h4>
+
+            {Array.from(opponentMap.entries()).length === 0 ? (
+              <div className="text-center py-8 text-slate-500 text-xs">
+                No opponents currently active in chat.
+              </div>
+            ) : (
+              Array.from(opponentMap.entries()).map(([oppId, oppName]) => {
+                const fStatus = friendsService.getFriendshipStatus(oppId);
+
+                return (
+                  <div
+                    key={oppId}
+                    className="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2 shadow"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-600 to-yellow-500 p-0.5 flex-shrink-0 shadow">
+                        <div className="w-full h-full rounded-xl bg-slate-950 flex items-center justify-center font-royal font-black text-amber-300 text-xs">
+                          {oppName.charAt(0).toUpperCase()}
+                        </div>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-bold text-xs text-slate-100 truncate">
+                          {oppName}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono">
+                          ID: {oppId.substring(0, 10)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      {fStatus === 'friend' ? (
+                        <span className="px-2.5 py-1 rounded-full bg-emerald-950 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold flex items-center gap-1">
+                          <UserCheck className="w-3 h-3" />
+                          <span>Following</span>
+                        </span>
+                      ) : fStatus === 'pending_received' ? (
+                        <button
+                          type="button"
+                          onClick={() => handleFollowUser(oppId, oppName)}
+                          className="px-3 py-1 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black text-xs cursor-pointer shadow flex items-center gap-1 hover:brightness-110"
+                        >
+                          <Heart className="w-3 h-3 fill-slate-950" />
+                          <span>Follow Back</span>
+                        </button>
+                      ) : fStatus === 'pending_sent' ? (
+                        <span className="px-2.5 py-1 rounded-full bg-amber-950/60 border border-amber-500/30 text-amber-300 text-[10px] font-semibold">
+                          Request Sent
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleFollowUser(oppId, oppName)}
+                          className="px-3 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 border border-amber-500/40 text-amber-300 font-bold text-xs cursor-pointer flex items-center gap-1 transition-all"
+                        >
+                          <UserPlus className="w-3 h-3" />
+                          <span>Follow</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         ) : (
           /* Quick Phrases and Emojis Panel */
           <div className="flex-1 p-3 overflow-y-auto space-y-4">
@@ -401,7 +568,7 @@ export const InGameChatDrawer: React.FC<InGameChatDrawerProps> = ({
                     key={emoji}
                     type="button"
                     onClick={() => handleSelectEmoji(emoji)}
-                    className="text-2xl p-2 rounded-xl bg-slate-900 hover:bg-amber-950/60 hover:scale-115 border border-slate-800 hover:border-amber-400/40 transition-all cursor-pointer flex items-center justify-center"
+                    className="text-2xl p-2 rounded-xl bg-slate-900 hover:bg-amber-950/60 hover:scale-115 border border-slate-800 hover:border-amber-400/40 transition-all cursor-pointer flex items-center justify-center shadow"
                   >
                     {emoji}
                   </button>
@@ -420,7 +587,7 @@ export const InGameChatDrawer: React.FC<InGameChatDrawerProps> = ({
                     key={phrase}
                     type="button"
                     onClick={() => handleSelectPhrase(phrase)}
-                    className="text-left px-3 py-2 rounded-xl bg-slate-900 hover:bg-amber-950/60 hover:text-amber-200 border border-slate-800 hover:border-amber-400/40 text-xs font-semibold text-slate-200 transition-all cursor-pointer truncate"
+                    className="text-left px-3 py-2 rounded-xl bg-slate-900 hover:bg-amber-950/60 hover:text-amber-200 border border-slate-800 hover:border-amber-400/40 text-xs font-semibold text-slate-200 transition-all cursor-pointer truncate shadow"
                   >
                     {phrase}
                   </button>
