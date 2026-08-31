@@ -732,12 +732,12 @@ class AuthService {
       this.saveRegisteredUsersList(list, false);
     }
 
-    // Always update local stored profile if target matches or if single-user session
+    // Only update local stored profile if the target user IS the locally stored profile
     try {
       const storedRaw = localStorage.getItem('royal_ludo_profile');
       if (storedRaw) {
         const storedProfile = JSON.parse(storedRaw);
-        if (storedProfile.id === targetUserId || idx === -1) {
+        if (storedProfile && storedProfile.id === targetUserId) {
           storedProfile.coins = Math.max(0, Math.floor(Math.round(Number(storedProfile.coins || 0) + cleanAmount)));
           storedProfile.xp = Math.max(0, Math.floor(Math.round(Number(storedProfile.xp || 0) + Math.floor(cleanAmount * 0.1))));
           newCoins = storedProfile.coins;
@@ -748,7 +748,7 @@ class AuthService {
       console.warn('Error updating stored profile:', e);
     }
 
-    if (this.currentUser && (this.currentUser.id === targetUserId || idx === -1)) {
+    if (this.currentUser && this.currentUser.id === targetUserId) {
       this.currentUser = {
         ...this.currentUser,
         coins: Math.max(0, Math.floor(Math.round(Number(this.currentUser.coins || 0) + cleanAmount))),
@@ -828,11 +828,12 @@ class AuthService {
       this.saveRegisteredUsersList(list, false);
     }
 
+    // Only update local stored profile if the target user IS the locally stored profile
     try {
       const storedRaw = localStorage.getItem('royal_ludo_profile');
       if (storedRaw) {
         const storedProfile = JSON.parse(storedRaw);
-        if (storedProfile.id === targetUserId || idx === -1) {
+        if (storedProfile && storedProfile.id === targetUserId) {
           storedProfile.coins = Math.max(0, Math.floor(Math.round(Number(storedProfile.coins || 0) - cleanAmount)));
           newCoins = storedProfile.coins;
           localStorage.setItem('royal_ludo_profile', JSON.stringify(storedProfile));
@@ -842,7 +843,7 @@ class AuthService {
       console.warn('Error deducting stored profile coins:', e);
     }
 
-    if (this.currentUser && (this.currentUser.id === targetUserId || idx === -1)) {
+    if (this.currentUser && this.currentUser.id === targetUserId) {
       this.currentUser = {
         ...this.currentUser,
         coins: Math.max(0, Math.floor(Math.round(Number(this.currentUser.coins || 0) - cleanAmount))),

@@ -18,10 +18,12 @@ export const LandingView: React.FC<LandingViewProps> = ({
 
       {/* Top Navbar */}
       <header className="w-full max-w-6xl px-4 py-4 sm:py-6 flex items-center justify-between z-10">
-        <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-700 p-0.5 shadow-lg shadow-amber-500/20 flex items-center justify-center">
-            <Crown className="w-6 h-6 text-slate-950" />
-          </div>
+        <div className="flex items-center gap-3">
+          <img
+            src="/logo.png"
+            alt="Royal Ludo Online Logo"
+            className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl object-cover shadow-lg shadow-amber-500/30 border border-amber-400/40 transform hover:scale-105 transition-transform"
+          />
           <div>
             <h1 className="text-xl sm:text-2xl font-royal font-black text-amber-300 tracking-wider">
               ROYAL LUDO
@@ -47,13 +49,22 @@ export const LandingView: React.FC<LandingViewProps> = ({
       </header>
 
       {/* Hero Section */}
-      <main className="w-full max-w-5xl px-4 py-8 sm:py-16 flex flex-col items-center text-center space-y-6 z-10">
+      <main className="w-full max-w-5xl px-4 py-6 sm:py-12 flex flex-col items-center text-center space-y-6 z-10">
+        <div className="relative group">
+          <div className="absolute -inset-1 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 rounded-3xl blur-xl opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
+          <img
+            src="/logo.png"
+            alt="Royal Ludo Online"
+            className="relative w-36 h-36 sm:w-44 sm:h-44 rounded-3xl object-cover shadow-2xl border-2 border-amber-400/60"
+          />
+        </div>
+
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-950/60 border border-amber-400/40 text-amber-300 text-xs font-bold shadow-inner">
           <Sparkles className="w-4 h-4 text-amber-400 animate-spin" style={{ animationDuration: '6s' }} />
           <span>Server-Authoritative Multi-Realm Ludo</span>
         </div>
 
-        <h2 className="text-4xl sm:text-6xl md:text-7xl font-royal font-black text-transparent bg-clip-text bg-gradient-to-b from-amber-200 via-amber-400 to-amber-600 tracking-tight max-w-3xl leading-tight drop-shadow-sm">
+        <h2 className="text-3xl sm:text-5xl md:text-6xl font-royal font-black text-transparent bg-clip-text bg-gradient-to-b from-amber-200 via-amber-400 to-amber-600 tracking-tight max-w-3xl leading-tight drop-shadow-sm">
           Claim Your Throne in the Royal Arena
         </h2>
 

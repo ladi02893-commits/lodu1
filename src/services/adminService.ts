@@ -64,6 +64,7 @@ const GAMEPLAY_CONFIG_KEY = 'royal_ludo_gameplay_cfg';
 class AdminService {
   private announcements: AdminAnnouncement[] = [];
   private promoCodes: PromoCode[] = [];
+  private cachedPlayers: AdminPlayerRecord[] = [];
   private gameplayConfig: GameplayConfig = {
     turnTimeLimitSeconds: 30,
     botAggressionFactor: 0.7,
@@ -128,8 +129,12 @@ class AdminService {
         this.gameplayConfig = { ...this.gameplayConfig, ...JSON.parse(cfgRaw) };
       }
     } catch (e) {
-      console.warn('Error loading admin settings:', e);
+      console.warn('AdminService load error:', e);
     }
+  }
+
+  public setCachedPlayers(players: AdminPlayerRecord[]): void {
+    this.cachedPlayers = players;
   }
 
   private saveAnnouncements(): void {
@@ -148,8 +153,20 @@ class AdminService {
   }
 
   public getPlayers(): AdminPlayerRecord[] {
-    const registered = authService.getRegisteredUsers();
     const curr = authService.getCurrentUser();
+    if (this.cachedPlayers.length > 0) {
+      return this.cachedPlayers.map((u) =>
+        u.id === curr.id
+          ? {
+              ...u,
+              coins: Math.max(0, Math.floor(Math.round(curr.coins || 0))),
+              level: Math.max(1, Math.floor(Math.round(curr.level || 1))),
+              lastActive: 'Active Now',
+            }
+          : u
+      );
+    }
+    const registered = authService.getRegisteredUsers();
 
     return registered.map((u) => ({
       id: u.id,

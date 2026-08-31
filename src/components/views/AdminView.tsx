@@ -198,7 +198,9 @@ export const AdminView: React.FC<AdminViewProps> = ({ onBack }) => {
             }
           });
 
+          adminService.setCachedPlayers(mergedRecords);
           setPlayers(mergedRecords);
+          setStats(adminService.getStats(mergedRecords));
         }
       } catch (e) {
         console.warn('Database profiles fetch note:', e);

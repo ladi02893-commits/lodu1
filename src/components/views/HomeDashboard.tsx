@@ -113,38 +113,45 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
 
       {/* Royal Header Bar */}
       <header className="w-full max-w-5xl px-4 py-3 sm:py-4 flex items-center justify-between border-b border-amber-500/20 bg-slate-950/80 backdrop-blur-md sticky top-0 z-30">
-        {/* User Avatar & Level Profile */}
-        <button
-          id="home-profile-btn"
-          type="button"
-          onClick={() => {
-            sound.playClick();
-            onNavigate('profile');
-          }}
-          className="flex items-center gap-3 p-1.5 rounded-2xl hover:bg-slate-900 border border-transparent hover:border-amber-500/30 transition-all cursor-pointer text-left"
-        >
-          <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-tr from-amber-600 to-amber-400 p-0.5 shadow-md flex items-center justify-center">
-            <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center">
-              <Crown className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300" />
+        <div className="flex items-center gap-2.5">
+          <img
+            src="/logo.png"
+            alt="Royal Ludo Online"
+            className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl object-cover shadow-md shadow-amber-500/20 border border-amber-400/40 hover:scale-105 transition-transform"
+          />
+          {/* User Avatar & Level Profile */}
+          <button
+            id="home-profile-btn"
+            type="button"
+            onClick={() => {
+              sound.playClick();
+              onNavigate('profile');
+            }}
+            className="flex items-center gap-2.5 p-1 rounded-2xl hover:bg-slate-900 border border-transparent hover:border-amber-500/30 transition-all cursor-pointer text-left"
+          >
+            <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-gradient-to-tr from-amber-600 to-amber-400 p-0.5 shadow-md flex items-center justify-center">
+              <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center">
+                <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300" />
+              </div>
+              <span className="absolute -bottom-1 -right-1 px-1.5 py-0.2 rounded-full bg-amber-500 text-[9px] font-black text-slate-950 shadow border border-slate-900">
+                Lv.{currentLevel}
+              </span>
             </div>
-            <span className="absolute -bottom-1 -right-1 px-1.5 py-0.2 rounded-full bg-amber-500 text-[10px] font-black text-slate-950 shadow border border-slate-900">
-              Lv.{currentLevel}
-            </span>
-          </div>
 
-          <div className="hidden sm:block">
-            <div className="flex items-center gap-1.5">
-              <span className="font-bold text-sm text-slate-100">{user.display_name}</span>
-              <span className="text-[10px] text-amber-400/80 font-mono">#{user.player_id}</span>
+            <div className="hidden sm:block">
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold text-xs sm:text-sm text-slate-100">{user.display_name}</span>
+                <span className="text-[10px] text-amber-400/80 font-mono">#{user.player_id}</span>
+              </div>
+              <div className="w-24 h-1.5 rounded-full bg-slate-800 overflow-hidden mt-0.5">
+                <div
+                  className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full"
+                  style={{ width: `${Math.max(10, xpProgress)}%` }}
+                />
+              </div>
             </div>
-            <div className="w-28 h-1.5 rounded-full bg-slate-800 overflow-hidden mt-1">
-              <div
-                className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full"
-                style={{ width: `${Math.max(10, xpProgress)}%` }}
-              />
-            </div>
-          </div>
-        </button>
+          </button>
+        </div>
 
         {/* Currency & Quick Actions */}
         <div className="flex items-center gap-2 sm:gap-3">

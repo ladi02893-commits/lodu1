@@ -283,7 +283,16 @@ export const App: React.FC = () => {
       {/* Main Views Routing */}
       {currentView === 'auth' && (
         <AuthView
+          onAuthenticated={() => {
+            setUser(authService.getCurrentUser());
+            setCurrentView('home');
+          }}
           onSuccess={() => {
+            setUser(authService.getCurrentUser());
+            setCurrentView('home');
+          }}
+          onContinueGuest={() => {
+            authService.loginAsGuest();
             setUser(authService.getCurrentUser());
             setCurrentView('home');
           }}

@@ -19,8 +19,9 @@ import { sound } from '../../lib/audio';
 import { authService } from '../../services/authService';
 
 interface AuthViewProps {
-  onAuthenticated: () => void;
-  onContinueGuest: () => void;
+  onAuthenticated?: () => void;
+  onSuccess?: () => void;
+  onContinueGuest?: () => void;
 }
 
 const AVATAR_OPTIONS = [
@@ -32,7 +33,11 @@ const AVATAR_OPTIONS = [
   { id: 'avatar_6', name: 'Crown Princess', color: '#ec4899', icon: '👸' },
 ];
 
-export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, onContinueGuest }) => {
+export const AuthView: React.FC<AuthViewProps> = ({
+  onAuthenticated,
+  onSuccess,
+  onContinueGuest,
+}) => {
   const [tab, setTab] = useState<'login' | 'register'>('login');
   const [identifier, setIdentifier] = useState('');
   const [email, setEmail] = useState('');
@@ -55,7 +60,8 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, onContinueG
         sound.playTimerWarning();
       } else {
         sound.playHomeGoal();
-        onAuthenticated();
+        if (onAuthenticated) onAuthenticated();
+        if (onSuccess) onSuccess();
       }
     } catch (err: any) {
       setError(err?.message || 'Authentication failed');
@@ -85,7 +91,8 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, onContinueG
           authService.updateProfile({ avatar_url: selectedAvatar });
         }
         sound.playHomeGoal();
-        onAuthenticated();
+        if (onAuthenticated) onAuthenticated();
+        if (onSuccess) onSuccess();
       }
     } catch (err: any) {
       setError(err?.message || 'Registration failed');
@@ -96,7 +103,13 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, onContinueG
 
   const handleGuestEntry = () => {
     sound.playClick();
-    onContinueGuest();
+    if (onContinueGuest) {
+      onContinueGuest();
+    } else if (onSuccess) {
+      onSuccess();
+    } else if (onAuthenticated) {
+      onAuthenticated();
+    }
   };
 
   return (
@@ -108,11 +121,14 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, onContinueG
       {/* Main Authentication Container */}
       <div className="w-full max-w-md bg-slate-900/90 border-2 border-amber-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 backdrop-blur-xl relative z-10 animate-fade-in">
         {/* Imperial Logo & Title */}
-        <div className="text-center space-y-2">
-          <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-amber-600 via-amber-400 to-amber-300 p-0.5 mx-auto flex items-center justify-center shadow-xl shadow-amber-500/30">
-            <div className="w-full h-full rounded-3xl bg-slate-950 flex items-center justify-center">
-              <Crown className="w-8 h-8 text-amber-300 animate-pulse" />
-            </div>
+        <div className="text-center space-y-3">
+          <div className="relative mx-auto w-24 h-24 flex items-center justify-center">
+            <div className="absolute -inset-1 bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-600 rounded-3xl blur-md opacity-75 animate-pulse"></div>
+            <img
+              src="/logo.png"
+              alt="Royal Ludo Online"
+              className="relative w-24 h-24 rounded-3xl object-cover shadow-2xl border-2 border-amber-400/50"
+            />
           </div>
 
           <div>

@@ -6,7 +6,7 @@ import { authService } from '../../services/authService';
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess?: () => void;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => {
@@ -31,8 +31,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
           setError(res.error);
         } else {
           sound.playHomeGoal();
-          onSuccess();
-          onClose();
+          if (onSuccess) onSuccess();
+          if (onClose) onClose();
         }
       } else {
         if (!username.trim()) {
@@ -45,8 +45,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
           setError(res.error);
         } else {
           sound.playHomeGoal();
-          onSuccess();
-          onClose();
+          if (onSuccess) onSuccess();
+          if (onClose) onClose();
         }
       }
     } catch (err: any) {
@@ -68,12 +68,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
         </button>
 
         {/* Header */}
-        <div className="text-center space-y-1">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-amber-600 to-amber-400 p-0.5 mx-auto flex items-center justify-center shadow-lg">
-            <div className="w-full h-full rounded-full bg-slate-950 flex items-center justify-center">
-              <Crown className="w-6 h-6 text-amber-300" />
-            </div>
-          </div>
+        <div className="text-center space-y-2">
+          <img
+            src="/logo.png"
+            alt="Royal Ludo Online"
+            className="w-16 h-16 rounded-2xl mx-auto object-cover shadow-lg border border-amber-400/50"
+          />
           <h3 className="font-royal font-black text-lg text-amber-300">
             {mode === 'login' ? 'Royal Court Sign In' : 'Enlist as New Noble'}
           </h3>
