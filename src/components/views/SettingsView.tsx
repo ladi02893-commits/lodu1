@@ -24,9 +24,10 @@ interface SettingsViewProps {
   onBack: () => void;
   onOpenAuth: () => void;
   onLogout?: () => void;
+  onOpenAdmin?: () => void;
 }
 
-export const SettingsView: React.FC<SettingsViewProps> = ({ onBack, onOpenAuth, onLogout }) => {
+export const SettingsView: React.FC<SettingsViewProps> = ({ onBack, onOpenAuth, onLogout, onOpenAdmin }) => {
   const [user, setUser] = useState(authService.getCurrentUser());
   const [isMuted, setIsMuted] = useState(sound.isMuted);
   const [vibration, setVibration] = useState(true);
@@ -421,6 +422,30 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onBack, onOpenAuth, 
             )}
           </div>
         </div>
+
+        {/* Imperial Admin Chamber Entry */}
+        {onOpenAdmin && (
+          <div className="p-4 rounded-3xl bg-[#0e1424] border border-amber-500/30 flex items-center justify-between gap-3 shadow">
+            <div className="min-w-0">
+              <h3 className="font-royal font-black text-xs text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                <Shield className="w-3.5 h-3.5 text-amber-400" />
+                <span>Imperial Admin Chamber</span>
+              </h3>
+              <p className="text-[10px] text-slate-400 truncate">
+                Manage players, approve coin deposits & economy
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                sound.playClick();
+                onOpenAdmin();
+              }}
+              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-royal font-black text-xs transition-all cursor-pointer shadow hover:brightness-110 flex-shrink-0"
+            >
+              Open Admin
+            </button>
+          </div>
+        )}
 
         {/* Account & Profile */}
         <div className="p-4 rounded-3xl bg-[#0e1424] border border-slate-800 flex items-center justify-between gap-3 shadow">

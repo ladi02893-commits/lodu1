@@ -28,9 +28,16 @@ interface ProfileViewProps {
   onLogout?: () => void;
   onOpenAuth?: () => void;
   onOpenFriends?: () => void;
+  onOpenAdmin?: () => void;
 }
 
-export const ProfileView: React.FC<ProfileViewProps> = ({ onBack, onLogout, onOpenAuth, onOpenFriends }) => {
+export const ProfileView: React.FC<ProfileViewProps> = ({
+  onBack,
+  onLogout,
+  onOpenAuth,
+  onOpenFriends,
+  onOpenAdmin,
+}) => {
   const [user, setUser] = useState<UserProfile>(authService.getCurrentUser());
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(user.display_name);
@@ -313,6 +320,28 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onBack, onLogout, onOp
             </div>
           </div>
         </div>
+
+        {/* Admin Quick Action for Admin Users */}
+        {(user.is_admin || user.role === 'admin' || user.role === 'moderator') && onOpenAdmin && (
+          <div className="p-3.5 rounded-3xl bg-[#0e1424] border border-amber-500/40 flex items-center justify-between gap-3 shadow">
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4 text-amber-400" />
+              <span className="font-royal font-black text-xs text-amber-300 uppercase tracking-wider">
+                Imperial Admin Chamber
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                sound.playClick();
+                onOpenAdmin();
+              }}
+              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-royal font-black text-xs cursor-pointer shadow hover:brightness-110"
+            >
+              Access Console
+            </button>
+          </div>
+        )}
 
         {/* Account Authentication & Logout Card */}
         <div className="p-4 rounded-3xl bg-[#0e1424] border border-slate-800 flex items-center justify-between gap-3 shadow-lg">

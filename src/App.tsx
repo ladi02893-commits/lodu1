@@ -369,6 +369,7 @@ export const App: React.FC = () => {
           onBack={() => setCurrentView('home')}
           onOpenAuth={() => setCurrentView('auth')}
           onOpenFriends={() => setCurrentView('friends')}
+          onOpenAdmin={() => setCurrentView('admin')}
           onLogout={() => {
             setUser(authService.getCurrentUser());
             setCurrentView('auth');
@@ -403,6 +404,7 @@ export const App: React.FC = () => {
         <SettingsView
           onBack={() => setCurrentView('home')}
           onOpenAuth={() => setCurrentView('auth')}
+          onOpenAdmin={() => setCurrentView('admin')}
           onLogout={() => {
             setUser(authService.getCurrentUser());
             setCurrentView('auth');
