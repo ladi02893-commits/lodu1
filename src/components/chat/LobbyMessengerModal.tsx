@@ -279,47 +279,49 @@ export const LobbyMessengerModal: React.FC<LobbyMessengerModalProps> = ({
   const activeFriends = friendsList.filter((f) => f.status === 'friend');
   const pendingRequests = friendsList.filter((f) => f.status === 'pending_received');
 
+  if (!isOpen) return null;
+
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-xl animate-fade-in select-none">
-        <div className="w-full max-w-4xl h-[92vh] max-h-[780px] bg-slate-900/95 border-2 border-amber-500/40 rounded-3xl shadow-2xl flex flex-col overflow-hidden relative">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-slate-950 sm:bg-slate-950/85 sm:backdrop-blur-xl animate-fade-in select-none">
+        <div className="w-full h-full sm:h-[92vh] sm:max-h-[780px] sm:max-w-4xl bg-slate-900 border-0 sm:border-2 sm:border-amber-500/40 rounded-none sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden relative">
           {/* Header Bar */}
-          <header className="px-4 py-3 bg-slate-950/90 border-b border-amber-500/20 flex items-center justify-between flex-shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-400 p-0.5 shadow">
+          <header className="px-3.5 sm:px-4 py-2.5 sm:py-3 bg-slate-950/90 border-b border-amber-500/20 flex items-center justify-between flex-shrink-0">
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-400 p-0.5 shadow flex-shrink-0">
                 <div className="w-full h-full rounded-2xl bg-slate-950 flex items-center justify-center text-amber-300">
-                  <MessageCircle className="w-5 h-5 fill-amber-400/20 text-amber-400" />
+                  <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 fill-amber-400/20 text-amber-400" />
                 </div>
               </div>
-              <div>
-                <h2 className="font-royal font-black text-sm sm:text-base text-slate-100 flex items-center gap-2">
-                  <span>Imperial Realm Messenger</span>
-                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/30 uppercase tracking-wider">
+              <div className="min-w-0">
+                <h2 className="font-royal font-black text-xs sm:text-base text-slate-100 flex items-center gap-1.5">
+                  <span className="truncate">Imperial Realm Messenger</span>
+                  <span className="hidden sm:inline px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/30 uppercase tracking-wider">
                     Lobby & DMs
                   </span>
                 </h2>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">
                   Chat with companions, realm players & send battle challenges
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
               {/* Disappearing Timer Menu */}
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => setShowTimerMenu(!showTimerMenu)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                  className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl border text-[10px] sm:text-xs font-semibold transition-all cursor-pointer ${
                     (activeTab === 'global' ? globalTimer : dmTimer) > 0
                       ? 'bg-amber-950 border-amber-400 text-amber-300 shadow'
                       : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
                   }`}
                   title="Auto-Delete Disappearing Timer"
                 >
-                  <Clock className="w-3.5 h-3.5" />
+                  <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   <span>
-                    Auto-Delete: {formatTimerLabel(activeTab === 'global' ? globalTimer : dmTimer)}
+                    Auto: {formatTimerLabel(activeTab === 'global' ? globalTimer : dmTimer)}
                   </span>
                 </button>
 
@@ -353,29 +355,29 @@ export const LobbyMessengerModal: React.FC<LobbyMessengerModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-slate-100 hover:bg-slate-700 transition-all cursor-pointer"
+                className="p-1.5 sm:p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-slate-100 hover:bg-slate-700 transition-all cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
           </header>
 
           {/* Navigation Tabs */}
-          <div className="px-4 py-2 bg-slate-950/60 border-b border-slate-800 flex items-center gap-2 flex-shrink-0">
+          <div className="px-2 sm:px-4 py-2 bg-slate-950/60 border-b border-slate-800 flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             <button
               type="button"
               onClick={() => {
                 sound.playClick();
                 setActiveTab('global');
               }}
-              className={`flex-1 py-2 rounded-2xl font-bold text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center gap-2 ${
+              className={`flex-1 py-1.5 sm:py-2 px-1 rounded-2xl font-bold text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-2 ${
                 activeTab === 'global'
                   ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 shadow-lg font-black'
                   : 'text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800'
               }`}
             >
-              <Users className="w-4 h-4" />
-              <span>🌍 Realm Global Chat</span>
+              <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+              <span className="truncate">Global Chat</span>
             </button>
 
             <button
@@ -384,14 +386,14 @@ export const LobbyMessengerModal: React.FC<LobbyMessengerModalProps> = ({
                 sound.playClick();
                 setActiveTab('dms');
               }}
-              className={`flex-1 py-2 rounded-2xl font-bold text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center gap-2 ${
+              className={`flex-1 py-1.5 sm:py-2 px-1 rounded-2xl font-bold text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-2 ${
                 activeTab === 'dms'
                   ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 shadow-lg font-black'
                   : 'text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800'
               }`}
             >
-              <MessageSquare className="w-4 h-4" />
-              <span>💬 Direct Messages (DMs)</span>
+              <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+              <span className="truncate">Direct DMs</span>
             </button>
 
             <button
@@ -400,16 +402,16 @@ export const LobbyMessengerModal: React.FC<LobbyMessengerModalProps> = ({
                 sound.playClick();
                 setActiveTab('friends');
               }}
-              className={`flex-1 py-2 rounded-2xl font-bold text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center gap-2 relative ${
+              className={`flex-1 py-1.5 sm:py-2 px-1 rounded-2xl font-bold text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-2 relative ${
                 activeTab === 'friends'
                   ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 shadow-lg font-black'
                   : 'text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800'
               }`}
             >
-              <Crown className="w-4 h-4" />
-              <span>👥 Companions & Discover</span>
+              <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+              <span className="truncate">Companions</span>
               {pendingRequests.length > 0 && (
-                <span className="px-1.5 py-0.2 bg-rose-500 text-white font-black text-[9px] rounded-full shadow animate-pulse">
+                <span className="px-1.5 py-0.2 bg-rose-500 text-white font-black text-[8px] sm:text-[9px] rounded-full shadow animate-pulse">
                   {pendingRequests.length}
                 </span>
               )}

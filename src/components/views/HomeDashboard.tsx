@@ -278,64 +278,6 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
           )}
         </div>
 
-        {/* Row 2: Royal Grand Tournament Season Banner */}
-        <div className="w-full p-3.5 sm:p-4 rounded-3xl bg-[#0e1424] border-2 border-amber-500/40 space-y-3 shadow-xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-400/40 flex items-center justify-center text-amber-400 flex-shrink-0">
-                <Trophy className="w-5 h-5" />
-              </div>
-              <h3 className="font-royal font-black text-xs sm:text-sm text-amber-300 uppercase tracking-wider">
-                ROYAL GRAND TOURNAMENT SEASON
-              </h3>
-            </div>
-            <span className="px-2 py-0.5 rounded-full bg-amber-950/80 border border-amber-500/40 text-amber-300 text-[10px] font-bold flex items-center gap-1 flex-shrink-0">
-              <Flame className="w-3 h-3 text-orange-400 fill-orange-400" />
-              Streak {dailyStatus.streak || 1}d
-            </span>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              id="home-live-spectate-btn"
-              type="button"
-              onClick={() => {
-                sound.playClick();
-                if (onOpenSpectator) onOpenSpectator();
-              }}
-              className="py-2.5 px-1 rounded-xl bg-[#070b16] border border-rose-500/50 hover:bg-rose-950/40 text-rose-300 font-bold text-[10px] sm:text-[11px] uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow"
-            >
-              <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-              <span>WATCH LIVE</span>
-            </button>
-
-            <button
-              id="home-daily-calendar-btn"
-              type="button"
-              onClick={() => {
-                sound.playClick();
-                if (onOpenDailyLogin) onOpenDailyLogin();
-              }}
-              className="py-2.5 px-1 rounded-xl bg-[#070b16] border border-cyan-500/40 hover:bg-cyan-950/40 text-cyan-300 font-bold text-[10px] sm:text-[11px] uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow"
-            >
-              <Gift className="w-3.5 h-3.5 text-cyan-400" />
-              <span>DAILY TRIBUTE</span>
-            </button>
-
-            <button
-              id="home-claim-missions-btn"
-              type="button"
-              onClick={() => {
-                sound.playClick();
-                onNavigate('missions');
-              }}
-              className="py-2.5 px-1 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 text-slate-950 font-royal font-black text-[10px] sm:text-[11px] uppercase tracking-wider flex items-center justify-center shadow-md cursor-pointer transition-all active:scale-95"
-            >
-              MISSIONS
-            </button>
-          </div>
-        </div>
-
         {/* Private Royal Chambers Heading */}
         <div className="flex items-center gap-2 pt-1 px-1">
           <Crown className="w-4 h-4 text-amber-400" />
@@ -344,7 +286,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
           </h3>
         </div>
 
-        {/* Row 3 & 4: 2 Full-width Cards (Create & Join Private Room) */}
+        {/* 2 Full-width Cards (Create & Join Private Room) */}
         <div className="space-y-2.5 w-full">
           {/* Create Private Room Card */}
           <div className="w-full p-3 sm:p-3.5 rounded-3xl bg-[#0e1424] border border-amber-500/30 flex items-center justify-between shadow-lg">
@@ -395,9 +337,9 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
           </div>
         </div>
 
-        {/* Row 5: 5 Game Modes Grid */}
-        <div className="grid grid-cols-5 gap-1.5 sm:gap-2 w-full">
-          {/* Quick Match 4P */}
+        {/* 3 Game Modes Grid */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 w-full">
+          {/* Quick Match */}
           <button
             id="mode-quick-4p"
             type="button"
@@ -410,46 +352,18 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                 playerCount: 4,
               });
             }}
-            className="p-2 sm:p-2.5 rounded-3xl bg-[#0e1424] border border-amber-500/30 hover:border-amber-400 transition-all flex flex-col items-center justify-between text-center min-h-[140px] sm:min-h-[145px] cursor-pointer shadow active:scale-95"
+            className="p-3 rounded-3xl bg-[#0e1424] border border-amber-500/30 hover:border-amber-400 transition-all flex flex-col items-center justify-between text-center min-h-[145px] sm:min-h-[155px] cursor-pointer shadow active:scale-95"
           >
             <div className="relative flex flex-col items-center">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-amber-500 flex items-center justify-center text-slate-950 shadow">
-                <Users className="w-5 h-5 sm:w-6 sm:h-6 text-slate-950" />
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-amber-500 flex items-center justify-center text-slate-950 shadow">
+                <Users className="w-6 h-6 sm:w-7 sm:h-7 text-slate-950" />
               </div>
-              <span className="mt-1 px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-950/80 border border-amber-500/40 text-[8px] sm:text-[9px] font-black text-amber-300">
+              <span className="mt-1 px-2 py-0.5 rounded-full bg-amber-950/80 border border-amber-500/40 text-[9px] font-black text-amber-300">
                 4P
               </span>
             </div>
-            <span className="font-royal font-black text-[9px] sm:text-[11px] text-slate-100 leading-tight">
+            <span className="font-royal font-black text-xs sm:text-sm text-slate-100 leading-tight">
               QUICK<br />MATCH
-            </span>
-          </button>
-
-          {/* 2v2 Team Battle */}
-          <button
-            id="mode-team-2v2"
-            type="button"
-            onClick={() => {
-              sound.playClick();
-              setStakeModalConfig({
-                isOpen: true,
-                mode: 'team_2v2',
-                modeTitle: '2v2 Team Co-op Battle',
-                playerCount: 4,
-              });
-            }}
-            className="p-2 sm:p-2.5 rounded-3xl bg-[#0e1424] border border-cyan-500/30 hover:border-cyan-400 transition-all flex flex-col items-center justify-between text-center min-h-[140px] sm:min-h-[145px] cursor-pointer shadow active:scale-95"
-          >
-            <div className="relative flex flex-col items-center">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-cyan-500 flex items-center justify-center text-slate-950 shadow">
-                <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-slate-950 fill-slate-950" />
-              </div>
-              <span className="mt-1 px-1.5 sm:px-2 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-[8px] sm:text-[9px] font-black text-cyan-300">
-                2v2
-              </span>
-            </div>
-            <span className="font-royal font-black text-[9px] sm:text-[11px] text-slate-100 leading-tight">
-              2v2 TEAM<br />BATTLE
             </span>
           </button>
 
@@ -466,31 +380,13 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                 playerCount: 2,
               });
             }}
-            className="p-2 sm:p-2.5 rounded-3xl bg-[#0e1424] border border-rose-500/30 hover:border-rose-400 transition-all flex flex-col items-center justify-between text-center min-h-[140px] sm:min-h-[145px] cursor-pointer shadow active:scale-95"
+            className="p-3 rounded-3xl bg-[#0e1424] border border-rose-500/30 hover:border-rose-400 transition-all flex flex-col items-center justify-between text-center min-h-[145px] sm:min-h-[155px] cursor-pointer shadow active:scale-95"
           >
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-rose-500 flex items-center justify-center text-white shadow">
-              <Swords className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-rose-500 flex items-center justify-center text-white shadow">
+              <Swords className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
             </div>
-            <span className="font-royal font-black text-[9px] sm:text-[11px] text-slate-100 leading-tight">
+            <span className="font-royal font-black text-xs sm:text-sm text-slate-100 leading-tight">
               ROYAL DUEL<br />(2P)
-            </span>
-          </button>
-
-          {/* Vs Royal AI */}
-          <button
-            id="mode-vs-bot"
-            type="button"
-            onClick={() => {
-              sound.playClick();
-              setShowBotModal(true);
-            }}
-            className="p-2 sm:p-2.5 rounded-3xl bg-[#0e1424] border border-purple-500/30 hover:border-purple-400 transition-all flex flex-col items-center justify-between text-center min-h-[140px] sm:min-h-[145px] cursor-pointer shadow active:scale-95"
-          >
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-purple-600 flex items-center justify-center text-white shadow">
-              <Bot className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-            </div>
-            <span className="font-royal font-black text-[9px] sm:text-[11px] text-slate-100 leading-tight">
-              VS ROYAL AI
             </span>
           </button>
 
@@ -502,19 +398,19 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
               sound.playClick();
               setShowLocalModal(true);
             }}
-            className="p-2 sm:p-2.5 rounded-3xl bg-[#0e1424] border border-emerald-500/30 hover:border-emerald-400 transition-all flex flex-col items-center justify-between text-center min-h-[140px] sm:min-h-[145px] cursor-pointer shadow active:scale-95"
+            className="p-3 rounded-3xl bg-[#0e1424] border border-emerald-500/30 hover:border-emerald-400 transition-all flex flex-col items-center justify-between text-center min-h-[145px] sm:min-h-[155px] cursor-pointer shadow active:scale-95"
           >
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shadow">
-              <Play className="w-5 h-5 sm:w-6 sm:h-6 text-white fill-white" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shadow">
+              <Play className="w-6 h-6 sm:w-7 sm:h-7 text-white fill-white" />
             </div>
-            <span className="font-royal font-black text-[9px] sm:text-[11px] text-slate-100 leading-tight">
+            <span className="font-royal font-black text-xs sm:text-sm text-slate-100 leading-tight">
               PASS & PLAY
             </span>
           </button>
         </div>
 
-        {/* Row 6: Bottom 6 Navigation Tiles */}
-        <div className="grid grid-cols-6 gap-1.5 sm:gap-2 w-full pt-1">
+        {/* Bottom 5 Navigation Tiles */}
+        <div className="grid grid-cols-5 gap-1.5 sm:gap-2 w-full pt-1">
           {/* Guilds & Clans */}
           <button
             onClick={() => {
@@ -547,20 +443,6 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
             </div>
             <span className="text-[8px] sm:text-[10px] font-bold text-slate-200">
               Friends
-            </span>
-          </button>
-
-          {/* Leaderboard */}
-          <button
-            onClick={() => {
-              sound.playClick();
-              onNavigate('leaderboard');
-            }}
-            className="p-2 sm:p-2.5 rounded-2xl bg-[#0e1424] border border-slate-800 hover:border-amber-500/40 transition-all flex flex-col items-center justify-center gap-1 cursor-pointer shadow text-center active:scale-95"
-          >
-            <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
-            <span className="text-[8px] sm:text-[10px] font-bold text-slate-200">
-              Leaderboard
             </span>
           </button>
 
