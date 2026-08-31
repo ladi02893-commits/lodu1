@@ -20,10 +20,12 @@ import { LuckyWheelModal } from './components/views/LuckyWheelModal';
 import { LiveMatchesModal, LiveMatchEntry } from './components/views/LiveMatchesModal';
 import { PaymentModal } from './components/views/PaymentModal';
 import { LobbyMessengerModal } from './components/chat/LobbyMessengerModal';
+import { ChatPinModal } from './components/chat/ChatPinModal';
 import { DailyRewardToast } from './components/common/DailyRewardToast';
 import { sound } from './lib/audio';
 import { GameMode } from './lib/ludo/types';
 import { authService } from './services/authService';
+import { chatSecurityService } from './services/chatSecurityService';
 import { gameService } from './services/gameService';
 import { matchmakingService } from './services/matchmakingService';
 import { AuthView } from './components/views/AuthView';
@@ -63,6 +65,11 @@ export const App: React.FC = () => {
   const [showLiveSpectatorModal, setShowLiveSpectatorModal] = useState(false);
   const [showGlobalPaymentModal, setShowGlobalPaymentModal] = useState(false);
   const [showLobbyMessenger, setShowLobbyMessenger] = useState(false);
+  const [showChatPinModal, setShowChatPinModal] = useState(false);
+  const [pendingMessengerTarget, setPendingMessengerTarget] = useState<{
+    tab: 'global' | 'dms' | 'friends';
+    friendId?: string;
+  } | null>(null);
   const [lobbyMessengerTab, setLobbyMessengerTab] = useState<'global' | 'dms' | 'friends'>('global');
   const [lobbyMessengerFriendId, setLobbyMessengerFriendId] = useState<string | undefined>();
   const [dailyToast, setDailyToast] = useState<{ reward: DailyLoginDay; streak: number } | null>(null);
@@ -322,9 +329,15 @@ export const App: React.FC = () => {
           onOpenSpectator={() => setShowLiveSpectatorModal(true)}
           onOpenPayment={() => setShowGlobalPaymentModal(true)}
           onOpenMessenger={(tab, friendId) => {
-            setLobbyMessengerTab(tab || 'global');
-            setLobbyMessengerFriendId(friendId);
-            setShowLobbyMessenger(true);
+            const targetTab = tab || 'global';
+            if (chatSecurityService.isPinRequired()) {
+              setPendingMessengerTarget({ tab: targetTab, friendId });
+              setShowChatPinModal(true);
+            } else {
+              setLobbyMessengerTab(targetTab);
+              setLobbyMessengerFriendId(friendId);
+              setShowLobbyMessenger(true);
+            }
           }}
         />
       )}
@@ -506,6 +519,24 @@ export const App: React.FC = () => {
         onClose={() => setShowGlobalPaymentModal(false)}
         onSuccess={() => {
           setUser(authService.getCurrentUser());
+        }}
+      />
+
+      {/* Realm Chat 4-Digit Security PIN Modal */}
+      <ChatPinModal
+        isOpen={showChatPinModal}
+        onClose={() => {
+          setShowChatPinModal(false);
+          setPendingMessengerTarget(null);
+        }}
+        onSuccess={() => {
+          setShowChatPinModal(false);
+          if (pendingMessengerTarget) {
+            setLobbyMessengerTab(pendingMessengerTarget.tab);
+            setLobbyMessengerFriendId(pendingMessengerTarget.friendId);
+          }
+          setShowLobbyMessenger(true);
+          setPendingMessengerTarget(null);
         }}
       />
 

@@ -27,6 +27,7 @@ import { UserProfile } from '../../types/database';
 import { rewardService, DailyLoginStatus } from '../../services/rewardService';
 import { luckyWheelService } from '../../services/luckyWheelService';
 import { friendsService } from '../../services/friendsService';
+import { chatSecurityService } from '../../services/chatSecurityService';
 import { StakeSelectorModal } from './StakeSelectorModal';
 
 interface HomeDashboardProps {
@@ -80,6 +81,9 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   const [dailyStatus, setDailyStatus] = useState<DailyLoginStatus>(() => rewardService.getDailyLoginStatus());
   const [wheelStatus, setWheelStatus] = useState(() => luckyWheelService.getStatus());
   const [pendingRequestsCount, setPendingRequestsCount] = useState(() => friendsService.getFollowers().length);
+  const [isChatHidden, setIsChatHidden] = useState(() => chatSecurityService.isChatHidden());
+  const chatClickCountRef = React.useRef(0);
+  const chatClickTimerRef = React.useRef<any>(null);
   const [stakeModalConfig, setStakeModalConfig] = useState<{
     isOpen: boolean;
     mode: 'quick_2' | 'quick_4' | 'team_2v2' | 'vs_computer';
@@ -96,8 +100,45 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
     const unsub = friendsService.subscribe(() => {
       setPendingRequestsCount(friendsService.getFollowers().length);
     });
-    return () => unsub();
+    const unsubChat = chatSecurityService.subscribe(() => {
+      setIsChatHidden(chatSecurityService.isChatHidden());
+    });
+    return () => {
+      unsub();
+      unsubChat();
+    };
   }, []);
+
+  const handleMessengerButtonClick = (tab: 'global' | 'dms' | 'friends' = 'global') => {
+    sound.playClick();
+    chatClickCountRef.current += 1;
+
+    if (chatClickCountRef.current >= 3) {
+      if (chatClickTimerRef.current) clearTimeout(chatClickTimerRef.current);
+      chatClickCountRef.current = 0;
+      chatSecurityService.setChatHidden(true);
+      sound.playSafeStar();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('royal_ludo_notification', {
+            detail: {
+              title: '🤫 Realm Chat Hidden!',
+              message: 'Realm Chat button is now hidden in secret mode. You can unhide it or change PIN in Chamber Settings.',
+            },
+          })
+        );
+      }
+      return;
+    }
+
+    if (chatClickTimerRef.current) clearTimeout(chatClickTimerRef.current);
+    chatClickTimerRef.current = setTimeout(() => {
+      if (chatClickCountRef.current > 0 && chatClickCountRef.current < 3) {
+        if (onOpenMessenger) onOpenMessenger(tab);
+      }
+      chatClickCountRef.current = 0;
+    }, 380);
+  };
 
   // Level & XP math
   const currentLevel = user.level || 1;
@@ -204,19 +245,18 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
           </button>
 
           {/* Imperial Realm Messenger Shortcut */}
-          <button
-            id="home-messenger-btn"
-            type="button"
-            onClick={() => {
-              sound.playClick();
-              if (onOpenMessenger) onOpenMessenger('global');
-            }}
-            className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-amber-500/40 bg-gradient-to-r from-amber-950/80 to-slate-900 text-amber-300 hover:border-amber-400 text-xs sm:text-sm font-bold transition-all cursor-pointer shadow-inner"
-            title="Imperial Realm Messenger & Global Chat"
-          >
-            <MessageSquare className="w-4 h-4 text-amber-400" />
-            <span className="hidden sm:inline">Realm Chat</span>
-          </button>
+          {!isChatHidden && (
+            <button
+              id="home-messenger-btn"
+              type="button"
+              onClick={() => handleMessengerButtonClick('global')}
+              className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-amber-500/40 bg-gradient-to-r from-amber-950/80 to-slate-900 text-amber-300 hover:border-amber-400 text-xs sm:text-sm font-bold transition-all cursor-pointer shadow-inner active:scale-95"
+              title="Imperial Realm Messenger & Global Chat (Click 3 times to hide)"
+            >
+              <MessageSquare className="w-4 h-4 text-amber-400" />
+              <span className="hidden sm:inline">Realm Chat</span>
+            </button>
+          )}
 
           {/* Coins Wallet */}
           <button
@@ -784,21 +824,20 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
         />
       )}
       {/* Floating Lobby Messenger Action Button */}
-      <button
-        id="home-floating-chat-btn"
-        type="button"
-        onClick={() => {
-          sound.playClick();
-          if (onOpenMessenger) onOpenMessenger('global');
-        }}
-        className="fixed bottom-6 right-6 z-40 p-4 rounded-full bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-500 text-slate-950 shadow-[0_8px_25px_rgba(245,158,11,0.5)] hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer flex items-center justify-center border-2 border-amber-300 group"
-        title="Open Realm Chat & DMs"
-      >
-        <MessageSquare className="w-6 h-6 fill-slate-950" />
-        <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-300 font-royal font-black text-xs pl-0 group-hover:pl-2">
-          Realm Chat
-        </span>
-      </button>
+      {!isChatHidden && (
+        <button
+          id="home-floating-chat-btn"
+          type="button"
+          onClick={() => handleMessengerButtonClick('global')}
+          className="fixed bottom-6 right-6 z-40 p-4 rounded-full bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-500 text-slate-950 shadow-[0_8px_25px_rgba(245,158,11,0.5)] hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer flex items-center justify-center border-2 border-amber-300 group"
+          title="Open Realm Chat & DMs (Click 3 times to hide)"
+        >
+          <MessageSquare className="w-6 h-6 fill-slate-950" />
+          <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-300 font-royal font-black text-xs pl-0 group-hover:pl-2">
+            Realm Chat
+          </span>
+        </button>
+      )}
     </div>
   );
 };

@@ -1,17 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   BookOpen,
   Check,
   Crown,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Lock,
   LogOut,
+  MessageSquare,
   RotateCcw,
   Shield,
+  Sparkles,
   Volume2,
   VolumeX,
 } from 'lucide-react';
 import { sound } from '../../lib/audio';
 import { authService } from '../../services/authService';
+import { chatSecurityService } from '../../services/chatSecurityService';
 
 interface SettingsViewProps {
   onBack: () => void;
@@ -26,10 +33,78 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onBack, onOpenAuth, 
   const [autoPass, setAutoPass] = useState(true);
   const [feedback, setFeedback] = useState<string | null>(null);
 
+  // Chat Privacy & PIN state
+  const [isChatHidden, setIsChatHidden] = useState(() => chatSecurityService.isChatHidden());
+  const [isPinRequired, setIsPinRequired] = useState(() => chatSecurityService.isPinRequired());
+  const [showPinChange, setShowPinChange] = useState(false);
+  const [currentPinInput, setCurrentPinInput] = useState('');
+  const [newPinInput, setNewPinInput] = useState('');
+  const [pinFeedback, setPinFeedback] = useState<{ msg: string; isError: boolean } | null>(null);
+
+  useEffect(() => {
+    const unsub = chatSecurityService.subscribe(() => {
+      setIsChatHidden(chatSecurityService.isChatHidden());
+      setIsPinRequired(chatSecurityService.isPinRequired());
+    });
+    return () => unsub();
+  }, []);
+
   const toggleSound = () => {
     sound.isMuted = !sound.isMuted;
     setIsMuted(sound.isMuted);
     sound.playClick();
+  };
+
+  const handleToggleChatHidden = () => {
+    sound.playClick();
+    const nextVal = !isChatHidden;
+    chatSecurityService.setChatHidden(nextVal);
+    setIsChatHidden(nextVal);
+    setFeedback(nextVal ? 'Realm Chat button is now hidden from Home Dashboard' : 'Realm Chat button is now visible');
+    setTimeout(() => setFeedback(null), 3500);
+  };
+
+  const handleTogglePinRequired = () => {
+    sound.playClick();
+    const nextVal = !isPinRequired;
+    chatSecurityService.setPinRequired(nextVal);
+    setIsPinRequired(nextVal);
+    setFeedback(nextVal ? 'Realm Chat PIN protection enabled (Default: 1234)' : 'Realm Chat PIN protection disabled');
+    setTimeout(() => setFeedback(null), 3500);
+  };
+
+  const handleSaveNewPin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPinFeedback(null);
+
+    if (!chatSecurityService.verifyPin(currentPinInput)) {
+      sound.playTimerWarning();
+      setPinFeedback({ msg: 'Current PIN is incorrect! (Default: 1234)', isError: true });
+      return;
+    }
+
+    if (!/^\d{4}$/.test(newPinInput.trim())) {
+      sound.playTimerWarning();
+      setPinFeedback({ msg: 'New PIN must be exactly 4 digits (e.g. 5678)', isError: true });
+      return;
+    }
+
+    sound.playHomeGoal();
+    chatSecurityService.setPinCode(newPinInput.trim());
+    setPinFeedback({ msg: 'Security PIN updated successfully!', isError: false });
+    setCurrentPinInput('');
+    setNewPinInput('');
+    setTimeout(() => {
+      setShowPinChange(false);
+      setPinFeedback(null);
+    }, 2000);
+  };
+
+  const handleResetPinToDefault = () => {
+    sound.playClick();
+    chatSecurityService.setPinCode('1234');
+    setPinFeedback({ msg: 'PIN reset to default "1234"', isError: false });
+    setTimeout(() => setPinFeedback(null), 3000);
   };
 
   const handleResetGuestData = () => {
@@ -184,6 +259,186 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onBack, onOpenAuth, 
             >
               {autoPass ? 'ON' : 'OFF'}
             </button>
+          </div>
+        </div>
+
+        {/* Feedback Alert */}
+        {feedback && (
+          <div className="p-3 rounded-2xl bg-amber-950/80 border border-amber-500/50 text-amber-200 text-xs font-semibold text-center animate-fade-in shadow-lg">
+            {feedback}
+          </div>
+        )}
+
+        {/* Realm Chat Privacy & Security Controls */}
+        <div className="p-5 rounded-3xl bg-slate-900/90 border-2 border-amber-500/30 space-y-4 shadow-xl">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                <MessageSquare className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="font-royal font-bold text-sm text-amber-300 uppercase tracking-wider">
+                  Realm Chat Privacy & Lock
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  Control chat visibility and PIN protection (ریلم چیٹ پرائیویسی)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 1. Hide / Unhide Toggle */}
+          <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-950/60 border border-slate-800">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-xs sm:text-sm text-slate-100">
+                  Realm Chat Button Visibility
+                </span>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    isChatHidden
+                      ? 'bg-rose-950 border border-rose-500/40 text-rose-300'
+                      : 'bg-emerald-950 border border-emerald-500/40 text-emerald-300'
+                  }`}
+                >
+                  {isChatHidden ? 'Hidden (Secret Mode)' : 'Visible in Realm'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                {isChatHidden
+                  ? 'Button is hidden from Dashboard. Click below to show it again.'
+                  : 'Clicking Realm Chat 3 times on dashboard will also instantly hide it.'}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleToggleChatHidden}
+              className={`px-3.5 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow flex items-center gap-1.5 ${
+                isChatHidden
+                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 hover:brightness-110'
+                  : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
+              }`}
+            >
+              {isChatHidden ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+              <span>{isChatHidden ? 'Unhide Button' : 'Hide Button'}</span>
+            </button>
+          </div>
+
+          {/* 2. PIN Protection Toggle */}
+          <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-950/60 border border-slate-800">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-xs sm:text-sm text-slate-100">
+                  PIN Code Lock Protection
+                </span>
+                <span className="text-[10px] font-mono font-bold text-amber-400">
+                  (Default PIN: 1234)
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Requires entering 4-digit PIN code before opening Realm Chat
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleTogglePinRequired}
+              className={`px-4 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+                isPinRequired
+                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow'
+                  : 'bg-slate-800 text-slate-400'
+              }`}
+            >
+              {isPinRequired ? 'LOCKED (ON)' : 'OFF'}
+            </button>
+          </div>
+
+          {/* 3. Change PIN Code Section */}
+          <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <KeyRound className="w-4 h-4 text-amber-400" />
+                <span className="font-bold text-xs sm:text-sm text-slate-200">
+                  Security PIN Management
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  setShowPinChange(!showPinChange);
+                  setPinFeedback(null);
+                }}
+                className="text-xs text-amber-400 hover:underline font-bold cursor-pointer"
+              >
+                {showPinChange ? 'Cancel' : 'Change PIN Code →'}
+              </button>
+            </div>
+
+            {showPinChange && (
+              <form onSubmit={handleSaveNewPin} className="space-y-3 pt-2 border-t border-slate-800 animate-fade-in">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                      Current PIN (Default: 1234)
+                    </label>
+                    <input
+                      type="password"
+                      maxLength={4}
+                      placeholder="••••"
+                      value={currentPinInput}
+                      onChange={(e) => setCurrentPinInput(e.target.value.replace(/\D/g, ''))}
+                      className="w-full bg-slate-900 border border-slate-700 focus:border-amber-400 rounded-xl px-3 py-2 text-center text-base tracking-widest text-amber-300 outline-none"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                      New 4-Digit PIN
+                    </label>
+                    <input
+                      type="password"
+                      maxLength={4}
+                      placeholder="••••"
+                      value={newPinInput}
+                      onChange={(e) => setNewPinInput(e.target.value.replace(/\D/g, ''))}
+                      className="w-full bg-slate-900 border border-slate-700 focus:border-amber-400 rounded-xl px-3 py-2 text-center text-base tracking-widest text-amber-300 outline-none"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {pinFeedback && (
+                  <div
+                    className={`p-2.5 rounded-xl text-xs font-semibold text-center ${
+                      pinFeedback.isError
+                        ? 'bg-rose-950 text-rose-200 border border-rose-500/40'
+                        : 'bg-emerald-950 text-emerald-200 border border-emerald-500/40'
+                    }`}
+                  >
+                    {pinFeedback.msg}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 font-royal font-bold text-xs uppercase tracking-wider text-slate-950 hover:brightness-110 transition-all cursor-pointer shadow"
+                  >
+                    Save New PIN Code
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleResetPinToDefault}
+                    className="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-all cursor-pointer"
+                  >
+                    Reset to 1234
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
 
