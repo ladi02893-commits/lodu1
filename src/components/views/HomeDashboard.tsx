@@ -7,6 +7,7 @@ import {
   Crown,
   Flame,
   Gift,
+  Menu,
   MessageSquare,
   Play,
   Plus,
@@ -148,153 +149,63 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   const xpProgress = Math.min(100, Math.round((currentXp / xpForNextLevel) * 100));
 
   return (
-    <div className="w-full min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center pb-16 overflow-x-hidden">
-      {/* Top Background Glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-80 bg-amber-500/10 blur-[130px] pointer-events-none rounded-full" />
-
+    <div className="w-full min-h-screen bg-[#070b16] text-slate-100 flex flex-col items-center pb-20 overflow-x-hidden font-sans">
       {/* Royal Header Bar */}
-      <header className="w-full max-w-5xl px-4 py-3 sm:py-4 flex items-center justify-between border-b border-amber-500/20 bg-slate-950/80 backdrop-blur-md sticky top-0 z-30">
+      <header className="w-full max-w-xl px-4 py-3 flex items-center justify-between sticky top-0 z-30 bg-[#070b16]/95 backdrop-blur-md border-b border-amber-500/10">
+        {/* User Avatar & Level & XP */}
+        <button
+          id="home-profile-btn"
+          type="button"
+          onClick={() => {
+            sound.playClick();
+            onNavigate('profile');
+          }}
+          className="flex items-center gap-3 cursor-pointer text-left group"
+        >
+          <div className="relative w-12 h-12 rounded-full p-0.5 bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-600 shadow-md shadow-amber-500/20">
+            <img
+              src="/logo.png"
+              alt="Avatar"
+              className="w-full h-full rounded-full object-cover bg-slate-900 border-2 border-[#070b16]"
+            />
+            <span className="absolute -bottom-1 -left-1 px-1.5 py-0.2 rounded-full bg-amber-500 text-[9px] font-black text-slate-950 shadow border border-[#070b16]">
+              Lv.{currentLevel}
+            </span>
+          </div>
+
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold text-sm text-slate-100">{user.display_name}</span>
+              <span className="text-xs text-amber-400 font-mono font-bold">#{user.player_id}</span>
+            </div>
+            <div className="w-24 sm:w-28 h-1.5 rounded-full bg-slate-800/80 overflow-hidden mt-1">
+              <div
+                className="h-full bg-amber-500 rounded-full"
+                style={{ width: `${Math.max(10, xpProgress)}%` }}
+              />
+            </div>
+          </div>
+        </button>
+
+        {/* Currency & Menu Button */}
         <div className="flex items-center gap-2.5">
-          <img
-            src="/logo.png"
-            alt="Royal Ludo Online"
-            className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl object-cover shadow-md shadow-amber-500/20 border border-amber-400/40 hover:scale-105 transition-transform"
-          />
-          {/* User Avatar & Level Profile */}
-          <button
-            id="home-profile-btn"
-            type="button"
-            onClick={() => {
-              sound.playClick();
-              onNavigate('profile');
-            }}
-            className="flex items-center gap-2.5 p-1 rounded-2xl hover:bg-slate-900 border border-transparent hover:border-amber-500/30 transition-all cursor-pointer text-left"
-          >
-            <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-gradient-to-tr from-amber-600 to-amber-400 p-0.5 shadow-md flex items-center justify-center">
-              <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center">
-                <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300" />
-              </div>
-              <span className="absolute -bottom-1 -right-1 px-1.5 py-0.2 rounded-full bg-amber-500 text-[9px] font-black text-slate-950 shadow border border-slate-900">
-                Lv.{currentLevel}
-              </span>
-            </div>
-
-            <div className="hidden sm:block">
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-xs sm:text-sm text-slate-100">{user.display_name}</span>
-                <span className="text-[10px] text-amber-400/80 font-mono">#{user.player_id}</span>
-              </div>
-              <div className="w-24 h-1.5 rounded-full bg-slate-800 overflow-hidden mt-0.5">
-                <div
-                  className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full"
-                  style={{ width: `${Math.max(10, xpProgress)}%` }}
-                />
-              </div>
-            </div>
-          </button>
-        </div>
-
-        {/* Currency & Quick Actions */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* Lucky Fortune Wheel Trigger */}
-          <button
-            id="home-lucky-wheel-btn"
-            type="button"
-            onClick={() => {
-              sound.playClick();
-              if (onOpenLuckyWheel) onOpenLuckyWheel();
-            }}
-            className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs sm:text-sm font-bold transition-all cursor-pointer shadow-inner ${
-              wheelStatus.canFreeSpin
-                ? 'bg-gradient-to-r from-yellow-500 via-amber-400 to-yellow-500 text-slate-950 border-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.5)] animate-pulse'
-                : 'bg-slate-900 border-amber-500/30 text-amber-300 hover:bg-slate-800'
-            }`}
-            title="Lucky Fortune Spin Wheel"
-          >
-            <Sparkles className={`w-4 h-4 ${wheelStatus.canFreeSpin ? 'text-slate-950' : 'text-amber-400'}`} />
-            <span className="hidden sm:inline">
-              {wheelStatus.canFreeSpin ? 'Free Spin!' : 'Fortune Wheel'}
-            </span>
-          </button>
-
-          {/* Daily Login Tribute Shortcut */}
-          <button
-            id="home-daily-login-btn"
-            type="button"
-            onClick={() => {
-              sound.playClick();
-              if (onOpenDailyLogin) onOpenDailyLogin();
-            }}
-            className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs sm:text-sm font-bold transition-all cursor-pointer shadow-inner ${
-              dailyStatus.canClaim
-                ? 'bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 border-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.5)] animate-pulse'
-                : 'bg-slate-900 border-amber-500/30 text-amber-300 hover:bg-slate-800'
-            }`}
-            title="Daily Login Rewards"
-          >
-            <Gift className={`w-4 h-4 ${dailyStatus.canClaim ? 'text-slate-950 fill-slate-950' : 'text-amber-400'}`} />
-            <span className="hidden sm:inline">
-              {dailyStatus.canClaim ? 'Claim Tribute' : `Daily: Day ${dailyStatus.streak || 1}`}
-            </span>
-            {dailyStatus.canClaim && (
-              <span className="flex h-2 w-2 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-              </span>
-            )}
-          </button>
-
-          {/* Imperial Realm Messenger Shortcut */}
-          {!isChatHidden && (
-            <button
-              id="home-messenger-btn"
-              type="button"
-              onClick={() => handleMessengerButtonClick('global')}
-              className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-amber-500/40 bg-gradient-to-r from-amber-950/80 to-slate-900 text-amber-300 hover:border-amber-400 text-xs sm:text-sm font-bold transition-all cursor-pointer shadow-inner active:scale-95"
-              title="Imperial Realm Messenger & Global Chat (Click 3 times to hide)"
-            >
-              <MessageSquare className="w-4 h-4 text-amber-400" />
-              <span className="hidden sm:inline">Realm Chat</span>
-            </button>
-          )}
-
-          {/* Coins Wallet */}
+          {/* Coins Wallet Pill */}
           <button
             id="home-wallet-btn"
             type="button"
             onClick={() => {
               sound.playClick();
-              if (onOpenPayment) {
-                onOpenPayment();
-              } else {
-                onNavigate('shop');
-              }
+              if (onOpenPayment) onOpenPayment();
+              else onNavigate('shop');
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-950/60 border border-amber-500/40 text-amber-300 font-bold text-xs sm:text-sm hover:bg-amber-900/60 transition-all cursor-pointer shadow-inner"
-            title="Imperial Treasury Wallet"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#0e1424] border border-amber-500/60 text-amber-300 font-bold text-xs sm:text-sm hover:border-amber-400 transition-all cursor-pointer shadow-inner"
           >
             <Coins className="w-4 h-4 text-amber-400" />
             <span>{Math.max(0, Math.floor(Math.round(user.coins || 0))).toLocaleString()}</span>
-            <Plus className="w-3.5 h-3.5 text-amber-400 ml-0.5" />
+            <span className="text-amber-400 font-black ml-0.5">+</span>
           </button>
 
-          {/* Quick Sign In button if Guest */}
-          {!user.email && (
-            <button
-              type="button"
-              onClick={() => {
-                sound.playClick();
-                onNavigate('auth' as any);
-              }}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 font-bold text-xs text-slate-950 shadow hover:brightness-110 cursor-pointer"
-              title="Sign in or register your account"
-            >
-              <User className="w-3.5 h-3.5" />
-              <span>Sign In</span>
-            </button>
-          )}
-
-          {/* Settings Icon */}
+          {/* Hamburger Menu Button */}
           <button
             id="home-settings-btn"
             type="button"
@@ -302,55 +213,89 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
               sound.playClick();
               onNavigate('settings');
             }}
-            className="p-2 rounded-full bg-slate-900 border border-slate-800 hover:border-amber-500/40 text-slate-300 hover:text-amber-300 transition-all cursor-pointer"
-            title="Settings"
+            className="w-10 h-10 rounded-full bg-[#0e1424] border border-slate-800 hover:border-amber-500/50 text-slate-300 hover:text-white transition-all cursor-pointer flex items-center justify-center shadow"
+            title="Settings & Chamber Controls"
           >
-            <Settings className="w-4 h-4" />
+            <Menu className="w-5 h-5" />
           </button>
-
-          {/* Admin Icon if Admin */}
-          {user.is_admin && (
-            <button
-              id="home-admin-btn"
-              type="button"
-              onClick={() => {
-                sound.playClick();
-                onNavigate('admin');
-              }}
-              className="p-2 rounded-full bg-purple-950/70 border border-purple-500/50 text-purple-300 hover:text-purple-200 transition-all cursor-pointer"
-              title="Admin Panel"
-            >
-              <Shield className="w-4 h-4" />
-            </button>
-          )}
         </div>
       </header>
 
       {/* Main Hub Content */}
-      <main className="w-full max-w-5xl px-4 py-6 space-y-6 z-10">
-        {/* Banner: Daily Crown & Tribute Challenge + Live Spectate */}
-        <div className="w-full p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-amber-950/70 via-slate-900 to-amber-950/60 border border-amber-500/40 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
-          <div className="flex items-center gap-3.5 text-left">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center flex-shrink-0">
-              <Trophy className="w-6 h-6 text-amber-400" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-royal font-bold text-sm sm:text-base text-amber-200">
-                  Royal Grand Tournament Season
-                </h3>
-                <span className="px-2 py-0.5 rounded-full bg-amber-400/10 text-amber-300 text-[10px] font-bold border border-amber-400/30 flex items-center gap-1">
-                  <Flame className="w-3 h-3 text-orange-400 fill-orange-400" />
-                  Streak {dailyStatus.streak || 1}d
-                </span>
+      <main className="w-full max-w-xl px-3.5 sm:px-4 py-3.5 space-y-3.5 z-10">
+        {/* Row 1: Top 3 Action Pills */}
+        <div className="grid grid-cols-3 gap-2 w-full">
+          <button
+            id="home-lucky-wheel-btn"
+            type="button"
+            onClick={() => {
+              sound.playClick();
+              if (onOpenLuckyWheel) onOpenLuckyWheel();
+            }}
+            className={`py-2.5 px-2 rounded-2xl bg-[#0e1424] border border-amber-500/30 hover:border-amber-400/70 text-amber-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow cursor-pointer active:scale-95 ${
+              wheelStatus.canFreeSpin ? 'border-amber-400/80 shadow-[0_0_12px_rgba(245,158,11,0.3)]' : ''
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+            <span className="truncate">Fortune Wheel</span>
+          </button>
+
+          <button
+            id="home-daily-login-btn"
+            type="button"
+            onClick={() => {
+              sound.playClick();
+              if (onOpenDailyLogin) onOpenDailyLogin();
+            }}
+            className={`py-2.5 px-2 rounded-2xl bg-[#0e1424] border border-amber-500/30 hover:border-amber-400/70 text-amber-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow cursor-pointer active:scale-95 ${
+              dailyStatus.canClaim ? 'border-amber-400/80 shadow-[0_0_12px_rgba(245,158,11,0.3)]' : ''
+            }`}
+          >
+            <Gift className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+            <span className="truncate">Daily: Day {dailyStatus.streak || 1}</span>
+          </button>
+
+          {!isChatHidden ? (
+            <button
+              id="home-messenger-btn"
+              type="button"
+              onClick={() => handleMessengerButtonClick('global')}
+              className="py-2.5 px-2 rounded-2xl bg-[#0e1424] border border-amber-500/30 hover:border-amber-400/70 text-amber-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow cursor-pointer active:scale-95"
+              title="Realm Chat (Click 3 times to hide)"
+            >
+              <MessageSquare className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+              <span className="truncate">Realm Chat</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onNavigate('settings')}
+              className="py-2.5 px-2 rounded-2xl bg-[#0e1424] border border-slate-800 text-slate-400 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow cursor-pointer"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              <span className="truncate">Settings</span>
+            </button>
+          )}
+        </div>
+
+        {/* Row 2: Royal Grand Tournament Season Banner */}
+        <div className="w-full p-3.5 sm:p-4 rounded-3xl bg-[#0e1424] border-2 border-amber-500/40 space-y-3 shadow-xl">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-400/40 flex items-center justify-center text-amber-400 flex-shrink-0">
+                <Trophy className="w-5 h-5" />
               </div>
-              <p className="text-xs text-slate-300 font-medium mt-0.5">
-                Daily logins reward sovereign treasury coins and royal mastery XP. Climb the leaderboard!
-              </p>
+              <h3 className="font-royal font-black text-xs sm:text-sm text-amber-300 uppercase tracking-wider">
+                ROYAL GRAND TOURNAMENT SEASON
+              </h3>
             </div>
+            <span className="px-2 py-0.5 rounded-full bg-amber-950/80 border border-amber-500/40 text-amber-300 text-[10px] font-bold flex items-center gap-1 flex-shrink-0">
+              <Flame className="w-3 h-3 text-orange-400 fill-orange-400" />
+              Streak {dailyStatus.streak || 1}d
+            </span>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+          <div className="grid grid-cols-3 gap-2">
             <button
               id="home-live-spectate-btn"
               type="button"
@@ -358,10 +303,10 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                 sound.playClick();
                 if (onOpenSpectator) onOpenSpectator();
               }}
-              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-rose-950/80 hover:bg-rose-900/90 border border-rose-500/50 text-rose-300 font-bold text-xs uppercase tracking-wider transition-all shadow cursor-pointer whitespace-nowrap flex items-center justify-center gap-1.5"
+              className="py-2.5 px-1 rounded-xl bg-[#070b16] border border-rose-500/50 hover:bg-rose-950/40 text-rose-300 font-bold text-[10px] sm:text-[11px] uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow"
             >
               <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-              Watch Live
+              <span>WATCH LIVE</span>
             </button>
 
             <button
@@ -371,10 +316,10 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                 sound.playClick();
                 if (onOpenDailyLogin) onOpenDailyLogin();
               }}
-              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-amber-500/30 text-amber-300 font-bold text-xs uppercase tracking-wider transition-all shadow cursor-pointer whitespace-nowrap flex items-center justify-center gap-1.5"
+              className="py-2.5 px-1 rounded-xl bg-[#070b16] border border-cyan-500/40 hover:bg-cyan-950/40 text-cyan-300 font-bold text-[10px] sm:text-[11px] uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow"
             >
-              <Gift className="w-3.5 h-3.5" />
-              Daily Tribute
+              <Gift className="w-3.5 h-3.5 text-cyan-400" />
+              <span>DAILY TRIBUTE</span>
             </button>
 
             <button
@@ -384,96 +329,74 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                 sound.playClick();
                 onNavigate('missions');
               }}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer whitespace-nowrap"
+              className="py-2.5 px-1 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 text-slate-950 font-royal font-black text-[10px] sm:text-[11px] uppercase tracking-wider flex items-center justify-center shadow-md cursor-pointer transition-all active:scale-95"
             >
-              Missions
+              MISSIONS
             </button>
           </div>
         </div>
 
-        {/* Private Royal Rooms Section - Displayed Prominently on Top */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between px-1">
-            <h3 className="font-royal font-black text-sm sm:text-base text-amber-300 flex items-center gap-2">
-              <Crown className="w-4 h-4 text-amber-400" />
-              <span>Private Royal Chambers</span>
-            </h3>
-            <span className="text-[11px] text-slate-400">Play with friends & custom bet stakes</span>
+        {/* Private Royal Chambers Heading */}
+        <div className="flex items-center gap-2 pt-1 px-1">
+          <Crown className="w-4 h-4 text-amber-400" />
+          <h3 className="font-royal font-black text-xs sm:text-sm text-amber-400 uppercase tracking-widest">
+            PRIVATE ROYAL CHAMBERS
+          </h3>
+        </div>
+
+        {/* Row 3 & 4: 2 Full-width Cards (Create & Join Private Room) */}
+        <div className="space-y-2.5 w-full">
+          {/* Create Private Room Card */}
+          <div className="w-full p-3 sm:p-3.5 rounded-3xl bg-[#0e1424] border border-amber-500/30 flex items-center justify-between shadow-lg">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-amber-500 flex items-center justify-center text-slate-950 shadow flex-shrink-0">
+                <Crown className="w-6 h-6 fill-slate-950 text-slate-950" />
+              </div>
+              <h4 className="font-royal font-black text-xs sm:text-sm text-slate-100 tracking-wide">
+                CREATE PRIVATE ROOM
+              </h4>
+            </div>
+
+            <button
+              id="home-create-room-btn"
+              type="button"
+              onClick={() => {
+                sound.playClick();
+                onSelectMode('room_create');
+              }}
+              className="px-4 sm:px-5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:brightness-110 text-slate-950 font-royal font-black text-[11px] sm:text-xs uppercase tracking-wider shadow cursor-pointer transition-all active:scale-95 flex-shrink-0"
+            >
+              CREATE ROOM
+            </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            {/* Create Private Room Card */}
-            <div className="group relative p-5 rounded-3xl bg-gradient-to-br from-amber-950/70 via-slate-900 to-slate-950 border-2 border-amber-500/50 hover:border-amber-400 hover:shadow-xl hover:shadow-amber-500/20 transition-all duration-300 flex items-center justify-between shadow-lg">
-              <div className="space-y-1.5 min-w-0 pr-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center text-slate-950 shadow flex-shrink-0">
-                    <Crown className="w-5 h-5 fill-slate-950" />
-                  </div>
-                  <div>
-                    <h4 className="font-royal font-black text-base text-slate-100 group-hover:text-amber-300 transition-colors">
-                      Create Private Room
-                    </h4>
-                    <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">
-                      Host Match • 6-Letter Code
-                    </span>
-                  </div>
-                </div>
-                <p className="text-xs text-slate-400">
-                  Choose custom bet stakes & invite friends via room code.
-                </p>
+          {/* Join Private Room Card */}
+          <div className="w-full p-3 sm:p-3.5 rounded-3xl bg-[#0e1424] border border-slate-800 flex items-center justify-between shadow-lg">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow flex-shrink-0">
+                <Users className="w-6 h-6" />
               </div>
-
-              <button
-                id="home-create-room-btn"
-                type="button"
-                onClick={() => {
-                  sound.playClick();
-                  onSelectMode('room_create');
-                }}
-                className="px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:brightness-110 text-slate-950 font-royal font-black text-xs transition-all shadow-lg hover:scale-105 active:scale-95 cursor-pointer flex-shrink-0"
-              >
-                Create Room
-              </button>
+              <h4 className="font-royal font-black text-xs sm:text-sm text-slate-100 tracking-wide">
+                JOIN PRIVATE ROOM
+              </h4>
             </div>
 
-            {/* Join Private Room Card */}
-            <div className="group relative p-5 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border-2 border-slate-700 hover:border-amber-400/80 hover:shadow-xl hover:shadow-amber-500/15 transition-all duration-300 flex items-center justify-between shadow-lg">
-              <div className="space-y-1.5 min-w-0 pr-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow flex-shrink-0">
-                    <Users className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-royal font-black text-base text-slate-100 group-hover:text-amber-300 transition-colors">
-                      Join Private Room
-                    </h4>
-                    <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider">
-                      Enter Friend's Code
-                    </span>
-                  </div>
-                </div>
-                <p className="text-xs text-slate-400">
-                  Join a friend's private chamber with their shared code.
-                </p>
-              </div>
-
-              <button
-                id="home-join-room-btn"
-                type="button"
-                onClick={() => {
-                  sound.playClick();
-                  onSelectMode('room_join');
-                }}
-                className="px-5 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-amber-500/50 text-amber-300 hover:text-white font-royal font-black text-xs transition-all shadow-lg hover:scale-105 active:scale-95 cursor-pointer flex-shrink-0"
-              >
-                Join Room
-              </button>
-            </div>
+            <button
+              id="home-join-room-btn"
+              type="button"
+              onClick={() => {
+                sound.playClick();
+                onSelectMode('room_join');
+              }}
+              className="px-4 sm:px-5 py-2.5 rounded-2xl bg-[#070b16] border border-amber-500/50 hover:bg-slate-800 text-amber-300 font-royal font-black text-[11px] sm:text-xs uppercase tracking-wider shadow cursor-pointer transition-all active:scale-95 flex-shrink-0"
+            >
+              JOIN ROOM
+            </button>
           </div>
         </div>
 
-        {/* Primary Play Modes Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* Row 5: 5 Game Modes Grid */}
+        <div className="grid grid-cols-5 gap-1.5 sm:gap-2 w-full">
           {/* Quick Match 4P */}
           <button
             id="mode-quick-4p"
@@ -487,28 +410,22 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                 playerCount: 4,
               });
             }}
-            className="group relative p-5 rounded-3xl bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-amber-500/40 hover:border-amber-400 hover:shadow-xl hover:shadow-amber-500/20 transition-all duration-300 flex flex-col items-start justify-between min-h-[160px] text-left cursor-pointer"
+            className="p-2 sm:p-2.5 rounded-3xl bg-[#0e1424] border border-amber-500/30 hover:border-amber-400 transition-all flex flex-col items-center justify-between text-center min-h-[140px] sm:min-h-[145px] cursor-pointer shadow active:scale-95"
           >
-            <div className="w-full flex items-center justify-between">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-md">
-                <Users className="w-6 h-6 text-slate-950" />
+            <div className="relative flex flex-col items-center">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-amber-500 flex items-center justify-center text-slate-950 shadow">
+                <Users className="w-5 h-5 sm:w-6 sm:h-6 text-slate-950" />
               </div>
-              <span className="px-2 py-0.5 rounded-full bg-amber-950/80 text-[10px] font-bold text-amber-300 border border-amber-500/30">
-                POPULAR
+              <span className="mt-1 px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-950/80 border border-amber-500/40 text-[8px] sm:text-[9px] font-black text-amber-300">
+                4P
               </span>
             </div>
-
-            <div>
-              <h4 className="font-royal font-bold text-base text-slate-100 group-hover:text-amber-300 transition-colors">
-                Quick Match (4P)
-              </h4>
-              <p className="text-xs text-slate-400 mt-0.5">
-                4-Monarch arena with customizable bet stakes.
-              </p>
-            </div>
+            <span className="font-royal font-black text-[9px] sm:text-[11px] text-slate-100 leading-tight">
+              QUICK<br />MATCH
+            </span>
           </button>
 
-          {/* Team 2v2 Co-op Battle */}
+          {/* 2v2 Team Battle */}
           <button
             id="mode-team-2v2"
             type="button"
@@ -521,28 +438,22 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                 playerCount: 4,
               });
             }}
-            className="group relative p-5 rounded-3xl bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-cyan-500/40 hover:border-cyan-400 hover:shadow-xl hover:shadow-cyan-500/20 transition-all duration-300 flex flex-col items-start justify-between min-h-[160px] text-left cursor-pointer"
+            className="p-2 sm:p-2.5 rounded-3xl bg-[#0e1424] border border-cyan-500/30 hover:border-cyan-400 transition-all flex flex-col items-center justify-between text-center min-h-[140px] sm:min-h-[145px] cursor-pointer shadow active:scale-95"
           >
-            <div className="w-full flex items-center justify-between">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center shadow-md">
-                <Shield className="w-6 h-6 text-slate-950" />
+            <div className="relative flex flex-col items-center">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-cyan-500 flex items-center justify-center text-slate-950 shadow">
+                <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-slate-950 fill-slate-950" />
               </div>
-              <span className="px-2 py-0.5 rounded-full bg-cyan-950/80 text-[10px] font-bold text-cyan-300 border border-cyan-500/30">
-                2v2 TEAM
+              <span className="mt-1 px-1.5 sm:px-2 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-[8px] sm:text-[9px] font-black text-cyan-300">
+                2v2
               </span>
             </div>
-
-            <div>
-              <h4 className="font-royal font-bold text-base text-slate-100 group-hover:text-cyan-300 transition-colors">
-                2v2 Team Battle
-              </h4>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Ally pass-through safe blocks & shared victory pot.
-              </p>
-            </div>
+            <span className="font-royal font-black text-[9px] sm:text-[11px] text-slate-100 leading-tight">
+              2v2 TEAM<br />BATTLE
+            </span>
           </button>
 
-          {/* Quick Match 2P (Duel) */}
+          {/* Royal Duel 2P */}
           <button
             id="mode-quick-2p"
             type="button"
@@ -555,23 +466,17 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                 playerCount: 2,
               });
             }}
-            className="group relative p-5 rounded-3xl bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 hover:border-rose-500/50 hover:shadow-xl hover:shadow-rose-500/20 transition-all duration-300 flex flex-col items-start justify-between min-h-[160px] text-left cursor-pointer"
+            className="p-2 sm:p-2.5 rounded-3xl bg-[#0e1424] border border-rose-500/30 hover:border-rose-400 transition-all flex flex-col items-center justify-between text-center min-h-[140px] sm:min-h-[145px] cursor-pointer shadow active:scale-95"
           >
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-500 to-red-700 flex items-center justify-center shadow-md">
-              <Swords className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-rose-500 flex items-center justify-center text-white shadow">
+              <Swords className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
-
-            <div>
-              <h4 className="font-royal font-bold text-base text-slate-100 group-hover:text-rose-300 transition-colors">
-                Royal Duel (2P)
-              </h4>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Fast 1-on-1 strategic showdown with double stakes.
-              </p>
-            </div>
+            <span className="font-royal font-black text-[9px] sm:text-[11px] text-slate-100 leading-tight">
+              ROYAL DUEL<br />(2P)
+            </span>
           </button>
 
-          {/* Vs Computer AI */}
+          {/* Vs Royal AI */}
           <button
             id="mode-vs-bot"
             type="button"
@@ -579,23 +484,17 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
               sound.playClick();
               setShowBotModal(true);
             }}
-            className="group relative p-5 rounded-3xl bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 hover:border-purple-500/50 hover:shadow-xl hover:shadow-purple-500/20 transition-all duration-300 flex flex-col items-start justify-between min-h-[160px] text-left cursor-pointer"
+            className="p-2 sm:p-2.5 rounded-3xl bg-[#0e1424] border border-purple-500/30 hover:border-purple-400 transition-all flex flex-col items-center justify-between text-center min-h-[140px] sm:min-h-[145px] cursor-pointer shadow active:scale-95"
           >
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-700 flex items-center justify-center shadow-md">
-              <Bot className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-purple-600 flex items-center justify-center text-white shadow">
+              <Bot className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
-
-            <div>
-              <h4 className="font-royal font-bold text-base text-slate-100 group-hover:text-purple-300 transition-colors">
-                Vs Royal AI
-              </h4>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Practice offline against tactical bots.
-              </p>
-            </div>
+            <span className="font-royal font-black text-[9px] sm:text-[11px] text-slate-100 leading-tight">
+              VS ROYAL AI
+            </span>
           </button>
 
-          {/* Pass & Play (Local Game) */}
+          {/* Pass & Play */}
           <button
             id="mode-local-pass"
             type="button"
@@ -603,96 +502,108 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
               sound.playClick();
               setShowLocalModal(true);
             }}
-            className="group relative p-5 rounded-3xl bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 hover:border-emerald-500/50 hover:shadow-xl hover:shadow-emerald-500/20 transition-all duration-300 flex flex-col items-start justify-between min-h-[160px] text-left cursor-pointer"
+            className="p-2 sm:p-2.5 rounded-3xl bg-[#0e1424] border border-emerald-500/30 hover:border-emerald-400 transition-all flex flex-col items-center justify-between text-center min-h-[140px] sm:min-h-[145px] cursor-pointer shadow active:scale-95"
           >
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center shadow-md">
-              <Play className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shadow">
+              <Play className="w-5 h-5 sm:w-6 sm:h-6 text-white fill-white" />
             </div>
-
-            <div>
-              <h4 className="font-royal font-bold text-base text-slate-100 group-hover:text-emerald-300 transition-colors">
-                Pass & Play
-              </h4>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Local multiplayer on the same phone or tablet.
-              </p>
-            </div>
+            <span className="font-royal font-black text-[9px] sm:text-[11px] text-slate-100 leading-tight">
+              PASS & PLAY
+            </span>
           </button>
         </div>
 
-        {/* Navigation Shortcuts Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 pt-2">
+        {/* Row 6: Bottom 6 Navigation Tiles */}
+        <div className="grid grid-cols-6 gap-1.5 sm:gap-2 w-full pt-1">
+          {/* Guilds & Clans */}
           <button
             onClick={() => {
               sound.playClick();
               onNavigate('clan');
             }}
-            className="p-3.5 rounded-2xl bg-amber-950/40 border border-amber-500/40 hover:border-amber-400 hover:bg-amber-900/50 transition-all flex flex-col items-center gap-1.5 cursor-pointer shadow-md"
+            className="p-2 sm:p-2.5 rounded-2xl bg-[#0e1424] border border-amber-500/40 hover:border-amber-400 transition-all flex flex-col items-center justify-center gap-1 cursor-pointer shadow text-center active:scale-95"
           >
-            <Crown className="w-5 h-5 text-amber-400" />
-            <span className="text-xs font-bold text-amber-300">Guilds & Clans</span>
+            <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+            <span className="text-[8px] sm:text-[10px] font-bold text-amber-300 leading-tight">
+              Guilds<br />& Clans
+            </span>
           </button>
 
+          {/* Friends */}
           <button
             onClick={() => {
               sound.playClick();
               onNavigate('friends');
             }}
-            className="relative p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-amber-500/40 hover:bg-slate-800 transition-all flex flex-col items-center gap-1.5 cursor-pointer group"
+            className="relative p-2 sm:p-2.5 rounded-2xl bg-[#0e1424] border border-slate-800 hover:border-amber-500/40 transition-all flex flex-col items-center justify-center gap-1 cursor-pointer shadow text-center active:scale-95"
           >
             <div className="relative">
-              <Users className="w-5 h-5 text-amber-400 group-hover:scale-110 transition-transform" />
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
               {pendingRequestsCount > 0 && (
-                <span className="absolute -top-1 -right-2 px-1.5 py-0.2 rounded-full bg-rose-500 text-white font-black text-[9px] border border-slate-950 animate-bounce">
+                <span className="absolute -top-1 -right-2 px-1 py-0.1 rounded-full bg-rose-500 text-white font-black text-[7px] border border-slate-950 animate-bounce">
                   {pendingRequestsCount}
                 </span>
               )}
             </div>
-            <span className="text-xs font-bold text-slate-200">Friends</span>
+            <span className="text-[8px] sm:text-[10px] font-bold text-slate-200">
+              Friends
+            </span>
           </button>
 
+          {/* Leaderboard */}
           <button
             onClick={() => {
               sound.playClick();
               onNavigate('leaderboard');
             }}
-            className="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-amber-500/40 hover:bg-slate-800 transition-all flex flex-col items-center gap-1.5 cursor-pointer"
+            className="p-2 sm:p-2.5 rounded-2xl bg-[#0e1424] border border-slate-800 hover:border-amber-500/40 transition-all flex flex-col items-center justify-center gap-1 cursor-pointer shadow text-center active:scale-95"
           >
-            <Trophy className="w-5 h-5 text-amber-400" />
-            <span className="text-xs font-bold text-slate-200">Leaderboard</span>
+            <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+            <span className="text-[8px] sm:text-[10px] font-bold text-slate-200">
+              Leaderboard
+            </span>
           </button>
 
+          {/* Missions */}
           <button
             onClick={() => {
               sound.playClick();
               onNavigate('missions');
             }}
-            className="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-amber-500/40 hover:bg-slate-800 transition-all flex flex-col items-center gap-1.5 cursor-pointer"
+            className="p-2 sm:p-2.5 rounded-2xl bg-[#0e1424] border border-slate-800 hover:border-amber-500/40 transition-all flex flex-col items-center justify-center gap-1 cursor-pointer shadow text-center active:scale-95"
           >
-            <Target className="w-5 h-5 text-amber-400" />
-            <span className="text-xs font-bold text-slate-200">Missions</span>
+            <Target className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+            <span className="text-[8px] sm:text-[10px] font-bold text-slate-200">
+              Missions
+            </span>
           </button>
 
+          {/* Trophies */}
           <button
             onClick={() => {
               sound.playClick();
               onNavigate('achievements');
             }}
-            className="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-amber-500/40 hover:bg-slate-800 transition-all flex flex-col items-center gap-1.5 cursor-pointer"
+            className="p-2 sm:p-2.5 rounded-2xl bg-[#0e1424] border border-slate-800 hover:border-amber-500/40 transition-all flex flex-col items-center justify-center gap-1 cursor-pointer shadow text-center active:scale-95"
           >
-            <Award className="w-5 h-5 text-amber-400" />
-            <span className="text-xs font-bold text-slate-200">Trophies</span>
+            <Award className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+            <span className="text-[8px] sm:text-[10px] font-bold text-slate-200">
+              Trophies
+            </span>
           </button>
 
+          {/* Royal Bazaar */}
           <button
             onClick={() => {
               sound.playClick();
               onNavigate('shop');
             }}
-            className="col-span-2 sm:col-span-1 p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-amber-500/40 hover:bg-slate-800 transition-all flex flex-col items-center gap-1.5 cursor-pointer"
+            className="p-2 sm:p-2.5 rounded-2xl bg-[#0e1424] border border-slate-800 hover:border-amber-500/40 transition-all flex flex-col items-center justify-center gap-1 cursor-pointer shadow text-center active:scale-95"
           >
-            <ShoppingBag className="w-5 h-5 text-amber-400" />
-            <span className="text-xs font-bold text-slate-200">Royal Bazaar</span>
+            <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+            <span className="text-[8px] sm:text-[10px] font-bold text-slate-200 leading-tight">
+              Royal<br />Bazaar
+            </span>
           </button>
         </div>
       </main>
@@ -829,13 +740,10 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
           id="home-floating-chat-btn"
           type="button"
           onClick={() => handleMessengerButtonClick('global')}
-          className="fixed bottom-6 right-6 z-40 p-4 rounded-full bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-500 text-slate-950 shadow-[0_8px_25px_rgba(245,158,11,0.5)] hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer flex items-center justify-center border-2 border-amber-300 group"
+          className="fixed bottom-5 right-5 z-40 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-[0_6px_25px_rgba(245,158,11,0.6)] hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer flex items-center justify-center border-2 border-amber-300"
           title="Open Realm Chat & DMs (Click 3 times to hide)"
         >
-          <MessageSquare className="w-6 h-6 fill-slate-950" />
-          <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-300 font-royal font-black text-xs pl-0 group-hover:pl-2">
-            Realm Chat
-          </span>
+          <MessageSquare className="w-6 h-6 sm:w-7 sm:h-7 fill-slate-950 text-slate-950" />
         </button>
       )}
     </div>

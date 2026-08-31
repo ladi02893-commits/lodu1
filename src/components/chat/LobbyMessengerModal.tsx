@@ -658,7 +658,7 @@ export const LobbyMessengerModal: React.FC<LobbyMessengerModalProps> = ({
             {activeTab === 'dms' && (
               <div className="flex-1 flex min-h-0">
                 {/* Left Sidebar: DM Friends & Threads */}
-                <div className="w-full sm:w-72 bg-slate-950/80 border-r border-slate-800 flex flex-col min-h-0">
+                <div className={`${selectedFriend ? 'hidden sm:flex' : 'flex'} w-full sm:w-72 bg-slate-950/80 border-r border-slate-800 flex-col min-h-0`}>
                   <div className="p-3 border-b border-slate-800">
                     <h4 className="text-[11px] font-bold text-amber-400 uppercase tracking-wider px-1">
                       Direct Conversations ({activeFriends.length})
@@ -717,12 +717,24 @@ export const LobbyMessengerModal: React.FC<LobbyMessengerModalProps> = ({
                 </div>
 
                 {/* Right Area: Selected DM Chat */}
-                <div className="hidden sm:flex flex-1 flex-col min-h-0 bg-slate-950/40">
+                <div className={`${selectedFriend ? 'flex' : 'hidden sm:flex'} flex-1 flex-col min-h-0 bg-slate-950/40`}>
                   {selectedFriend ? (
                     <>
                       {/* DM Header */}
                       <div className="px-4 py-3 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between flex-shrink-0">
-                        <div className="flex items-center gap-2.5">
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              sound.playClick();
+                              setSelectedFriend(null);
+                            }}
+                            className="sm:hidden p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer mr-0.5"
+                            title="Back to conversations list"
+                          >
+                            <ArrowLeft className="w-4 h-4" />
+                          </button>
+
                           <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-600 to-yellow-500 p-0.5 flex items-center justify-center font-royal font-black text-slate-950 text-xs">
                             {selectedFriend.display_name.charAt(0).toUpperCase()}
                           </div>
