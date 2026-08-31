@@ -328,6 +328,11 @@ export const App: React.FC = () => {
           onOpenLuckyWheel={() => setShowLuckyWheelModal(true)}
           onOpenSpectator={() => setShowLiveSpectatorModal(true)}
           onOpenPayment={() => setShowGlobalPaymentModal(true)}
+          onLogout={() => {
+            authService.logout();
+            setUser(authService.getCurrentUser());
+            setCurrentView('auth');
+          }}
           onOpenMessenger={(tab, friendId) => {
             const targetTab = tab || 'global';
             if (chatSecurityService.isPinRequired()) {

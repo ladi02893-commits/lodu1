@@ -626,42 +626,40 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
         {activeTab === 'discover' && (
           <div className="space-y-3">
             {!searchQuery.trim() ? (
-              <div className="p-8 text-center bg-gradient-to-b from-slate-900/80 to-slate-950 rounded-3xl border border-amber-500/30 space-y-3 shadow-xl">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-950/40 border border-amber-400/40 text-amber-400 flex items-center justify-center mx-auto shadow-inner">
-                  <Search className="w-7 h-7" />
+              <div className="p-6 text-center bg-[#0e1424] rounded-3xl border border-amber-500/30 space-y-2.5 shadow-xl">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-400/30 text-amber-400 flex items-center justify-center mx-auto shadow-inner">
+                  <Search className="w-6 h-6" />
                 </div>
                 <div>
-                  <h4 className="font-royal font-bold text-sm text-amber-200">
-                    Search Monarch by ID or Username
+                  <h4 className="font-royal font-black text-xs sm:text-sm text-amber-300 uppercase tracking-wider">
+                    Find Players
                   </h4>
-                  <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1 leading-relaxed">
-                    Upar search bar me player ka <strong>Username</strong> (e.g.{' '}
-                    <span className="text-amber-300 font-mono">ammar_admin</span>) ya <strong>Player ID</strong> (e.g.{' '}
-                    <span className="text-amber-300 font-mono">RL-7777</span>) search karein.
+                  <p className="text-[10px] text-slate-400 max-w-sm mx-auto mt-0.5">
+                    Search by Username or Player ID
                   </p>
                 </div>
 
-                <div className="pt-2">
-                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-950/80 border border-amber-400/40 text-amber-300 text-xs font-mono font-bold shadow-md">
-                    <span>Aapka Player ID: #{currentUser.player_id}</span>
+                <div className="pt-1">
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#070b16] border border-amber-400/30 text-amber-300 text-[10px] font-mono font-bold shadow">
+                    <span>Your ID: #{currentUser.player_id}</span>
                   </span>
                 </div>
               </div>
             ) : discoverResults.length === 0 ? (
-              <div className="p-8 text-center bg-slate-900/60 rounded-3xl border border-slate-800 space-y-2 text-slate-400 text-xs">
-                <Crown className="w-8 h-8 text-slate-600 mx-auto" />
-                <p className="font-bold text-slate-200 text-sm">No Monarch Found</p>
-                <p className="text-[11px] text-slate-400">
-                  "{searchQuery}" ke naam ya ID se koi player nahi mila. Spelling ya ID check karein.
+              <div className="p-6 text-center bg-[#0e1424] rounded-3xl border border-slate-800 space-y-2 text-slate-400 text-xs">
+                <Crown className="w-6 h-6 text-slate-600 mx-auto" />
+                <p className="font-bold text-slate-200 text-xs">No Players Found</p>
+                <p className="text-[10px] text-slate-400">
+                  No match for "{searchQuery}". Check the spelling or ID.
                 </p>
               </div>
             ) : (
               <div className="space-y-2.5">
-                <div className="text-[11px] text-amber-300/90 px-1 font-medium">
-                  Search Result ({discoverResults.length} profile found):
+                <div className="text-[10px] text-amber-300/80 px-1 font-bold">
+                  {discoverResults.length} Result{discoverResults.length > 1 ? 's' : ''}:
                 </div>
 
-                <div className="grid grid-cols-1 gap-3">
+                <div className="grid grid-cols-1 gap-2.5">
                   {discoverResults.map((user) => (
                     <div
                       key={user.id}

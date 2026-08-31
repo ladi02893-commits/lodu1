@@ -113,36 +113,31 @@ export const AuthView: React.FC<AuthViewProps> = ({
   };
 
   return (
-    <div className="w-full min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4 sm:p-6 overflow-x-hidden relative">
-      {/* Background Ambient Glows */}
-      <div className="absolute top-10 left-1/2 -translate-x-1/2 w-full max-w-4xl h-96 bg-amber-500/10 blur-[140px] pointer-events-none rounded-full" />
-      <div className="absolute bottom-10 left-1/4 w-80 h-80 bg-purple-500/10 blur-[130px] pointer-events-none rounded-full" />
-
+    <div className="w-full min-h-screen bg-[#070b16] text-slate-100 flex flex-col items-center justify-center p-4 sm:p-6 overflow-x-hidden relative font-sans">
       {/* Main Authentication Container */}
-      <div className="w-full max-w-md bg-slate-900/90 border-2 border-amber-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 backdrop-blur-xl relative z-10 animate-fade-in">
-        {/* Imperial Logo & Title */}
-        <div className="text-center space-y-3">
-          <div className="relative mx-auto w-24 h-24 flex items-center justify-center">
-            <div className="absolute -inset-1 bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-600 rounded-3xl blur-md opacity-75 animate-pulse"></div>
+      <div className="w-full max-w-md bg-[#0e1424] border border-amber-500/40 rounded-3xl p-5 sm:p-7 shadow-2xl space-y-5 relative z-10 animate-fade-in">
+        {/* Logo & Title */}
+        <div className="text-center space-y-2">
+          <div className="relative mx-auto w-20 h-20 flex items-center justify-center">
             <img
               src="/logo.png"
-              alt="Royal Ludo Online"
-              className="relative w-24 h-24 rounded-3xl object-cover shadow-2xl border-2 border-amber-400/50"
+              alt="Royal Ludo"
+              className="w-20 h-20 rounded-2xl object-cover shadow-xl border-2 border-amber-400/50"
             />
           </div>
 
           <div>
-            <h1 className="text-2xl sm:text-3xl font-royal font-black text-transparent bg-clip-text bg-gradient-to-b from-amber-200 via-amber-400 to-amber-600 tracking-wider">
+            <h1 className="text-xl sm:text-2xl font-royal font-black text-amber-300 tracking-wider">
               ROYAL LUDO
             </h1>
-            <p className="text-xs text-slate-400 font-medium">
-              Imperial Grand Chamber • Sign In to Your Court
+            <p className="text-[11px] text-slate-400 font-medium">
+              Imperial Grand Chamber
             </p>
           </div>
         </div>
 
         {/* Tab Switcher: Login vs Register */}
-        <div className="grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-slate-950 border border-slate-800">
+        <div className="grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-[#070b16] border border-slate-800">
           <button
             type="button"
             onClick={() => {
@@ -150,14 +145,14 @@ export const AuthView: React.FC<AuthViewProps> = ({
               setTab('login');
               setError(null);
             }}
-            className={`py-2.5 rounded-xl font-royal font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`py-2 rounded-xl font-royal font-black text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
               tab === 'login'
-                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md font-black'
+                ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 shadow'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <Lock className="w-3.5 h-3.5" />
-            <span>Sign In (لاگ اِن)</span>
+            <span>Sign In</span>
           </button>
 
           <button
@@ -167,14 +162,14 @@ export const AuthView: React.FC<AuthViewProps> = ({
               setTab('register');
               setError(null);
             }}
-            className={`py-2.5 rounded-xl font-royal font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`py-2 rounded-xl font-royal font-black text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
               tab === 'register'
-                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md font-black'
+                ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 shadow'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Register (رجسٹر)</span>
+            <span>Register</span>
           </button>
         </div>
 
@@ -187,26 +182,26 @@ export const AuthView: React.FC<AuthViewProps> = ({
 
         {/* TAB 1: LOGIN FORM */}
         {tab === 'login' && (
-          <form onSubmit={handleLoginSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1">
-                <Mail className="w-3.5 h-3.5 text-amber-400" />
-                <span>Email or Royal Username</span>
+          <form onSubmit={handleLoginSubmit} className="space-y-3.5">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                <Mail className="w-3 h-3 text-amber-400" />
+                <span>Email or Username</span>
               </label>
               <input
                 type="text"
-                placeholder="e.g. noble@court.com or ammar_admin"
+                placeholder="e.g. noble@court.com or username"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-2xl px-4 py-3 text-xs text-slate-100 placeholder-slate-500 outline-none transition-colors"
+                className="w-full bg-[#070b16] border border-slate-800 focus:border-amber-400 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 outline-none transition-colors"
                 required
               />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1">
-                <Lock className="w-3.5 h-3.5 text-amber-400" />
-                <span>Secret Password</span>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                <Lock className="w-3 h-3 text-amber-400" />
+                <span>Password</span>
               </label>
               <div className="relative">
                 <input
@@ -214,13 +209,13 @@ export const AuthView: React.FC<AuthViewProps> = ({
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-2xl px-4 py-3 text-xs text-slate-100 placeholder-slate-500 outline-none transition-colors pr-10"
+                  className="w-full bg-[#070b16] border border-slate-800 focus:border-amber-400 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 outline-none transition-colors pr-10"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-slate-400 hover:text-slate-200 cursor-pointer"
+                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-200 cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -230,9 +225,9 @@ export const AuthView: React.FC<AuthViewProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 font-royal font-extrabold text-sm uppercase tracking-wider text-slate-950 shadow-xl shadow-amber-500/30 hover:brightness-110 active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 font-royal font-black text-xs uppercase tracking-wider text-slate-950 shadow hover:brightness-110 active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
             >
-              <span>{loading ? 'Authenticating...' : 'Enter Imperial Realm'}</span>
+              <span>{loading ? 'Signing In...' : 'Sign In'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
@@ -240,25 +235,25 @@ export const AuthView: React.FC<AuthViewProps> = ({
 
         {/* TAB 2: REGISTER FORM */}
         {tab === 'register' && (
-          <form onSubmit={handleRegisterSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1">
-                <User className="w-3.5 h-3.5 text-amber-400" />
-                <span>Noble Display Name</span>
+          <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                <User className="w-3 h-3 text-amber-400" />
+                <span>Display Name</span>
               </label>
               <input
                 type="text"
-                placeholder="e.g. Prince Ali or Sultan Khan"
+                placeholder="e.g. Prince Ali"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-2xl px-4 py-3 text-xs text-slate-100 placeholder-slate-500 outline-none transition-colors"
+                className="w-full bg-[#070b16] border border-slate-800 focus:border-amber-400 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 outline-none transition-colors"
                 required
               />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1">
-                <Mail className="w-3.5 h-3.5 text-amber-400" />
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                <Mail className="w-3 h-3 text-amber-400" />
                 <span>Email Address</span>
               </label>
               <input
@@ -266,15 +261,15 @@ export const AuthView: React.FC<AuthViewProps> = ({
                 placeholder="e.g. noble@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-2xl px-4 py-3 text-xs text-slate-100 placeholder-slate-500 outline-none transition-colors"
+                className="w-full bg-[#070b16] border border-slate-800 focus:border-amber-400 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 outline-none transition-colors"
                 required
               />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1">
-                <Lock className="w-3.5 h-3.5 text-amber-400" />
-                <span>Create Password</span>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                <Lock className="w-3 h-3 text-amber-400" />
+                <span>Password</span>
               </label>
               <div className="relative">
                 <input
@@ -282,25 +277,25 @@ export const AuthView: React.FC<AuthViewProps> = ({
                   placeholder="Min 4 characters"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-2xl px-4 py-3 text-xs text-slate-100 placeholder-slate-500 outline-none transition-colors pr-10"
+                  className="w-full bg-[#070b16] border border-slate-800 focus:border-amber-400 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 outline-none transition-colors pr-10"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-slate-400 hover:text-slate-200 cursor-pointer"
+                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-200 cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
-            {/* Choose Heraldic Avatar */}
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">
-                Choose Heraldic Avatar
+            {/* Choose Avatar */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">
+                Select Avatar
               </label>
-              <div className="grid grid-cols-6 gap-2">
+              <div className="grid grid-cols-6 gap-1.5">
                 {AVATAR_OPTIONS.map((av) => (
                   <button
                     key={av.id}
@@ -309,10 +304,10 @@ export const AuthView: React.FC<AuthViewProps> = ({
                       sound.playClick();
                       setSelectedAvatar(av.id);
                     }}
-                    className={`h-11 rounded-2xl border text-lg flex items-center justify-center transition-all cursor-pointer ${
+                    className={`h-9 rounded-xl border text-base flex items-center justify-center transition-all cursor-pointer ${
                       selectedAvatar === av.id
-                        ? 'bg-amber-500/30 border-amber-400 ring-2 ring-amber-400/50 scale-105 shadow-md'
-                        : 'bg-slate-950 border-slate-800 hover:border-slate-700'
+                        ? 'bg-amber-500/30 border-amber-400 ring-2 ring-amber-400/50 scale-105 shadow'
+                        : 'bg-[#070b16] border-slate-800 hover:border-slate-700'
                     }`}
                     title={av.name}
                   >
@@ -323,22 +318,22 @@ export const AuthView: React.FC<AuthViewProps> = ({
             </div>
 
             {/* Starter Gift Box */}
-            <div className="p-3 rounded-2xl bg-gradient-to-r from-amber-950/60 via-slate-950 to-amber-950/60 border border-amber-500/40 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-300 flex-shrink-0">
-                <Gift className="w-5 h-5" />
+            <div className="p-2.5 rounded-2xl bg-[#070b16] border border-amber-500/30 flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-300 flex-shrink-0">
+                <Gift className="w-4 h-4" />
               </div>
-              <div className="text-xs">
-                <span className="font-bold text-amber-300 block">Starter Gift Included:</span>
-                <span className="text-slate-300">2,500 Gold Coins + Level 1 Nobility</span>
+              <div className="text-[11px]">
+                <span className="font-bold text-amber-300 block">Starter Bonus:</span>
+                <span className="text-slate-300">+2,500 Coins</span>
               </div>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 font-royal font-extrabold text-sm uppercase tracking-wider text-slate-950 shadow-xl shadow-amber-500/30 hover:brightness-110 active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 font-royal font-black text-xs uppercase tracking-wider text-slate-950 shadow hover:brightness-110 active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
             >
-              <span>{loading ? 'Enlisting...' : 'Enlist Noble & Claim Bonus'}</span>
+              <span>{loading ? 'Creating Account...' : 'Register & Claim Bonus'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
@@ -351,7 +346,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
             onClick={handleGuestEntry}
             className="text-xs text-slate-400 hover:text-amber-300 transition-colors font-semibold cursor-pointer underline underline-offset-4"
           >
-            Or play immediately as Guest Noble without an account →
+            Continue as Guest →
           </button>
         </div>
       </div>

@@ -57,28 +57,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-xl animate-fade-in">
-      <div className="w-full max-w-sm bg-slate-900 border-2 border-amber-500/50 rounded-3xl p-6 shadow-2xl space-y-5 relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-4 bg-slate-950/85 backdrop-blur-xl animate-fade-in font-sans">
+      <div className="w-full max-w-sm bg-[#0e1424] border border-amber-500/40 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 relative">
         {/* Close Button */}
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 cursor-pointer"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
 
         {/* Header */}
-        <div className="text-center space-y-2">
+        <div className="text-center space-y-1.5">
           <img
             src="/logo.png"
-            alt="Royal Ludo Online"
-            className="w-16 h-16 rounded-2xl mx-auto object-cover shadow-lg border border-amber-400/50"
+            alt="Royal Ludo"
+            className="w-14 h-14 rounded-2xl mx-auto object-cover shadow-lg border border-amber-400/50"
           />
-          <h3 className="font-royal font-black text-lg text-amber-300">
-            {mode === 'login' ? 'Royal Court Sign In' : 'Enlist as New Noble'}
+          <h3 className="font-royal font-black text-base sm:text-lg text-amber-300 uppercase tracking-wider">
+            {mode === 'login' ? 'Sign In' : 'Register Account'}
           </h3>
-          <p className="text-xs text-slate-400">
-            Save your level, unlocked cosmetics, and stats to cloud.
+          <p className="text-[10px] text-slate-400">
+            Sync your level, coins, and stats across devices
           </p>
         </div>
 
@@ -92,10 +92,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
         <form onSubmit={handleSubmit} className="space-y-3">
           {mode === 'register' && (
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                Noble Name
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Display Name
               </label>
-              <div className="flex items-center gap-2 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs">
+              <div className="flex items-center gap-2 bg-[#070b16] border border-slate-800 rounded-xl px-3 py-2 text-xs">
                 <User className="w-4 h-4 text-slate-500" />
                 <input
                   type="text"
@@ -110,10 +110,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
           )}
 
           <div className="space-y-1">
-            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               Email Address
             </label>
-            <div className="flex items-center gap-2 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs">
+            <div className="flex items-center gap-2 bg-[#070b16] border border-slate-800 rounded-xl px-3 py-2 text-xs">
               <Mail className="w-4 h-4 text-slate-500" />
               <input
                 type="email"
@@ -127,10 +127,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
           </div>
 
           <div className="space-y-1">
-            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Secret Password
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Password
             </label>
-            <div className="flex items-center gap-2 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs">
+            <div className="flex items-center gap-2 bg-[#070b16] border border-slate-800 rounded-xl px-3 py-2 text-xs">
               <Lock className="w-4 h-4 text-slate-500" />
               <input
                 type="password"
@@ -146,37 +146,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 font-royal font-bold text-xs uppercase tracking-wider text-slate-950 shadow-lg shadow-amber-500/20 hover:brightness-110 active:scale-98 transition-all cursor-pointer disabled:opacity-50"
+            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 font-royal font-black text-xs uppercase tracking-wider text-slate-950 shadow hover:brightness-110 active:scale-98 transition-all cursor-pointer disabled:opacity-50"
           >
-            {loading ? 'Authenticating...' : mode === 'login' ? 'Enter Royal Court' : 'Join Realm'}
+            {loading ? 'Please wait...' : mode === 'login' ? 'Sign In' : 'Create Account'}
           </button>
         </form>
-
-        {/* Toggle Mode */}
+        {/* Mode switch */}
         <div className="text-center pt-2 border-t border-slate-800">
-          {mode === 'login' ? (
-            <p className="text-xs text-slate-400">
-              New to Royal Ludo?{' '}
-              <button
-                type="button"
-                onClick={() => setMode('register')}
-                className="text-amber-400 hover:underline font-bold cursor-pointer"
-              >
-                Create Account
-              </button>
-            </p>
-          ) : (
-            <p className="text-xs text-slate-400">
-              Already have an account?{' '}
-              <button
-                type="button"
-                onClick={() => setMode('login')}
-                className="text-amber-400 hover:underline font-bold cursor-pointer"
-              >
-                Sign In
-              </button>
-            </p>
-          )}
+          <button
+            type="button"
+            onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
+            className="text-[11px] text-amber-400 font-bold hover:underline cursor-pointer"
+          >
+            {mode === 'login' ? "Don't have an account? Register" : 'Already registered? Sign In'}
+          </button>
         </div>
       </div>
     </div>

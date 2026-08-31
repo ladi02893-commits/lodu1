@@ -7,6 +7,7 @@ import {
   Crown,
   Flame,
   Gift,
+  LogOut,
   Menu,
   MessageSquare,
   Play,
@@ -64,6 +65,7 @@ interface HomeDashboardProps {
   onOpenSpectator?: () => void;
   onOpenPayment?: () => void;
   onOpenMessenger?: (tab?: 'global' | 'dms' | 'friends') => void;
+  onLogout?: () => void;
 }
 
 export const HomeDashboard: React.FC<HomeDashboardProps> = ({
@@ -75,6 +77,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   onOpenSpectator,
   onOpenPayment,
   onOpenMessenger,
+  onLogout,
 }) => {
   const [showBotModal, setShowBotModal] = useState(false);
   const [showLocalModal, setShowLocalModal] = useState(false);
@@ -187,8 +190,8 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
           </div>
         </button>
 
-        {/* Currency & Menu Button */}
-        <div className="flex items-center gap-2.5">
+        {/* Currency, Settings & Logout Button */}
+        <div className="flex items-center gap-2">
           {/* Coins Wallet Pill */}
           <button
             id="home-wallet-btn"
@@ -198,14 +201,14 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
               if (onOpenPayment) onOpenPayment();
               else onNavigate('shop');
             }}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#0e1424] border border-amber-500/60 text-amber-300 font-bold text-xs sm:text-sm hover:border-amber-400 transition-all cursor-pointer shadow-inner"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#0e1424] border border-amber-500/60 text-amber-300 font-bold text-xs sm:text-sm hover:border-amber-400 transition-all cursor-pointer shadow-inner"
           >
-            <Coins className="w-4 h-4 text-amber-400" />
+            <Coins className="w-3.5 h-3.5 text-amber-400" />
             <span>{Math.max(0, Math.floor(Math.round(user.coins || 0))).toLocaleString()}</span>
             <span className="text-amber-400 font-black ml-0.5">+</span>
           </button>
 
-          {/* Hamburger Menu Button */}
+          {/* Hamburger Menu / Settings Button */}
           <button
             id="home-settings-btn"
             type="button"
@@ -213,10 +216,26 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
               sound.playClick();
               onNavigate('settings');
             }}
-            className="w-10 h-10 rounded-full bg-[#0e1424] border border-slate-800 hover:border-amber-500/50 text-slate-300 hover:text-white transition-all cursor-pointer flex items-center justify-center shadow"
+            className="w-9 h-9 rounded-full bg-[#0e1424] border border-slate-800 hover:border-amber-500/50 text-slate-300 hover:text-white transition-all cursor-pointer flex items-center justify-center shadow"
             title="Settings & Chamber Controls"
           >
-            <Menu className="w-5 h-5" />
+            <Menu className="w-4 h-4" />
+          </button>
+
+          {/* Direct Logout Button */}
+          <button
+            id="home-logout-btn"
+            type="button"
+            onClick={() => {
+              sound.playClick();
+              if (confirm('Are you sure you want to log out from Royal Ludo?')) {
+                if (onLogout) onLogout();
+              }
+            }}
+            className="w-9 h-9 rounded-full bg-[#0e1424] border border-rose-500/30 hover:border-rose-500/80 text-rose-400 hover:text-rose-200 transition-all cursor-pointer flex items-center justify-center shadow hover:bg-rose-950/40"
+            title="Log Out Session"
+          >
+            <LogOut className="w-4 h-4" />
           </button>
         </div>
       </header>
