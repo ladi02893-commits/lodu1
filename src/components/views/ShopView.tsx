@@ -107,19 +107,19 @@ export const ShopView: React.FC<ShopViewProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="w-full min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center pb-16 overflow-x-hidden">
+    <div className="w-full min-h-screen bg-[#070b16] text-slate-100 flex flex-col items-center pb-20 overflow-x-hidden font-sans">
       {/* Header */}
-      <header className="w-full max-w-4xl px-4 py-4 flex items-center justify-between border-b border-amber-500/20 bg-slate-950/80 sticky top-0 z-20 backdrop-blur-md">
+      <header className="w-full max-w-xl px-4 py-3 flex items-center justify-between border-b border-amber-500/10 bg-[#070b16]/95 sticky top-0 z-30 backdrop-blur-md">
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-slate-300 hover:text-amber-300 transition-all cursor-pointer text-xs font-semibold"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#0e1424] border border-slate-800 text-slate-300 hover:text-amber-300 transition-all cursor-pointer text-xs font-semibold"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Court</span>
         </button>
 
-        <h2 className="font-royal font-bold text-sm sm:text-base text-amber-300">
-          Royal Bazaar & Vault
+        <h2 className="font-royal font-black text-sm sm:text-base text-amber-300 uppercase tracking-wider">
+          Royal Bazaar
         </h2>
 
         {/* Currency Purse with Buy Coins Plus */}
@@ -129,40 +129,40 @@ export const ShopView: React.FC<ShopViewProps> = ({ onBack }) => {
             setSelectedPkgId(undefined);
             setShowPaymentModal(true);
           }}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-950 via-amber-900 to-amber-950 border border-amber-500/40 text-amber-300 font-bold text-xs hover:border-amber-400 transition-all cursor-pointer shadow-lg"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#0e1424] border border-amber-500/50 text-amber-300 font-bold text-xs hover:border-amber-400 transition-all cursor-pointer shadow-inner"
           title="Buy Coins"
         >
           <Coins className="w-4 h-4 text-amber-400" />
-          <span>{user.coins.toLocaleString()}</span>
-          <Plus className="w-3.5 h-3.5 text-amber-400 ml-0.5" />
+          <span>{Math.max(0, Math.floor(Math.round(user.coins || 0))).toLocaleString()}</span>
+          <Plus className="w-3.5 h-3.5 text-amber-400 font-black ml-0.5" />
         </button>
       </header>
 
-      <main className="w-full max-w-3xl px-4 py-6 space-y-6">
+      <main className="w-full max-w-xl px-3.5 sm:px-4 py-4 space-y-3.5 z-10">
         {/* Feedback Alert */}
         {feedback && (
-          <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-950 via-slate-900 to-amber-950 border-2 border-amber-400 text-amber-200 text-xs font-bold text-center animate-fade-in shadow-xl">
+          <div className="p-3 rounded-2xl bg-amber-950/80 border border-amber-400 text-amber-200 text-xs font-bold text-center animate-fade-in shadow-xl">
             {feedback}
           </div>
         )}
 
         {/* Buy Coins Big Feature Card */}
-        <div className="p-5 rounded-3xl bg-gradient-to-r from-amber-950/80 via-slate-900 to-yellow-950/80 border-2 border-amber-500/50 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5 text-left">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-slate-950 shadow-lg flex-shrink-0">
-              <Coins className="w-7 h-7" />
+        <div className="p-4 rounded-3xl bg-[#0e1424] border border-amber-500/30 shadow-xl flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 text-left min-w-0">
+            <div className="w-11 h-11 rounded-2xl bg-amber-500 flex items-center justify-center text-slate-950 shadow flex-shrink-0">
+              <Coins className="w-6 h-6 fill-slate-950" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h3 className="font-royal font-bold text-sm sm:text-base text-amber-200">
-                  Buy Imperial Coins Treasury
+                <h3 className="font-royal font-black text-xs sm:text-sm text-slate-100 truncate">
+                  Buy Imperial Coins
                 </h3>
-                <span className="px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-black border border-amber-400/40">
-                  UP TO +33% FREE BONUS
+                <span className="px-1.5 py-0.2 rounded-full bg-amber-400/20 text-amber-300 text-[9px] font-black border border-amber-400/40 whitespace-nowrap">
+                  +33% BONUS
                 </span>
               </div>
-              <p className="text-xs text-slate-300 font-medium mt-0.5">
-                Instant delivery via JazzCash, EasyPaisa, Meezan Bank, Raast & UPI.
+              <p className="text-[10px] text-slate-400 truncate">
+                Instant delivery via JazzCash, EasyPaisa, Bank & Raast.
               </p>
             </div>
           </div>
@@ -173,28 +173,27 @@ export const ShopView: React.FC<ShopViewProps> = ({ onBack }) => {
               setSelectedPkgId(undefined);
               setShowPaymentModal(true);
             }}
-            className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 font-royal font-extrabold text-xs uppercase tracking-wider text-slate-950 shadow-xl shadow-amber-500/30 active:scale-95 transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1.5"
+            className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:brightness-110 font-royal font-black text-xs uppercase tracking-wider text-slate-950 shadow active:scale-95 transition-all cursor-pointer whitespace-nowrap flex-shrink-0"
           >
-            <Plus className="w-4 h-4" />
-            <span>Open Coin Store</span>
+            <span>Deposit</span>
           </button>
         </div>
 
         {/* Top Level Section Switcher (Cosmetics vs Coin Bundles) */}
-        <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-slate-900 border border-slate-800">
+        <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-[#0e1424] border border-slate-800">
           <button
             onClick={() => {
               sound.playClick();
               setActiveTab('cosmetics');
             }}
-            className={`py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`py-2 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
               activeTab === 'cosmetics'
-                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow-md'
+                ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black shadow'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <ShoppingBag className="w-4 h-4" />
-            <span>Cosmetics & Boards</span>
+            <ShoppingBag className="w-3.5 h-3.5" />
+            <span>Cosmetics & Items</span>
           </button>
 
           <button
@@ -202,118 +201,72 @@ export const ShopView: React.FC<ShopViewProps> = ({ onBack }) => {
               sound.playClick();
               setActiveTab('coins');
             }}
-            className={`py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`py-2 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
               activeTab === 'coins'
-                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow-md'
+                ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black shadow'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Coins className="w-4 h-4" />
-            <span>Coin Packages & Vault</span>
+            <Coins className="w-3.5 h-3.5" />
+            <span>Coin Packages</span>
           </button>
         </div>
 
         {/* SECTION 1: COSMETICS CATALOG */}
         {activeTab === 'cosmetics' && (
-          <div className="space-y-5 animate-fade-in">
+          <div className="space-y-3.5 animate-fade-in">
             {/* Promo Code Redemption Card */}
-            <div className="p-4 rounded-3xl bg-slate-900/90 border border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 flex-shrink-0">
-                  <Gift className="w-5 h-5" />
+            <div className="p-3.5 rounded-3xl bg-[#0e1424] border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2.5 shadow">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 flex-shrink-0">
+                  <Gift className="w-4 h-4" />
                 </div>
-                <div>
-                  <h3 className="font-royal font-bold text-xs sm:text-sm text-amber-200">
-                    Redeem Royal Gift Code
+                <div className="min-w-0">
+                  <h3 className="font-royal font-bold text-xs sm:text-sm text-amber-200 truncate">
+                    Redeem Promo Code
                   </h3>
-                  <p className="text-[11px] text-slate-400">
-                    Got a royal promotional code? Enter below to claim bonus gold.
+                  <p className="text-[10px] text-slate-400 truncate">
+                    Enter your promo code to claim bonus coins.
                   </p>
                 </div>
               </div>
 
-              <form onSubmit={handleRedeemPromo} className="w-full sm:w-auto flex items-center gap-2">
+              <form onSubmit={handleRedeemPromo} className="w-full sm:w-auto flex items-center gap-1.5">
                 <input
                   type="text"
-                  placeholder="e.g. ROYAL2026"
+                  placeholder="ROYAL2026"
                   value={promoInput}
                   onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
-                  className="w-full sm:w-36 bg-slate-950 border border-amber-500/40 rounded-xl px-3 py-2 text-xs font-mono font-bold text-amber-200 uppercase outline-none focus:ring-1 focus:ring-amber-400"
+                  className="w-full sm:w-32 bg-[#070b16] border border-amber-500/40 rounded-xl px-3 py-1.5 text-xs font-mono font-bold text-amber-200 uppercase outline-none focus:ring-1 focus:ring-amber-400"
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 font-bold text-slate-950 text-xs shadow cursor-pointer flex-shrink-0"
+                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 font-royal font-black text-slate-950 text-xs shadow cursor-pointer flex-shrink-0"
                 >
-                  Redeem
+                  Apply
                 </button>
               </form>
             </div>
 
             {/* Category Filter Tabs */}
-            <div className="grid grid-cols-5 gap-1.5 p-1.5 rounded-2xl bg-slate-900 border border-slate-800 text-[11px] sm:text-xs">
-              <button
-                onClick={() => setFilterType('dice')}
-                className={`py-2 rounded-xl font-bold transition-all cursor-pointer flex flex-col sm:flex-row items-center justify-center gap-1 ${
-                  filterType === 'dice'
-                    ? 'bg-amber-500 text-slate-950 shadow'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Dice5 className="w-4 h-4" />
-                <span>Dice</span>
-              </button>
-
-              <button
-                onClick={() => setFilterType('board')}
-                className={`py-2 rounded-xl font-bold transition-all cursor-pointer flex flex-col sm:flex-row items-center justify-center gap-1 ${
-                  filterType === 'board'
-                    ? 'bg-amber-500 text-slate-950 shadow'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <LayoutGrid className="w-4 h-4" />
-                <span>Boards</span>
-              </button>
-
-              <button
-                onClick={() => setFilterType('token')}
-                className={`py-2 rounded-xl font-bold transition-all cursor-pointer flex flex-col sm:flex-row items-center justify-center gap-1 ${
-                  filterType === 'token'
-                    ? 'bg-amber-500 text-slate-950 shadow'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Shield className="w-4 h-4" />
-                <span>Tokens</span>
-              </button>
-
-              <button
-                onClick={() => setFilterType('avatar')}
-                className={`py-2 rounded-xl font-bold transition-all cursor-pointer flex flex-col sm:flex-row items-center justify-center gap-1 ${
-                  filterType === 'avatar'
-                    ? 'bg-amber-500 text-slate-950 shadow'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <User className="w-4 h-4" />
-                <span>Avatars</span>
-              </button>
-
-              <button
-                onClick={() => setFilterType('frame')}
-                className={`py-2 rounded-xl font-bold transition-all cursor-pointer flex flex-col sm:flex-row items-center justify-center gap-1 ${
-                  filterType === 'frame'
-                    ? 'bg-amber-500 text-slate-950 shadow'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Circle className="w-4 h-4" />
-                <span>Frames</span>
-              </button>
+            <div className="grid grid-cols-5 gap-1 p-1 rounded-2xl bg-[#0e1424] border border-slate-800 text-xs">
+              {(['dice', 'board', 'token', 'avatar', 'frame'] as const).map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setFilterType(type)}
+                  className={`py-1.5 rounded-xl font-bold transition-all cursor-pointer text-center capitalize ${
+                    filterType === type
+                      ? 'bg-amber-500 text-slate-950 font-black shadow'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {type}
+                </button>
+              ))}
             </div>
 
             {/* Catalog Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-2.5">
               {catalog.map((item) => {
                 const isOwned = ownedItems.includes(item.id);
                 const equipped = isEquipped(item);
@@ -321,18 +274,18 @@ export const ShopView: React.FC<ShopViewProps> = ({ onBack }) => {
                 return (
                   <div
                     key={item.id}
-                    className={`p-5 rounded-3xl border transition-all duration-200 flex flex-col justify-between gap-4 ${
+                    className={`p-3.5 rounded-3xl border transition-all duration-200 flex flex-col justify-between gap-2.5 ${
                       equipped
-                        ? 'bg-amber-950/30 border-amber-400/80 shadow-lg shadow-amber-500/10'
+                        ? 'bg-amber-950/30 border-amber-400/80 shadow'
                         : isOwned
-                        ? 'bg-slate-900 border-slate-700'
-                        : 'bg-slate-900/60 border-slate-800 hover:border-amber-500/40'
+                        ? 'bg-[#0e1424] border-slate-700'
+                        : 'bg-[#0e1424] border-slate-800 hover:border-amber-500/40'
                     }`}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
                         <span
-                          className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                          className={`text-[8px] font-black uppercase px-1.5 py-0.2 rounded-full border ${
                             item.rarity === 'legendary'
                               ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
                               : item.rarity === 'epic'
@@ -344,39 +297,38 @@ export const ShopView: React.FC<ShopViewProps> = ({ onBack }) => {
                         >
                           {item.rarity}
                         </span>
-                        <h3 className="font-royal font-bold text-sm text-slate-100 mt-1">
-                          {item.name}
-                        </h3>
-                        <p className="text-xs text-slate-400 leading-relaxed">
-                          {item.description}
-                        </p>
+                        {item.previewColor && (
+                          <div
+                            className="w-4 h-4 rounded-full border border-amber-300/60 shadow flex-shrink-0"
+                            style={{ backgroundColor: item.previewColor }}
+                          />
+                        )}
                       </div>
-
-                      {item.previewColor && (
-                        <div
-                          className="w-8 h-8 rounded-full border-2 border-amber-300/60 shadow flex-shrink-0"
-                          style={{ backgroundColor: item.previewColor }}
-                        />
-                      )}
+                      <h3 className="font-royal font-black text-xs text-slate-100 truncate">
+                        {item.name}
+                      </h3>
+                      <p className="text-[10px] text-slate-400 line-clamp-2 leading-tight">
+                        {item.description}
+                      </p>
                     </div>
 
                     {/* Bottom Action */}
                     <div className="flex items-center justify-between pt-2 border-t border-slate-800/80">
                       {isOwned ? (
                         <div className="w-full flex items-center justify-between">
-                          <span className="text-xs text-emerald-400 font-bold flex items-center gap-1">
-                            <Check className="w-3.5 h-3.5" />
+                          <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                            <Check className="w-3 h-3" />
                             <span>Owned</span>
                           </span>
 
                           {equipped ? (
-                            <span className="px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 font-black text-xs">
-                              Equipped
+                            <span className="px-2.5 py-1 rounded-xl bg-amber-500 text-slate-950 font-black text-[10px]">
+                              Active
                             </span>
                           ) : (
                             <button
                               onClick={() => handleEquip(item.id)}
-                              className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs transition-all cursor-pointer"
+                              className="px-2.5 py-1 rounded-xl bg-[#070b16] hover:bg-slate-800 text-amber-300 border border-slate-700 font-bold text-[10px] transition-all cursor-pointer"
                             >
                               Equip
                             </button>
@@ -384,17 +336,17 @@ export const ShopView: React.FC<ShopViewProps> = ({ onBack }) => {
                         </div>
                       ) : (
                         <div className="w-full flex items-center justify-between">
-                          <span className="flex items-center gap-1 font-black text-sm text-amber-300">
-                            <Coins className="w-4 h-4 text-amber-400" />
+                          <span className="flex items-center gap-1 font-black text-xs text-amber-300">
+                            <Coins className="w-3.5 h-3.5 text-amber-400" />
                             <span>{item.price === 0 ? 'Free' : item.price.toLocaleString()}</span>
                           </span>
 
                           <button
                             onClick={() => handleBuy(item.id)}
-                            className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 font-bold text-slate-950 text-xs shadow transition-all cursor-pointer flex items-center gap-1"
+                            className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:brightness-110 font-bold text-slate-950 text-[10px] shadow transition-all cursor-pointer flex items-center gap-1"
                           >
-                            <ShoppingBag className="w-3.5 h-3.5" />
-                            <span>Acquire</span>
+                            <ShoppingBag className="w-3 h-3" />
+                            <span>Buy</span>
                           </button>
                         </div>
                       )}
@@ -408,48 +360,48 @@ export const ShopView: React.FC<ShopViewProps> = ({ onBack }) => {
 
         {/* SECTION 2: COIN BUNDLES */}
         {activeTab === 'coins' && (
-          <div className="space-y-4 animate-fade-in">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div className="space-y-2.5 animate-fade-in">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {COIN_PACKAGES.map((pkg) => (
                 <div
                   key={pkg.id}
-                  className="p-5 rounded-3xl bg-slate-900 border border-slate-800 hover:border-amber-500/50 transition-all flex flex-col justify-between gap-3 relative overflow-hidden"
+                  className="p-4 rounded-3xl bg-[#0e1424] border border-slate-800 hover:border-amber-500/40 transition-all flex flex-col justify-between gap-2.5 relative overflow-hidden"
                 >
                   {pkg.tag && (
-                    <div className="absolute top-0 right-0 px-3 py-0.5 bg-gradient-to-l from-amber-500 to-amber-600 text-slate-950 font-black text-[9px] uppercase tracking-wider rounded-bl-xl shadow">
+                    <div className="absolute top-0 right-0 px-2.5 py-0.5 bg-gradient-to-l from-amber-500 to-yellow-400 text-slate-950 font-black text-[8px] uppercase tracking-wider rounded-bl-xl shadow">
                       {pkg.tag}
                     </div>
                   )}
 
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <div className="w-9 h-9 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-300">
-                        <Coins className="w-5 h-5" />
+                      <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-300">
+                        <Coins className="w-4 h-4" />
                       </div>
                       <div>
-                        <h4 className="font-royal font-bold text-sm text-slate-100">
+                        <h4 className="font-royal font-black text-xs text-slate-100">
                           {pkg.name}
                         </h4>
-                        <span className="text-[10px] text-emerald-400 font-bold">
-                          +{pkg.bonusCoins.toLocaleString()} Bonus Included
+                        <span className="text-[9px] text-emerald-400 font-bold">
+                          +{pkg.bonusCoins.toLocaleString()} Bonus
                         </span>
                       </div>
                     </div>
 
-                    <div className="pt-2 flex items-baseline gap-2">
-                      <span className="text-2xl font-black font-mono text-amber-300">
+                    <div className="pt-1 flex items-baseline gap-1.5">
+                      <span className="text-xl font-black font-mono text-amber-300">
                         {(pkg.coins + pkg.bonusCoins).toLocaleString()}
                       </span>
-                      <span className="text-xs text-amber-400 font-bold">Coins</span>
+                      <span className="text-[10px] text-amber-400 font-bold">Coins</span>
                     </div>
 
-                    <p className="text-xs text-slate-400">
+                    <p className="text-[10px] text-slate-400 line-clamp-1">
                       {pkg.description}
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-between pt-3 border-t border-slate-800">
-                    <span className="font-black text-sm text-slate-100">
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+                    <span className="font-black text-xs text-slate-100">
                       PKR {pkg.pricePKR.toLocaleString()}
                     </span>
 
@@ -459,9 +411,9 @@ export const ShopView: React.FC<ShopViewProps> = ({ onBack }) => {
                         setSelectedPkgId(pkg.id);
                         setShowPaymentModal(true);
                       }}
-                      className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 font-bold text-xs uppercase tracking-wider text-slate-950 shadow transition-all cursor-pointer flex items-center gap-1"
+                      className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:brightness-110 font-royal font-black text-[10px] uppercase tracking-wider text-slate-950 shadow transition-all cursor-pointer flex items-center gap-1"
                     >
-                      <span>Buy via Jazz/Easy/Bank</span>
+                      <span>Buy Now</span>
                     </button>
                   </div>
                 </div>

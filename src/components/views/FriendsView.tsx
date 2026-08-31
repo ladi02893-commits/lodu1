@@ -145,37 +145,34 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
   const blockedFriends = friends.filter((f) => f.status === 'blocked');
 
   return (
-    <div className="w-full min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center pb-20 overflow-x-hidden">
+    <div className="w-full min-h-screen bg-[#070b16] text-slate-100 flex flex-col items-center pb-20 overflow-x-hidden font-sans">
       {/* Header */}
-      <header className="w-full max-w-4xl px-4 py-4 flex items-center justify-between border-b border-amber-500/20 bg-slate-950/90 sticky top-0 z-30 backdrop-blur-md">
+      <header className="w-full max-w-xl px-4 py-3 flex items-center justify-between border-b border-amber-500/10 bg-[#070b16]/95 sticky top-0 z-30 backdrop-blur-md">
         <button
           onClick={() => {
             sound.playClick();
             onBack();
           }}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-slate-300 hover:text-amber-300 transition-all cursor-pointer text-xs font-semibold"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#0e1424] border border-slate-800 text-slate-300 hover:text-amber-300 transition-all cursor-pointer text-xs font-semibold"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Court</span>
         </button>
 
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-amber-400" />
-          <h2 className="font-royal font-bold text-sm sm:text-base text-amber-300">
-            Royal Companions & Follow Requests
-          </h2>
-        </div>
+        <h2 className="font-royal font-black text-sm sm:text-base text-amber-300 uppercase tracking-wider">
+          Companions & Friends
+        </h2>
 
-        <div className="w-16" />
+        <div className="w-14" />
       </header>
 
       {/* Floating Feedback Toast */}
       {feedback && (
         <div
-          className={`fixed top-16 z-50 px-4 py-2.5 rounded-2xl text-xs font-bold shadow-2xl border flex items-center gap-2 animate-bounce transition-all ${
+          className={`fixed top-14 z-50 px-4 py-2 rounded-2xl text-xs font-bold shadow-2xl border flex items-center gap-2 animate-bounce transition-all ${
             feedback.success
-              ? 'bg-gradient-to-r from-emerald-950 via-slate-900 to-amber-950 text-amber-300 border-amber-400'
-              : 'bg-rose-950/90 text-rose-300 border-rose-500'
+              ? 'bg-amber-950 text-amber-300 border-amber-400'
+              : 'bg-rose-950 text-rose-300 border-rose-500'
           }`}
         >
           <Sparkles className="w-4 h-4 text-amber-400" />
@@ -183,20 +180,20 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
         </div>
       )}
 
-      <main className="w-full max-w-2xl px-4 py-6 space-y-5">
-        {/* Pending Follow Requests Callout Banner if user has incoming requests */}
+      <main className="w-full max-w-xl px-3.5 sm:px-4 py-4 space-y-3.5 z-10">
+        {/* Pending Follow Requests Callout Banner */}
         {followers.length > 0 && activeTab !== 'followers' && (
-          <div className="p-4 rounded-3xl bg-gradient-to-r from-amber-950/80 via-slate-900 to-amber-900/60 border-2 border-amber-400 shadow-2xl flex items-center justify-between gap-3 animate-pulse">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shadow">
-                <Heart className="w-5 h-5 fill-slate-950" />
+          <div className="p-3.5 rounded-3xl bg-[#0e1424] border border-amber-400 shadow-xl flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shadow flex-shrink-0">
+                <Heart className="w-4 h-4 fill-slate-950" />
               </div>
-              <div>
-                <h4 className="font-royal font-bold text-xs sm:text-sm text-amber-200">
+              <div className="min-w-0">
+                <h4 className="font-royal font-bold text-xs text-amber-200 truncate">
                   {followers.length} Pending Companion {followers.length > 1 ? 'Requests' : 'Request'}!
                 </h4>
-                <p className="text-[11px] text-slate-300">
-                  {followers[0].display_name} {followers.length > 1 ? `and ${followers.length - 1} other` : ''} wants to connect with you.
+                <p className="text-[10px] text-slate-400 truncate">
+                  {followers[0].display_name} wants to connect with you.
                 </p>
               </div>
             </div>
@@ -206,9 +203,9 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
                 sound.playClick();
                 setActiveTab('followers');
               }}
-              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-royal font-black text-xs cursor-pointer shadow hover:scale-105 transition-transform whitespace-nowrap"
+              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-royal font-black text-xs cursor-pointer shadow whitespace-nowrap flex-shrink-0"
             >
-              View & Accept 🤝
+              View Requests
             </button>
           </div>
         )}
@@ -216,41 +213,41 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ onBack, onInviteToRoom
         {/* Quick Search / Follow by Player ID or Username Form */}
         <form
           onSubmit={handleSearchSubmit}
-          className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-slate-900/90 via-slate-900/95 to-amber-950/30 border border-amber-500/30 space-y-3 shadow-xl"
+          className="p-3.5 rounded-3xl bg-[#0e1424] border border-amber-500/30 space-y-2.5 shadow"
         >
           <div className="flex items-center justify-between">
-            <h3 className="font-royal font-bold text-xs sm:text-sm text-amber-200 flex items-center gap-1.5">
-              <Search className="w-4 h-4 text-amber-400" />
+            <h3 className="font-royal font-bold text-xs text-amber-200 flex items-center gap-1.5">
+              <Search className="w-3.5 h-3.5 text-amber-400" />
               <span>Search & Follow Monarch</span>
             </h3>
-            <span className="text-[10px] text-amber-400/80 font-mono">
-              Your Seal: #{currentUser.player_id}
+            <span className="text-[10px] text-amber-400 font-mono font-bold">
+              Seal: #{currentUser.player_id}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
             <input
               type="text"
-              placeholder="Enter username or Player ID (e.g. RL-7777, ammar_admin)..."
+              placeholder="Enter username or Player ID (e.g. RL-7777)..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 setDiscoverResults(friendsService.searchAllNobles(e.target.value));
               }}
-              className="flex-1 bg-slate-950 border border-amber-500/40 rounded-2xl px-4 py-2.5 text-xs sm:text-sm text-amber-200 placeholder-slate-500 outline-none focus:ring-2 focus:ring-amber-400 transition-all font-medium"
+              className="flex-1 bg-[#070b16] border border-amber-500/40 rounded-2xl px-3.5 py-2 text-xs text-amber-200 placeholder-slate-500 outline-none focus:ring-1 focus:ring-amber-400 transition-all font-medium"
             />
             <button
               type="submit"
-              className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 font-royal font-bold text-slate-950 text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow whitespace-nowrap"
+              className="px-3.5 py-2 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 font-royal font-black text-slate-950 text-xs transition-all flex items-center gap-1 cursor-pointer shadow whitespace-nowrap"
             >
               <Send className="w-3.5 h-3.5" />
-              <span>Send</span>
+              <span>Search</span>
             </button>
           </div>
         </form>
 
         {/* Tab Navigation Pill Bar */}
-        <div className="flex items-center gap-1 sm:gap-2 p-1.5 bg-slate-900/80 border border-slate-800 rounded-2xl overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-1 p-1 bg-[#0e1424] border border-slate-800 rounded-2xl overflow-x-auto no-scrollbar">
           <button
             type="button"
             onClick={() => {

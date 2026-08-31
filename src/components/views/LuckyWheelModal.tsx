@@ -124,52 +124,47 @@ export const LuckyWheelModal: React.FC<LuckyWheelModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
         <motion.div
-          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.9, y: 20 }}
+          exit={{ opacity: 0, scale: 0.95, y: 15 }}
           transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-          className="relative w-full max-w-lg bg-gradient-to-b from-slate-900 via-slate-900 to-amber-950/50 border-2 border-amber-500/50 rounded-3xl p-5 sm:p-7 shadow-[0_20px_70px_rgba(0,0,0,0.85)] text-white overflow-hidden my-auto"
+          className="relative w-full max-w-sm bg-[#0e1424] border border-amber-500/40 rounded-3xl p-4 sm:p-5 shadow-2xl text-white my-auto space-y-3"
         >
-          {/* Ambient Royal Lights */}
-          <div className="absolute -top-20 -left-20 w-60 h-60 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-20 -right-20 w-60 h-60 bg-yellow-500/15 rounded-full blur-3xl pointer-events-none" />
-
           {/* Close Button */}
           <button
             onClick={onClose}
             disabled={isSpinning}
-            className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors border border-white/10 cursor-pointer disabled:opacity-30"
+            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-[#070b16] hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors border border-slate-800 cursor-pointer disabled:opacity-30"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
 
           {/* Header */}
-          <div className="text-center mb-4">
-            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[11px] font-black uppercase tracking-wider mb-1.5">
+          <div className="text-center space-y-0.5">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-400/30 text-amber-300 text-[10px] font-black uppercase tracking-wider">
               <Crown className="w-3 h-3 text-amber-400" />
-              Imperial Sovereign Wheel
-              <Sparkles className="w-3 h-3 text-yellow-300" />
+              <span>Fortune Wheel</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-200 bg-clip-text text-transparent font-serif">
-              Lucky Fortune Wheel
+            <h2 className="text-base sm:text-lg font-royal font-black text-amber-300">
+              Spin for Royal Treasure
             </h2>
-            <p className="text-xs text-slate-300">
-              Spin daily for free treasure, royal gems, and the 25,000 Gold Jackpot!
+            <p className="text-[10px] text-slate-400">
+              Win up to 25,000 Coins Jackpot
             </p>
           </div>
 
           {/* Wheel & Pointer Container */}
-          <div className="relative flex items-center justify-center my-3 py-2">
+          <div className="relative flex items-center justify-center py-1">
             {/* Golden Arrow Pointer at 12 o'clock */}
-            <div className="absolute top-0 z-20 flex flex-col items-center pointer-events-none -mt-2">
-              <div className="w-0 h-0 border-l-[14px] border-l-transparent border-r-[14px] border-r-transparent border-t-[24px] border-t-amber-400 filter drop-shadow-[0_4px_8px_rgba(245,158,11,0.8)]" />
-              <div className="w-3 h-3 rounded-full bg-amber-200 -mt-2 shadow-inner border border-amber-600" />
+            <div className="absolute top-0 z-20 flex flex-col items-center pointer-events-none -mt-1.5">
+              <div className="w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[18px] border-t-amber-400 filter drop-shadow-[0_2px_6px_rgba(245,158,11,0.8)]" />
+              <div className="w-2.5 h-2.5 rounded-full bg-amber-200 -mt-1.5 shadow-inner border border-amber-600" />
             </div>
 
             {/* Rotatable SVG Wheel */}
-            <div className="relative w-64 h-64 sm:w-72 sm:h-72 p-2 rounded-full bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-600 shadow-[0_0_35px_rgba(245,158,11,0.4)] border-4 border-amber-300/80">
+            <div className="relative w-52 h-52 sm:w-60 sm:h-60 p-1.5 rounded-full bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-600 shadow-[0_0_25px_rgba(245,158,11,0.3)] border-2 border-amber-300">
               <div
                 className="w-full h-full rounded-full overflow-hidden transition-transform duration-[4000ms] ease-[cubic-bezier(0.15,0.9,0.25,1)]"
                 style={{
@@ -239,8 +234,8 @@ export const LuckyWheelModal: React.FC<LuckyWheelModalProps> = ({
               </div>
 
               {/* Center Decorative Crown Hub */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-500 border-2 border-amber-100 shadow-xl flex items-center justify-center pointer-events-none">
-                <Crown className="w-7 h-7 text-slate-950 fill-slate-950" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-500 border-2 border-amber-100 shadow-xl flex items-center justify-center pointer-events-none">
+                <Crown className="w-5 h-5 text-slate-950 fill-slate-950" />
               </div>
             </div>
           </div>
@@ -248,55 +243,55 @@ export const LuckyWheelModal: React.FC<LuckyWheelModalProps> = ({
           {/* Won Prize Celebration Card */}
           {wonPrize && (
             <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              initial={{ opacity: 0, y: 5, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-950/80 via-slate-900 to-amber-950/80 border-2 border-amber-400 text-center my-3 shadow-lg"
+              className="p-2.5 rounded-2xl bg-[#070b16] border border-amber-400 text-center shadow"
             >
-              <div className="text-[10px] uppercase font-bold text-amber-300 tracking-wider">
-                Royal Treasury Tribute Unlocked!
+              <div className="text-[9px] uppercase font-bold text-amber-300">
+                Reward Unlocked!
               </div>
-              <div className="text-lg font-black text-white flex items-center justify-center gap-1.5 mt-0.5">
+              <div className="text-sm font-black text-white flex items-center justify-center gap-1 mt-0.5">
                 <span>{wonPrize.icon}</span>
                 <span>+{wonPrize.label} {wonPrize.sublabel}</span>
               </div>
             </motion.div>
           )}
 
-          {/* Feedback error or alert */}
+          {/* Feedback alert */}
           {feedback && (
-            <div className="p-2.5 rounded-xl bg-rose-950/80 border border-rose-500/40 text-rose-300 text-xs text-center font-bold my-2">
+            <div className="p-2 rounded-xl bg-rose-950 text-rose-300 text-[10px] text-center font-bold border border-rose-500/40">
               {feedback}
             </div>
           )}
 
-          {/* Action Buttons: Free Daily Spin or 500 Coins Spin */}
-          <div className="space-y-2.5 pt-2">
+          {/* Action Buttons */}
+          <div className="pt-1">
             {status.canFreeSpin ? (
               <button
                 onClick={() => handleSpin(true)}
                 disabled={isSpinning}
-                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:brightness-110 font-royal font-black text-sm uppercase tracking-wider text-slate-950 shadow-[0_0_20px_rgba(245,158,11,0.5)] transition-all cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
+                className="w-full py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:brightness-110 font-royal font-black text-xs uppercase tracking-wider text-slate-950 shadow transition-all cursor-pointer disabled:opacity-60 flex items-center justify-center gap-1.5 active:scale-95"
               >
-                <Sparkles className="w-4 h-4 text-slate-950 animate-spin" />
-                <span>{isSpinning ? 'Consulting the Royal Oracle...' : 'FREE DAILY SPIN'}</span>
+                <Sparkles className="w-3.5 h-3.5 text-slate-950" />
+                <span>{isSpinning ? 'Spinning...' : 'FREE DAILY SPIN'}</span>
               </button>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <button
                   onClick={() => handleSpin(false)}
                   disabled={isSpinning || user.coins < status.spinCostCoins}
-                  className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 font-royal font-black text-xs sm:text-sm uppercase tracking-wider text-slate-950 shadow transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:brightness-110 font-royal font-black text-xs uppercase tracking-wider text-slate-950 shadow transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5 active:scale-95"
                 >
-                  <Coins className="w-4 h-4 text-slate-950" />
+                  <Coins className="w-3.5 h-3.5 text-slate-950" />
                   <span>
                     {isSpinning
-                      ? 'Spinning Fortune Wheel...'
-                      : `Spin with ${status.spinCostCoins} Coins`}
+                      ? 'Spinning...'
+                      : `Spin for ${status.spinCostCoins} Coins`}
                   </span>
                 </button>
 
-                <div className="flex items-center justify-between text-[11px] text-slate-400 px-2 font-mono">
-                  <span>Free Spin Cooldown:</span>
+                <div className="flex items-center justify-between text-[10px] text-slate-400 px-1 font-mono">
+                  <span>Free Spin in:</span>
                   <span className="text-amber-400 font-bold">
                     ⏳ {formatCountdown(status.nextFreeSpinInSeconds)}
                   </span>

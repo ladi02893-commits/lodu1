@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
+  ArrowLeft,
   Check,
   Clock,
   Crown,
@@ -102,11 +103,27 @@ export const LobbyMessengerModal: React.FC<LobbyMessengerModalProps> = ({
   // Initial friend selection
   useEffect(() => {
     if (initialFriendId) {
-      const found = friendsList.find((f) => f.id === initialFriendId);
+      let found = friendsList.find((f) => f.id === initialFriendId);
+      if (!found) {
+        found = friendsService.getSuggestedNobles().find((f) => f.id === initialFriendId) as any;
+      }
       if (found) {
         setSelectedFriend(found);
-        setActiveTab('dms');
+      } else {
+        setSelectedFriend({
+          id: initialFriendId,
+          username: 'Noble Player',
+          display_name: 'Noble Player',
+          avatar_url: 'avatar_1',
+          player_id: initialFriendId.slice(0, 8),
+          level: 1,
+          xp: 0,
+          wins: 0,
+          is_online: true,
+          status: 'friend',
+        });
       }
+      setActiveTab('dms');
     }
   }, [initialFriendId, friendsList]);
 
@@ -276,7 +293,7 @@ export const LobbyMessengerModal: React.FC<LobbyMessengerModalProps> = ({
     return `${opt}s`;
   };
 
-  const activeFriends = friendsList.filter((f) => f.status === 'friend');
+  const activeFriends = friendsList.filter((f) => f.status !== 'blocked');
   const pendingRequests = friendsList.filter((f) => f.status === 'pending_received');
 
   if (!isOpen) return null;

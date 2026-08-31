@@ -66,49 +66,51 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onBack, onLogout, onOp
   };
 
   return (
-    <div className="w-full min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center pb-16 overflow-x-hidden">
+    <div className="w-full min-h-screen bg-[#070b16] text-slate-100 flex flex-col items-center pb-20 overflow-x-hidden font-sans">
       {/* Header */}
-      <header className="w-full max-w-4xl px-4 py-4 flex items-center justify-between border-b border-amber-500/20 bg-slate-950/80 sticky top-0 z-20 backdrop-blur-md">
+      <header className="w-full max-w-xl px-4 py-3 flex items-center justify-between border-b border-amber-500/10 bg-[#070b16]/95 sticky top-0 z-30 backdrop-blur-md">
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-slate-300 hover:text-amber-300 transition-all cursor-pointer text-xs font-semibold"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#0e1424] border border-slate-800 text-slate-300 hover:text-amber-300 transition-all cursor-pointer text-xs font-semibold"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Court</span>
         </button>
 
-        <h2 className="font-royal font-bold text-sm sm:text-base text-amber-300">
-          Royal Monarch Profile
+        <h2 className="font-royal font-black text-sm sm:text-base text-amber-300 uppercase tracking-wider">
+          Monarch Profile
         </h2>
 
-        <div className="w-16" />
+        <div className="w-14" />
       </header>
 
-      <main className="w-full max-w-3xl px-4 py-6 space-y-6">
+      <main className="w-full max-w-xl px-3.5 sm:px-4 py-4 space-y-3.5 z-10">
         {/* Profile Identity Card */}
-        <div className="p-6 rounded-3xl bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-2 border-amber-500/40 shadow-xl flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
+        <div className="p-4 sm:p-5 rounded-3xl bg-[#0e1424] border border-amber-500/30 shadow-xl flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
           {/* Avatar Frame */}
-          <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-amber-600 via-amber-400 to-amber-500 p-1 shadow-lg shadow-amber-500/30 flex items-center justify-center flex-shrink-0">
-            <div className="w-full h-full rounded-full bg-slate-950 flex items-center justify-center">
-              <Crown className="w-10 h-10 sm:w-12 sm:h-12 text-amber-300" />
-            </div>
-            <span className="absolute -bottom-1 -right-1 px-2 py-0.5 rounded-full bg-amber-500 text-xs font-black text-slate-950 border-2 border-slate-900">
+          <div className="relative w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-600 p-0.5 shadow-md shadow-amber-500/20 flex items-center justify-center flex-shrink-0">
+            <img
+              src="/logo.png"
+              alt="Avatar"
+              className="w-full h-full rounded-full object-cover bg-slate-900 border-2 border-[#070b16]"
+            />
+            <span className="absolute -bottom-1 -left-1 px-1.5 py-0.2 rounded-full bg-amber-500 text-[9px] font-black text-slate-950 shadow border border-[#070b16]">
               Lv.{user.level}
             </span>
           </div>
 
           {/* User Details */}
-          <div className="flex-1 space-y-2">
+          <div className="flex-1 space-y-2 w-full">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 {isEditing ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 justify-center sm:justify-start">
                     <input
                       type="text"
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
                       maxLength={20}
-                      className="bg-slate-950 border border-amber-400 rounded-xl px-3 py-1 text-sm font-bold text-amber-200 outline-none"
+                      className="bg-[#070b16] border border-amber-400 rounded-xl px-3 py-1 text-sm font-bold text-amber-200 outline-none"
                     />
                     <button
                       onClick={handleSaveName}
@@ -119,7 +121,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onBack, onLogout, onOp
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 justify-center sm:justify-start">
-                    <h3 className="text-xl sm:text-2xl font-royal font-bold text-slate-100">
+                    <h3 className="text-lg sm:text-xl font-royal font-black text-slate-100">
                       {user.display_name}
                     </h3>
                     <button
@@ -127,18 +129,18 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onBack, onLogout, onOp
                       className="text-slate-400 hover:text-amber-300 transition-colors cursor-pointer"
                       title="Edit Display Name"
                     >
-                      <Edit2 className="w-4 h-4" />
+                      <Edit2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 )}
-                <div className="text-xs text-amber-400/80 font-mono">
-                  Player Seal: #{user.player_id}
+                <div className="text-xs text-amber-400 font-mono font-bold">
+                  Seal: #{user.player_id}
                 </div>
               </div>
 
               {/* Wallet Purse */}
-              <div className="flex items-center gap-2 justify-center sm:justify-end">
-                <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-950/60 border border-amber-500/40 text-amber-300 font-bold text-sm">
+              <div className="flex items-center gap-1.5 justify-center sm:justify-end">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#070b16] border border-amber-500/50 text-amber-300 font-bold text-xs sm:text-sm shadow-inner">
                   <Coins className="w-4 h-4 text-amber-400" />
                   <span>{Math.max(0, Math.floor(Math.round(user.coins || 0))).toLocaleString()}</span>
                 </div>
@@ -147,33 +149,32 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onBack, onLogout, onOp
 
             {/* Level & XP Meter */}
             <div className="space-y-1">
-              <div className="flex justify-between text-xs text-slate-400">
-                <span>Imperial Experience (XP)</span>
-                <span className="text-amber-300 font-semibold">{user.xp.toLocaleString()} XP</span>
+              <div className="flex justify-between text-[11px] text-slate-400">
+                <span>XP Progress</span>
+                <span className="text-amber-300 font-bold">{user.xp.toLocaleString()} XP</span>
               </div>
-              <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+              <div className="w-full h-1.5 rounded-full bg-slate-800/80 overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-amber-500 to-amber-300 rounded-full"
+                  className="h-full bg-amber-500 rounded-full"
                   style={{ width: `${Math.min(100, (user.xp % 1000) / 10)}%` }}
                 />
               </div>
             </div>
 
-            {/* Social Followers & Following Bar */}
-            <div className="flex items-center gap-2 pt-2 border-t border-slate-800/80">
+            {/* Social Followers Bar */}
+            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-800/80">
               <button
                 type="button"
                 onClick={() => {
                   sound.playClick();
                   if (onOpenFriends) onOpenFriends();
                 }}
-                className="flex-1 py-1.5 px-2 rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/40 text-center transition-all cursor-pointer group"
-                title="View Followers"
+                className="py-1.5 px-2 rounded-xl bg-[#070b16] hover:bg-slate-800 border border-slate-800 hover:border-amber-500/40 text-center transition-all cursor-pointer"
               >
-                <div className="text-sm font-black text-amber-300 group-hover:scale-105 transition-transform">
+                <div className="text-xs font-black text-amber-300">
                   {socialCounts.followers}
                 </div>
-                <div className="text-[9px] sm:text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
                   Followers
                 </div>
               </button>
@@ -184,13 +185,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onBack, onLogout, onOp
                   sound.playClick();
                   if (onOpenFriends) onOpenFriends();
                 }}
-                className="flex-1 py-1.5 px-2 rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/40 text-center transition-all cursor-pointer group"
-                title="View Following"
+                className="py-1.5 px-2 rounded-xl bg-[#070b16] hover:bg-slate-800 border border-slate-800 hover:border-amber-500/40 text-center transition-all cursor-pointer"
               >
-                <div className="text-sm font-black text-amber-300 group-hover:scale-105 transition-transform">
+                <div className="text-xs font-black text-amber-300">
                   {socialCounts.following}
                 </div>
-                <div className="text-[9px] sm:text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
                   Following
                 </div>
               </button>
@@ -201,13 +201,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onBack, onLogout, onOp
                   sound.playClick();
                   if (onOpenFriends) onOpenFriends();
                 }}
-                className="flex-1 py-1.5 px-2 rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500/40 text-center transition-all cursor-pointer group"
-                title="View Mutual Companions"
+                className="py-1.5 px-2 rounded-xl bg-[#070b16] hover:bg-slate-800 border border-slate-800 hover:border-emerald-500/40 text-center transition-all cursor-pointer"
               >
-                <div className="text-sm font-black text-emerald-400 group-hover:scale-105 transition-transform">
+                <div className="text-xs font-black text-emerald-400">
                   {socialCounts.companions}
                 </div>
-                <div className="text-[9px] sm:text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
                   Companions
                 </div>
               </button>
@@ -216,109 +215,99 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onBack, onLogout, onOp
         </div>
 
         {/* Stats Grid */}
-        <div className="space-y-3">
-          <h4 className="font-royal font-bold text-sm text-slate-200 uppercase tracking-wider">
+        <div className="space-y-2.5">
+          <h4 className="font-royal font-black text-xs sm:text-sm text-amber-400 uppercase tracking-wider px-1">
             Battle Honors & Statistics
           </h4>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {/* Matches & Wins */}
-            <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col items-center gap-1 text-center">
-              <Trophy className="w-5 h-5 text-amber-400" />
-              <span className="text-xs text-slate-400">Triumphs</span>
-              <span className="text-xl font-black text-amber-300">{user.wins}</span>
+          <div className="grid grid-cols-4 gap-2">
+            <div className="p-3 rounded-2xl bg-[#0e1424] border border-amber-500/20 flex flex-col items-center gap-1 text-center">
+              <Trophy className="w-4 h-4 text-amber-400" />
+              <span className="text-[10px] text-slate-400">Wins</span>
+              <span className="text-base sm:text-lg font-black text-amber-300">{user.wins}</span>
             </div>
 
-            {/* Total Matches */}
-            <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col items-center gap-1 text-center">
-              <Shield className="w-5 h-5 text-blue-400" />
-              <span className="text-xs text-slate-400">Played</span>
-              <span className="text-xl font-black text-blue-300">{user.games_played}</span>
+            <div className="p-3 rounded-2xl bg-[#0e1424] border border-slate-800 flex flex-col items-center gap-1 text-center">
+              <Shield className="w-4 h-4 text-blue-400" />
+              <span className="text-[10px] text-slate-400">Played</span>
+              <span className="text-base sm:text-lg font-black text-blue-300">{user.games_played}</span>
             </div>
 
-            {/* Win Rate */}
-            <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col items-center gap-1 text-center">
-              <Percent className="w-5 h-5 text-emerald-400" />
-              <span className="text-xs text-slate-400">Win Rate</span>
-              <span className="text-xl font-black text-emerald-300">{winRate}%</span>
+            <div className="p-3 rounded-2xl bg-[#0e1424] border border-slate-800 flex flex-col items-center gap-1 text-center">
+              <Percent className="w-4 h-4 text-emerald-400" />
+              <span className="text-[10px] text-slate-400">Win Rate</span>
+              <span className="text-base sm:text-lg font-black text-emerald-300">{winRate}%</span>
             </div>
 
-            {/* Captures */}
-            <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col items-center gap-1 text-center">
-              <Swords className="w-5 h-5 text-rose-400" />
-              <span className="text-xs text-slate-400">Captures</span>
-              <span className="text-xl font-black text-rose-300">{user.total_captures}</span>
+            <div className="p-3 rounded-2xl bg-[#0e1424] border border-slate-800 flex flex-col items-center gap-1 text-center">
+              <Swords className="w-4 h-4 text-rose-400" />
+              <span className="text-[10px] text-slate-400">Captures</span>
+              <span className="text-base sm:text-lg font-black text-rose-300">{user.total_captures}</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Current Win Streak */}
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900 to-amber-950/30 border border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-orange-950/60 border border-orange-500/40 flex items-center justify-center">
-                  <Flame className="w-5 h-5 text-orange-400" />
-                </div>
-                <div>
-                  <div className="text-xs text-slate-400">Current Win Streak</div>
-                  <div className="text-lg font-black text-orange-300">{user.current_win_streak} Consecutive</div>
-                </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="p-3 rounded-2xl bg-[#0e1424] border border-slate-800 flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-orange-950/60 border border-orange-500/40 flex items-center justify-center flex-shrink-0">
+                <Flame className="w-4 h-4 text-orange-400" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] text-slate-400">Win Streak</div>
+                <div className="text-sm font-black text-orange-300 truncate">{user.current_win_streak} Consec.</div>
               </div>
             </div>
 
-            {/* Best Win Streak */}
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900 to-amber-950/30 border border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-950/60 border border-amber-500/40 flex items-center justify-center">
-                  <Award className="w-5 h-5 text-amber-400" />
-                </div>
-                <div>
-                  <div className="text-xs text-slate-400">All-Time Best Streak</div>
-                  <div className="text-lg font-black text-amber-300">{user.best_win_streak} Victories</div>
-                </div>
+            <div className="p-3 rounded-2xl bg-[#0e1424] border border-slate-800 flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-amber-950/60 border border-amber-500/40 flex items-center justify-center flex-shrink-0">
+                <Award className="w-4 h-4 text-amber-400" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] text-slate-400">Best Streak</div>
+                <div className="text-sm font-black text-amber-300 truncate">{user.best_win_streak} Wins</div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Heraldry & Cosmetics Equipped */}
-        <div className="space-y-3">
-          <h4 className="font-royal font-bold text-sm text-slate-200 uppercase tracking-wider">
+        {/* Heraldry Loadout */}
+        <div className="space-y-2.5">
+          <h4 className="font-royal font-black text-xs sm:text-sm text-amber-400 uppercase tracking-wider px-1">
             Equipped Heraldry Loadout
           </h4>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-950/60 border border-amber-500/40 flex items-center justify-center text-amber-400">
-                <Sparkles className="w-5 h-5" />
+          <div className="grid grid-cols-3 gap-2">
+            <div className="p-3 rounded-2xl bg-[#0e1424] border border-slate-800 flex flex-col items-center text-center gap-1.5">
+              <div className="w-9 h-9 rounded-xl bg-amber-950/60 border border-amber-500/40 flex items-center justify-center text-amber-400">
+                <Sparkles className="w-4 h-4" />
               </div>
               <div>
-                <div className="text-[10px] text-slate-400 uppercase">Dice Style</div>
-                <div className="text-xs font-bold text-amber-200 capitalize">
+                <div className="text-[9px] text-slate-400 uppercase">Dice</div>
+                <div className="text-xs font-bold text-amber-200 capitalize truncate">
                   {user.dice_skin?.replace('dice_', '') || 'Gold'}
                 </div>
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-950/60 border border-blue-500/40 flex items-center justify-center text-blue-400">
-                <LayoutGrid className="w-5 h-5" />
+            <div className="p-3 rounded-2xl bg-[#0e1424] border border-slate-800 flex flex-col items-center text-center gap-1.5">
+              <div className="w-9 h-9 rounded-xl bg-blue-950/60 border border-blue-500/40 flex items-center justify-center text-blue-400">
+                <LayoutGrid className="w-4 h-4" />
               </div>
               <div>
-                <div className="text-[10px] text-slate-400 uppercase">Board Theme</div>
-                <div className="text-xs font-bold text-blue-200 capitalize">
-                  {user.board_theme?.replace('theme_', '') || 'Royal Mahogany'}
+                <div className="text-[9px] text-slate-400 uppercase">Board</div>
+                <div className="text-xs font-bold text-blue-200 capitalize truncate">
+                  {user.board_theme?.replace('theme_', '') || 'Mahogany'}
                 </div>
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-purple-950/60 border border-purple-500/40 flex items-center justify-center text-purple-400">
-                <Shield className="w-5 h-5" />
+            <div className="p-3 rounded-2xl bg-[#0e1424] border border-slate-800 flex flex-col items-center text-center gap-1.5">
+              <div className="w-9 h-9 rounded-xl bg-purple-950/60 border border-purple-500/40 flex items-center justify-center text-purple-400">
+                <Shield className="w-4 h-4" />
               </div>
               <div>
-                <div className="text-[10px] text-slate-400 uppercase">Token Model</div>
-                <div className="text-xs font-bold text-purple-200 capitalize">
-                  {user.token_skin?.replace('token_', '') || 'Imperial Crown'}
+                <div className="text-[9px] text-slate-400 uppercase">Token</div>
+                <div className="text-xs font-bold text-purple-200 capitalize truncate">
+                  {user.token_skin?.replace('token_', '') || 'Imperial'}
                 </div>
               </div>
             </div>
@@ -326,22 +315,22 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onBack, onLogout, onOp
         </div>
 
         {/* Account Authentication & Logout Card */}
-        <div className="p-5 rounded-3xl bg-slate-900/90 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg">
-          <div className="flex items-center gap-3 text-center sm:text-left">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 flex-shrink-0">
-              <User className="w-5 h-5" />
+        <div className="p-4 rounded-3xl bg-[#0e1424] border border-slate-800 flex items-center justify-between gap-3 shadow-lg">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 flex-shrink-0">
+              <User className="w-4 h-4" />
             </div>
-            <div>
-              <h4 className="font-royal font-bold text-xs sm:text-sm text-slate-100">
+            <div className="min-w-0">
+              <h4 className="font-royal font-bold text-xs sm:text-sm text-slate-100 truncate">
                 {user.email ? user.email : 'Guest Noble Session'}
               </h4>
-              <p className="text-[11px] text-slate-400">
-                Role: <span className="font-mono font-bold text-amber-300 uppercase">{user.role || (user.is_admin ? 'Admin' : 'User')}</span> • Player ID: #{user.player_id}
+              <p className="text-[10px] text-slate-400 truncate">
+                Role: <span className="font-mono font-bold text-amber-300 uppercase">{user.role || (user.is_admin ? 'Admin' : 'User')}</span> • ID: #{user.player_id}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {user.email ? (
               <button
                 type="button"
@@ -350,7 +339,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onBack, onLogout, onOp
                   authService.logout();
                   if (onLogout) onLogout();
                 }}
-                className="px-4 py-2 rounded-xl bg-rose-950/60 hover:bg-rose-900 border border-rose-500/40 text-rose-200 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                className="px-3.5 py-2 rounded-xl bg-rose-950/60 hover:bg-rose-900 border border-rose-500/40 text-rose-200 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span>Log Out</span>
@@ -362,10 +351,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onBack, onLogout, onOp
                   sound.playClick();
                   if (onOpenAuth) onOpenAuth();
                 }}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 text-slate-950 font-bold text-xs shadow transition-all cursor-pointer flex items-center gap-1.5"
+                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 text-slate-950 font-bold text-xs shadow transition-all cursor-pointer flex items-center gap-1.5"
               >
                 <Mail className="w-3.5 h-3.5" />
-                <span>Register / Sign In</span>
+                <span>Sign In</span>
               </button>
             )}
           </div>

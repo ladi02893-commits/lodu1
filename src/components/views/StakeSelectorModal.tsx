@@ -99,46 +99,46 @@ export const StakeSelectorModal: React.FC<StakeSelectorModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-4 bg-slate-950/80 backdrop-blur-md">
         <motion.div
-          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.9, y: 20 }}
-          className="relative w-full max-w-md bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 border-2 border-amber-500/50 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-5"
+          exit={{ opacity: 0, scale: 0.95, y: 15 }}
+          className="relative w-full max-w-sm bg-[#0e1424] border border-amber-500/40 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-3.5"
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center">
-                <Crown className="w-5 h-5 text-amber-400" />
+              <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center">
+                <Crown className="w-4 h-4 text-amber-400" />
               </div>
               <div>
-                <h3 className="font-royal font-bold text-sm sm:text-base text-amber-300">
+                <h3 className="font-royal font-black text-sm text-amber-300 uppercase tracking-wider">
                   Select Bet Stake
                 </h3>
-                <p className="text-[11px] text-slate-400">{modeTitle}</p>
+                <p className="text-[10px] text-slate-400">{modeTitle}</p>
               </div>
             </div>
 
             <button
               onClick={onClose}
-              className="p-1.5 rounded-full hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+              className="p-1 rounded-full hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* User Coin Balance */}
-          <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-950/90 border border-slate-800">
+          <div className="flex items-center justify-between p-2.5 rounded-2xl bg-[#070b16] border border-slate-800">
             <span className="text-xs text-slate-400 font-medium">Your Coins:</span>
-            <div className="flex items-center gap-1.5 text-amber-300 font-bold text-sm">
-              <Coins className="w-4 h-4 text-amber-400" />
-              <span>{user.coins.toLocaleString()}</span>
+            <div className="flex items-center gap-1.5 text-amber-300 font-bold text-xs sm:text-sm">
+              <Coins className="w-3.5 h-3.5 text-amber-400" />
+              <span>{Math.max(0, Math.floor(Math.round(user.coins || 0))).toLocaleString()}</span>
             </div>
           </div>
 
           {/* Stake Tier List */}
-          <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+          <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
             {STAKE_TIERS.map((tier) => {
               const isSelected = selectedTier.id === tier.id;
 
@@ -147,36 +147,36 @@ export const StakeSelectorModal: React.FC<StakeSelectorModalProps> = ({
                   key={tier.id}
                   type="button"
                   onClick={() => handleSelect(tier)}
-                  className={`w-full p-3 rounded-2xl border transition-all flex items-center justify-between cursor-pointer ${
+                  className={`w-full p-2.5 rounded-2xl border transition-all flex items-center justify-between cursor-pointer ${
                     isSelected
-                      ? 'bg-gradient-to-r from-amber-950/80 to-slate-900 border-amber-400 ring-2 ring-amber-400/40 shadow-lg shadow-amber-500/20'
-                      : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
+                      ? 'bg-[#070b16] border-amber-400 ring-1 ring-amber-400/40 shadow'
+                      : 'bg-[#070b16]/70 border-slate-800 hover:border-slate-700'
                   }`}
                 >
-                  <div className="flex items-center gap-3 text-left">
+                  <div className="flex items-center gap-2.5 text-left">
                     <div
-                      className={`w-10 h-10 rounded-xl bg-gradient-to-br ${tier.themeColor} flex items-center justify-center shadow`}
+                      className={`w-8 h-8 rounded-xl bg-gradient-to-br ${tier.themeColor} flex items-center justify-center shadow flex-shrink-0`}
                     >
-                      <Coins className="w-5 h-5 text-amber-300" />
+                      <Coins className="w-4 h-4 text-amber-300" />
                     </div>
                     <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-xs sm:text-sm text-slate-100">
+                      <div className="flex items-center gap-1">
+                        <span className="font-bold text-xs text-slate-100">
                           {tier.name}
                         </span>
-                        <span className="px-1.5 py-0.2 rounded text-[8px] font-black bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                        <span className="px-1 py-0.1 rounded text-[7px] font-black bg-amber-400/20 text-amber-300 border border-amber-400/30">
                           {tier.badgeText}
                         </span>
                       </div>
-                      <div className="text-[11px] text-amber-400/90 font-bold mt-0.5">
+                      <div className="text-[10px] text-amber-400 font-bold">
                         Stake: {tier.stake.toLocaleString()} Coins
                       </div>
                     </div>
                   </div>
 
                   <div className="text-right">
-                    <div className="text-[10px] text-slate-400 font-semibold">Prize Pot</div>
-                    <div className="text-xs sm:text-sm font-black text-amber-300">
+                    <div className="text-[9px] text-slate-400 font-semibold">Prize</div>
+                    <div className="text-xs font-black text-amber-300">
                       {(tier.stake * playerCount).toLocaleString()}
                     </div>
                   </div>
@@ -186,12 +186,12 @@ export const StakeSelectorModal: React.FC<StakeSelectorModalProps> = ({
           </div>
 
           {/* Prize Summary Banner */}
-          <div className="p-3 rounded-2xl bg-amber-950/40 border border-amber-500/30 flex items-center justify-between text-xs">
-            <div className="flex items-center gap-1.5 text-amber-300 font-bold">
-              <Trophy className="w-4 h-4 text-amber-400" />
+          <div className="p-2.5 rounded-2xl bg-[#070b16] border border-amber-500/30 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-1 text-amber-300 font-bold text-xs">
+              <Trophy className="w-3.5 h-3.5 text-amber-400" />
               <span>Winner Takes:</span>
             </div>
-            <span className="font-black text-sm text-amber-300">
+            <span className="font-black text-xs text-amber-300">
               🪙 {totalPrize.toLocaleString()} Coins
             </span>
           </div>
@@ -200,15 +200,15 @@ export const StakeSelectorModal: React.FC<StakeSelectorModalProps> = ({
           <button
             type="button"
             onClick={handleConfirm}
-            className={`w-full py-3.5 rounded-2xl font-royal font-extrabold text-sm uppercase tracking-wider transition-all shadow-xl flex items-center justify-center gap-2 cursor-pointer ${
+            className={`w-full py-2.5 rounded-2xl font-royal font-black text-xs uppercase tracking-wider transition-all shadow-lg flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
               hasEnoughCoins
-                ? 'bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 text-slate-950 hover:brightness-110 shadow-amber-500/20'
+                ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 hover:brightness-110 shadow-amber-500/20'
                 : 'bg-rose-600 hover:bg-rose-500 text-white'
             }`}
           >
             {hasEnoughCoins ? (
               <>
-                <Sparkles className="w-4 h-4" />
+                <Sparkles className="w-3.5 h-3.5" />
                 <span>Enter Table ({selectedTier.stake.toLocaleString()} Coins)</span>
               </>
             ) : (

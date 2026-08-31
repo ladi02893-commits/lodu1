@@ -117,7 +117,7 @@ export const DirectChatModal: React.FC<DirectChatModalProps> = ({
 
   const handleDeleteMessage = (messageId: string, type: 'for_everyone' | 'for_me') => {
     sound.playClick();
-    chatService.deleteMessage(messageId, type, currentUser.id);
+    chatService.deleteMessage(conversationId, messageId, type === 'for_everyone' ? 'everyone' : 'me');
     setActiveDeleteMenuMsgId(null);
   };
 
